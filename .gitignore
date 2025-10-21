@@ -39,6 +39,7 @@ cache/
 out/
 broadcast/
 lib/
+!frontend/src/lib/
 
 # Solidity
 artifacts/
