@@ -254,12 +254,9 @@ export default function ProjectsPage() {
           </div>
           
           <Link href="/request">
-            <Button
-              variant="custom"
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 whitespace-nowrap"
-            >
+            <button className="px-4 py-2 text-sm font-medium text-purple-400 border-2 border-purple-500/50 rounded-lg whitespace-nowrap transition-all hover:bg-purple-600 hover:text-white hover:border-purple-600">
               + Request Project
-            </Button>
+            </button>
           </Link>
         </div>
 
