@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { TGEOrderControls } from "@/components/TGEOrderControls";
 import { useOrderbook } from "@/hooks/useOrderbook";
 import { useOrders } from "@/hooks/useOrders";
 import { useToast } from "@/components/Toast";
@@ -46,8 +45,6 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     functionName: "paused",
   });
   const isOrderbookPaused = isPausedData === true;
-
-  const isOwner = address && orderbookOwner && address.toLowerCase() === (orderbookOwner as string).toLowerCase();
   
   const projectToken = project?.tokenAddress as `0x${string}` | undefined;
   const { orders, allOrders, loading } = useOrders(projectToken);
@@ -168,25 +165,6 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       toast.error(
         "Transaction failed",
         error?.message || "Unable to take order. Please try again."
-      );
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleMarkFilled = async (order: { id: bigint }) => {
-    try {
-      setActionLoading(order.id.toString());
-      await markFilled(order.id, order.seller);
-      toast.success(
-        "Order marked as filled! 🎉",
-        "The order has been successfully settled."
-      );
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        "Transaction failed",
-        error?.message || "Unable to mark order as filled."
       );
     } finally {
       setActionLoading(null);
@@ -638,9 +616,6 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                     const buyerCollateral = hasBuyerLock ? formatUnits(order.buyerFunds, STABLE_DECIMALS) : "0";
                     const sellerCollateral = hasSellerLock ? formatUnits(order.sellerCollateral, STABLE_DECIMALS) : "0";
                     const totalCollateral = parseFloat(buyerCollateral) + parseFloat(sellerCollateral);
-
-                    const orderSize = Number(formatUnits(total, STABLE_DECIMALS));
-                    const depthPercentage = maxBuyOrder > 0 ? (orderSize / maxBuyOrder) * 100 : 0;
 
                     return (
                       <tr key={order.id.toString()} className="border-b border-zinc-800/50 hover:bg-zinc-900/30 transition-colors">

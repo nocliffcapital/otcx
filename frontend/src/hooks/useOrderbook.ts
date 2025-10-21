@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { Address, parseUnits } from "viem";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
-import { ESCROW_ORDERBOOK_ABI, ORDERBOOK_ADDRESS, ERC20_ABI, STABLE_ADDRESS, STABLE_DECIMALS } from "@/lib/contracts";
+import { ESCROW_ORDERBOOK_ABI, ORDERBOOK_ADDRESS, ERC20_ABI, STABLE_ADDRESS } from "@/lib/contracts";
 
 export function useOrderbook() {
   const { address } = useAccount();

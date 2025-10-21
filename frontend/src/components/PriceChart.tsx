@@ -55,16 +55,6 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
     let filteredOrders = filledOrders;
     
     if (timeRange !== "all" && filledOrders.length > 0) {
-      const now = Date.now();
-      const timeRanges = {
-        "24h": 24 * 60 * 60 * 1000,
-        "7d": 7 * 24 * 60 * 60 * 1000,
-        "1m": 30 * 24 * 60 * 60 * 1000,
-      };
-      
-      const rangeMs = timeRanges[timeRange];
-      const estimatedOrderInterval = rangeMs / Math.max(filledOrders.length, 1);
-      
       // Estimate which orders fall within the time range
       // For simplicity, we'll take a percentage of the most recent orders
       const percentages = {
