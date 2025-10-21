@@ -442,9 +442,24 @@ export default function AdminPage() {
       <div className="mx-auto max-w-4xl px-4 py-16">
         <Card className="text-center py-12 border-red-800/30 bg-red-950/20">
           <h1 className="text-3xl font-bold mb-4 text-red-400">Access Denied</h1>
-          <p className="text-zinc-400 mb-2">You are not the contract owner.</p>
-          <p className="text-sm text-zinc-500">Connected: {address}</p>
-          <p className="text-sm text-zinc-500">Owner: {owner as string}</p>
+          <p className="text-zinc-400 mb-4">You are not the contract owner.</p>
+          <div className="bg-zinc-900/50 p-4 rounded-lg text-left text-xs space-y-2">
+            <div>
+              <span className="text-zinc-500">Connected Wallet:</span>
+              <p className="text-white font-mono mt-1">{address}</p>
+            </div>
+            <div>
+              <span className="text-zinc-500">Registry Owner:</span>
+              <p className="text-cyan-400 font-mono mt-1">{owner as string || 'Loading...'}</p>
+            </div>
+            <div className="pt-2 mt-2 border-t border-zinc-800">
+              <span className="text-zinc-500">Registry Address:</span>
+              <p className="text-violet-400 font-mono mt-1">{REGISTRY_ADDRESS}</p>
+            </div>
+          </div>
+          <p className="text-xs text-zinc-500 mt-4">
+            ℹ️ Connect with the owner wallet or transfer ownership to access admin features
+          </p>
         </Card>
       </div>
     );
