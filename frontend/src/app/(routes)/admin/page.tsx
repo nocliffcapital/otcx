@@ -763,7 +763,7 @@ export default function AdminPage() {
                         For headers & detail pages
                       </p>
                       <p className="text-[10px] text-zinc-600 mt-0.5">
-                        (Recommended: 400x100px or similar)
+                        (Max height: 48px, max width: 200px)
                       </p>
                     </div>
                     <input
@@ -820,7 +820,7 @@ export default function AdminPage() {
                         For lists & navigation
                       </p>
                       <p className="text-[10px] text-zinc-600 mt-0.5">
-                        (Recommended: 256x256px square)
+                        (Displayed: 40-48px round)
                       </p>
                     </div>
                     <input
