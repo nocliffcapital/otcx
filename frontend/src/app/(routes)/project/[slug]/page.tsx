@@ -10,7 +10,7 @@ import { useOrders } from "@/hooks/useOrders";
 import { useToast } from "@/components/Toast";
 import { ProjectImage } from "@/components/ProjectImage";
 import { parseUnits, formatUnits } from "viem";
-import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
+import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
 import { useReadContract } from "wagmi";
 import { PriceChart } from "@/components/PriceChart";
 import { ProjectInfo } from "@/components/ProjectInfo";
@@ -24,11 +24,11 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   const { address, createSellOrder, createBuyOrder, takeSellOrder, takeBuyOrder, markFilled, mintTestUSDC, mintTestTokens } = useOrderbook();
   const toast = useToast();
   
-  // Fetch project details from registry
+  // V3: Fetch project details from registry using slug
   const { data: project } = useReadContract({
     address: REGISTRY_ADDRESS,
     abi: PROJECT_REGISTRY_ABI,
-    functionName: "getProject",
+    functionName: "getProjectBySlug",
     args: [slug],
   });
   
@@ -47,8 +47,9 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   });
   const isOrderbookPaused = isPausedData === true;
   
-  const projectToken = project?.tokenAddress as `0x${string}` | undefined;
-  const { orders, allOrders, loading } = useOrders(projectToken);
+  // V3: Use projectId (bytes32) instead of tokenAddress
+  const projectId = slugToProjectId(slug);
+  const { orders, allOrders, loading } = useOrders(projectId);
   
   // Helper function to ensure URL has protocol
   const ensureHttps = (url: string | undefined) => {
@@ -95,7 +96,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   const maxSellOrder = sellOrders.length > 0 ? Math.max(...sellOrders.map(o => Number(formatUnits(o.amount * o.unitPrice, 18 + STABLE_DECIMALS)))) : 0;
 
   const handleCreate = async () => {
-    if (!amount || !unitPrice || !address || !projectToken) return;
+    if (!amount || !unitPrice || !address) return;
     
     try {
       setCreating(true);
@@ -103,17 +104,18 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       const amountBigInt = parseUnits(amount, 18); // Amount in token decimals (18)
       const priceBigInt = parseUnits(unitPrice, STABLE_DECIMALS); // Price in stable decimals (6 for USDC)
 
+      // V3: Use projectId (bytes32) instead of projectToken (address)
       if (side === "SELL") {
         await createSellOrder({
           amount: amountBigInt,
           unitPrice: priceBigInt,
-          projectToken: projectToken,
+          projectId: projectId,
         });
       } else {
         await createBuyOrder({
           amount: amountBigInt,
           unitPrice: priceBigInt,
-          projectToken: projectToken,
+          projectId: projectId,
         });
       }
 

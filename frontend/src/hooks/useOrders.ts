@@ -25,7 +25,11 @@ export interface Order {
   // Note: expiry removed - all orders are Good-Til-Cancel (GTC)
 }
 
-export function useOrders(projectToken?: string) {
+/**
+ * V3: Hook to fetch orders for a specific project
+ * @param projectId - bytes32 project identifier (keccak256 of slug)
+ */
+export function useOrders(projectId?: `0x${string}`) {
   const publicClient = usePublicClient();
   const [orders, setOrders] = useState<Order[]>([]);
   const [allOrders, setAllOrders] = useState<Order[]>([]); // For chart - all historical orders
@@ -115,8 +119,9 @@ export function useOrders(projectToken?: string) {
         await Promise.all(orderPromises);
         
         // Filter by projectToken for display (OPEN orders with collateral OR any orders with status >= 1)
+        // V3: Filter by projectId (bytes32) instead of projectToken (address)
         const filtered = allOrdersList.filter(o => {
-          const matchesProject = !projectToken || (typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === projectToken.toLowerCase());
+          const matchesProject = !projectId || (typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === projectId.toLowerCase());
           
           // Show if: status is OPEN and has collateral, OR status >= FUNDED (includes TGE_ACTIVATED, TOKENS_DEPOSITED, SETTLED, DEFAULTED)
           const hasCollateral = o.isSell ? o.sellerCollateral > 0n : o.buyerFunds > 0n;
@@ -125,9 +130,9 @@ export function useOrders(projectToken?: string) {
           return isAvailable && matchesProject;
         });
         
-        // Filter all orders by projectToken for chart (all statuses)
+        // Filter all orders by projectId for chart (all statuses)
         const allFiltered = allOrdersList.filter(o => {
-          return !projectToken || (typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === projectToken.toLowerCase());
+          return !projectId || (typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === projectId.toLowerCase());
         });
         
         setOrders(filtered);
