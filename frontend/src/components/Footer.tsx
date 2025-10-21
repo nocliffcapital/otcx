@@ -1,5 +1,7 @@
 "use client";
 
+import { Logo } from "./Logo";
+
 export function Footer() {
   return (
     <footer className="fixed bottom-0 left-0 right-0 border-t border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl z-40">
@@ -12,6 +14,11 @@ export function Footer() {
               <div className="relative w-2 h-2 bg-green-500 rounded-full"></div>
             </div>
             <span className="text-xs text-zinc-400 font-medium">Live Data</span>
+          </div>
+
+          {/* Center: Logo */}
+          <div className="flex justify-center">
+            <Logo variant="full" className="h-6 w-auto opacity-80 hover:opacity-100 transition-opacity" />
           </div>
 
           {/* Right: Links */}

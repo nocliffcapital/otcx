@@ -31,11 +31,8 @@ export default function HomePage() {
           {/* Main heading */}
           <div className="space-y-4">
             <div className="flex justify-center mb-6">
-              <Logo variant="icon" className="w-24 h-24 md:w-32 md:h-32 animate-pulse" />
+              <Logo variant="full" className="h-24 md:h-32 w-auto" />
             </div>
-            <h1 className="text-6xl md:text-8xl font-bold text-white">
-              otcX
-            </h1>
             <p className="text-2xl md:text-3xl font-semibold text-zinc-200">
               Decentralized OTC Marketplace
             </p>
