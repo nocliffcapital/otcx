@@ -246,13 +246,15 @@ contract EscrowOrderBookV2 is Pausable, ReentrancyGuard {
     }
 
     /// @notice Admin activates TGE for ALL funded orders of a specific project token
-    function batchActivateTGE(address projectToken, address actualToken) external onlyOwner {
-        require(projectToken != address(0), "ZERO_PROJECT");
+    /// @notice Activate TGE for specific order IDs (more gas efficient)
+    /// @param orderIds Array of order IDs to activate
+    /// @param actualToken The actual token address for settlement (or placeholder for Points)
+    function batchActivateTGE(uint256[] calldata orderIds, address actualToken) external onlyOwner {
+        require(orderIds.length > 0, "EMPTY_ARRAY");
         require(actualToken != address(0), "ZERO_TOKEN");
         require(actualToken != address(stable), "CANT_BE_STABLE");
         
         // Special placeholder address for off-chain settlement (Points projects)
-        // Skip validation for the placeholder address
         bool isOffChainSettlement = actualToken == address(0x000000000000000000000000000000000000dEaD);
         
         if (!isOffChainSettlement) {
@@ -264,30 +266,32 @@ contract EscrowOrderBookV2 is Pausable, ReentrancyGuard {
             }
         }
 
-        // Mark project as TGE activated (prevents new orders)
-        projectTgeActivated[projectToken] = true;
-
-        uint256 activatedCount = 0;
         uint64 deadline = uint64(block.timestamp + DEFAULT_SETTLEMENT_WINDOW);
+        address projectToken;
 
-        // Loop through all orders and activate those matching the project token
-        for (uint256 i = 1; i < nextId; i++) {
-            Order storage o = orders[i];
+        // Activate each specified order
+        for (uint256 i = 0; i < orderIds.length; i++) {
+            uint256 orderId = orderIds[i];
+            require(orderId > 0 && orderId < nextId, "INVALID_ORDER_ID");
             
-            // Only activate orders that:
-            // 1. Match the project token
-            // 2. Are in FUNDED status
-            if (o.projectToken == projectToken && o.status == Status.FUNDED) {
-                actualTokenAddress[i] = actualToken;
-                o.settlementDeadline = deadline;
-                o.status = Status.TGE_ACTIVATED;
-                
-                emit TGEActivated(i, actualToken, deadline);
-                activatedCount++;
+            Order storage o = orders[orderId];
+            require(o.status == Status.FUNDED, "NOT_FUNDED");
+            
+            // First order sets the project token; all others must match
+            if (i == 0) {
+                projectToken = o.projectToken;
+                // Mark project as TGE activated (prevents new orders)
+                projectTgeActivated[projectToken] = true;
+            } else {
+                require(o.projectToken == projectToken, "MIXED_PROJECTS");
             }
+            
+            actualTokenAddress[orderId] = actualToken;
+            o.settlementDeadline = deadline;
+            o.status = Status.TGE_ACTIVATED;
+            
+            emit TGEActivated(orderId, actualToken, deadline);
         }
-
-        require(activatedCount > 0, "NO_ORDERS_ACTIVATED");
     }
 
     /// @notice Admin extends settlement deadline by 4 or 24 hours
