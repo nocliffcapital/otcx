@@ -53,6 +53,7 @@ export default function ProjectsPage() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | "Tokens" | "Points">("all");
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
 
   // V3: getActiveProjects returns full structs with metadataURI
   // No need to fetch individually - metadata is on IPFS
@@ -262,32 +263,64 @@ export default function ProjectsPage() {
           </Link>
         </div>
 
-        {/* Asset Type Filter */}
-        <div className="flex gap-2 mt-4">
-          <Button
-            size="sm"
-            variant="custom"
-            onClick={() => setAssetFilter("all")}
-            className={assetFilter === "all" ? "bg-cyan-600 hover:bg-cyan-700" : "bg-zinc-800 hover:bg-zinc-700"}
-          >
-            All
-          </Button>
-          <Button
-            size="sm"
-            variant="custom"
-            onClick={() => setAssetFilter("Tokens")}
-            className={assetFilter === "Tokens" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
-          >
-            Tokens
-          </Button>
-          <Button
-            size="sm"
-            variant="custom"
-            onClick={() => setAssetFilter("Points")}
-            className={assetFilter === "Points" ? "bg-purple-600 hover:bg-purple-700" : "bg-zinc-800 hover:bg-zinc-700"}
-          >
-            Points
-          </Button>
+        {/* Asset Type Filter and View Toggle */}
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="custom"
+              onClick={() => setAssetFilter("all")}
+              className={assetFilter === "all" ? "bg-cyan-600 hover:bg-cyan-700" : "bg-zinc-800 hover:bg-zinc-700"}
+            >
+              All
+            </Button>
+            <Button
+              size="sm"
+              variant="custom"
+              onClick={() => setAssetFilter("Tokens")}
+              className={assetFilter === "Tokens" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
+            >
+              Tokens
+            </Button>
+            <Button
+              size="sm"
+              variant="custom"
+              onClick={() => setAssetFilter("Points")}
+              className={assetFilter === "Points" ? "bg-purple-600 hover:bg-purple-700" : "bg-zinc-800 hover:bg-zinc-700"}
+            >
+              Points
+            </Button>
+          </div>
+
+          {/* View Toggle */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setViewMode("cards")}
+              className={`p-2 rounded-lg transition-all ${
+                viewMode === "cards" 
+                  ? "bg-cyan-600 text-white" 
+                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+              }`}
+              title="Card View"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-2 rounded-lg transition-all ${
+                viewMode === "list" 
+                  ? "bg-cyan-600 text-white" 
+                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+              }`}
+              title="List View"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -310,7 +343,9 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Card View */}
+      {viewMode === "cards" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredProjects.map((project) => {
           const stats = projectStats[project.slug];
           
@@ -392,7 +427,86 @@ export default function ProjectsPage() {
             </Link>
           );
         })}
-      </div>
+        </div>
+      )}
+
+      {/* List View */}
+      {viewMode === "list" && (
+        <div className="space-y-2">
+          {filteredProjects.map((project) => {
+            const stats = projectStats[project.slug];
+            
+            return (
+              <Link key={project.slug} href={`/project/${project.slug}`}>
+                <Card className="hover:border-blue-500/50 hover:shadow-blue-500/20 cursor-pointer group transition-all">
+                  <div className="flex items-center gap-4">
+                    {/* Project Icon */}
+                    <ProjectImage 
+                      metadataURI={project.metadataURI}
+                      imageType="icon"
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-zinc-700 group-hover:border-blue-500/50 transition-all"
+                      fallbackText={project.name.charAt(0).toUpperCase()}
+                    />
+                    
+                    {/* Project Name & Type */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-base">{project.name}</h3>
+                        <Badge className={project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"}>
+                          {project.assetType}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-zinc-400">@{project.slug}</p>
+                    </div>
+                    
+                    {/* Stats */}
+                    {!loadingStats && stats ? (
+                      <div className="flex items-center gap-8 text-sm">
+                        <div className="text-right">
+                          <div className="text-zinc-400 text-xs mb-1">Best Ask</div>
+                          <div className="font-semibold text-red-400">
+                            {stats.lowestAsk !== null ? `$${stats.lowestAsk.toFixed(4)}` : "—"}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-zinc-400 text-xs mb-1">Best Bid</div>
+                          <div className="font-semibold text-green-400">
+                            {stats.highestBid !== null ? `$${stats.highestBid.toFixed(4)}` : "—"}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-zinc-400 text-xs mb-1">Volume</div>
+                          <div className="font-semibold text-blue-400">
+                            ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-zinc-400 text-xs mb-1">Orders</div>
+                          <div className="font-semibold text-zinc-300">
+                            {stats.orderCount}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-8">
+                        <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
+                        <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
+                        <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
+                        <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
+                      </div>
+                    )}
+                    
+                    {/* Arrow */}
+                    <div className="text-zinc-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all">
+                      →
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      )}
       </div>
     </div>
   );
