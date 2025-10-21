@@ -284,20 +284,18 @@ export default function AdminPage() {
         setUploadingMetadata(false);
       }
 
-      // Step 3: Register on-chain
+      // Step 4: Register on-chain (V3)
+      const isPoints = formData.assetType === "Points";
       writeContract({
         address: REGISTRY_ADDRESS,
         abi: PROJECT_REGISTRY_ABI,
         functionName: "addProject",
         args: [
-          cleanSlug,
-          formData.name,
-          tokenAddr,
-          formData.assetType,
-          formData.twitterUrl,
-          formData.websiteUrl,
-          formData.description,
-          logoUrl, // IPFS URL for logo
+          cleanSlug,           // string slug
+          formData.name,       // string name
+          tokenAddr,           // address tokenAddress
+          isPoints,            // bool isPoints (V3: replaces assetType string)
+          metadataURI,         // string metadataURI (V3: replaces individual fields)
         ],
       });
     } catch (error) {

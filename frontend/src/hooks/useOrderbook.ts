@@ -38,61 +38,15 @@ export function useOrderbook() {
     [publicClient]
   );
 
+  /**
+   * V3: Create sell order with bytes32 projectId
+   * Automatically deposits seller collateral
+   */
   const createSellOrder = useCallback(
-    async ({ amount, unitPrice, projectToken }: { amount: bigint; unitPrice: bigint; projectToken: Address }) => {
+    async ({ amount, unitPrice, projectId }: { amount: bigint; unitPrice: bigint; projectId: `0x${string}` }) => {
       if (!walletClient || !address) throw new Error("Wallet not connected");
       
       // Convert from 24 decimals to 6 decimals (USDC)
-      // amount is 18 decimals, unitPrice is 6 decimals, so divide by 10^18
-      const total = (amount * unitPrice) / BigInt(10 ** 18);
-      
-      // Check and approve if needed
-      const allowance = await checkAllowance(address);
-      if (allowance < total) {
-        await approveStable(total * 2n); // Approve 2x for future orders
-      }
-
-      // Get current nextId before creating order
-      const nextIdBefore = await publicClient?.readContract({
-        address: ORDERBOOK_ADDRESS,
-        abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "nextId",
-      }) as bigint;
-      
-      // Create order
-      const createHash = await walletClient.writeContract({
-        address: ORDERBOOK_ADDRESS,
-        abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "createSellOrder",
-        args: [amount, unitPrice, projectToken],
-      });
-      await publicClient?.waitForTransactionReceipt({ hash: createHash });
-      
-      // The order ID is nextId - 1 (since nextId was incremented)
-      const orderId = nextIdBefore;
-      
-      console.log('Created sell order ID:', orderId.toString());
-
-      // Deposit seller collateral
-      const depositHash = await walletClient.writeContract({
-        address: ORDERBOOK_ADDRESS,
-        abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "depositSellerCollateral",
-        args: [orderId],
-      });
-      await publicClient?.waitForTransactionReceipt({ hash: depositHash });
-
-      return { orderId, createHash, depositHash };
-    },
-    [walletClient, publicClient, address, checkAllowance, approveStable]
-  );
-
-  const createBuyOrder = useCallback(
-    async ({ amount, unitPrice, projectToken }: { amount: bigint; unitPrice: bigint; projectToken: Address }) => {
-      if (!walletClient || !address) throw new Error("Wallet not connected");
-      
-      // Convert from 24 decimals to 6 decimals (USDC)
-      // amount is 18 decimals, unitPrice is 6 decimals, so divide by 10^18
       const total = (amount * unitPrice) / BigInt(10 ** 18);
       
       // Check and approve if needed
@@ -108,34 +62,67 @@ export function useOrderbook() {
         functionName: "nextId",
       }) as bigint;
       
-      // Create order
+      // V3: Create order (auto-deposits collateral)
       const createHash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "createBuyOrder",
-        args: [amount, unitPrice, projectToken],
+        functionName: "createSellOrder",
+        args: [amount, unitPrice, projectId],
       });
       await publicClient?.waitForTransactionReceipt({ hash: createHash });
       
-      // The order ID is nextId - 1 (since nextId was incremented)
       const orderId = nextIdBefore;
-      
-      console.log('Created buy order ID:', orderId.toString());
+      console.log('Created sell order ID:', orderId.toString());
 
-      // Deposit buyer funds
-      const depositHash = await walletClient.writeContract({
-        address: ORDERBOOK_ADDRESS,
-        abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "depositBuyerFunds",
-        args: [orderId],
-      });
-      await publicClient?.waitForTransactionReceipt({ hash: depositHash });
-
-      return { orderId, createHash, depositHash };
+      return { orderId, createHash };
     },
     [walletClient, publicClient, address, checkAllowance, approveStable]
   );
 
+  /**
+   * V3: Create buy order with bytes32 projectId
+   * Automatically deposits buyer funds
+   */
+  const createBuyOrder = useCallback(
+    async ({ amount, unitPrice, projectId }: { amount: bigint; unitPrice: bigint; projectId: `0x${string}` }) => {
+      if (!walletClient || !address) throw new Error("Wallet not connected");
+      
+      // Convert from 24 decimals to 6 decimals (USDC)
+      const total = (amount * unitPrice) / BigInt(10 ** 18);
+      
+      // Check and approve if needed
+      const allowance = await checkAllowance(address);
+      if (allowance < total) {
+        await approveStable(total * 2n);
+      }
+
+      // Get current nextId before creating order
+      const nextIdBefore = await publicClient?.readContract({
+        address: ORDERBOOK_ADDRESS,
+        abi: ESCROW_ORDERBOOK_ABI,
+        functionName: "nextId",
+      }) as bigint;
+      
+      // V3: Create order (auto-deposits funds)
+      const createHash = await walletClient.writeContract({
+        address: ORDERBOOK_ADDRESS,
+        abi: ESCROW_ORDERBOOK_ABI,
+        functionName: "createBuyOrder",
+        args: [amount, unitPrice, projectId],
+      });
+      await publicClient?.waitForTransactionReceipt({ hash: createHash });
+      
+      const orderId = nextIdBefore;
+      console.log('Created buy order ID:', orderId.toString());
+
+      return { orderId, createHash };
+    },
+    [walletClient, publicClient, address, checkAllowance, approveStable]
+  );
+
+  /**
+   * V3: Take sell order (automatically deposits buyer funds in same transaction)
+   */
   const takeSellOrder = useCallback(
     async (orderId: bigint, total: bigint) => {
       if (!walletClient || !address) throw new Error("Wallet not connected");
@@ -145,29 +132,23 @@ export function useOrderbook() {
         await approveStable(total * 2n);
       }
 
-      // First, take the sell order (sets buyer = msg.sender)
-      const takeHash = await walletClient.writeContract({
+      // V3: Take order (auto-deposits funds in same transaction)
+      const hash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
         functionName: "takeSellOrder",
         args: [orderId],
       });
-      await publicClient?.waitForTransactionReceipt({ hash: takeHash });
-
-      // Then, deposit buyer funds
-      const depositHash = await walletClient.writeContract({
-        address: ORDERBOOK_ADDRESS,
-        abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "depositBuyerFunds",
-        args: [orderId],
-      });
-      await publicClient?.waitForTransactionReceipt({ hash: depositHash });
+      await publicClient?.waitForTransactionReceipt({ hash });
       
-      return depositHash;
+      return hash;
     },
     [walletClient, publicClient, address, checkAllowance, approveStable]
   );
 
+  /**
+   * V3: Take buy order (automatically deposits seller collateral in same transaction)
+   */
   const takeBuyOrder = useCallback(
     async (orderId: bigint, total: bigint) => {
       if (!walletClient || !address) throw new Error("Wallet not connected");
@@ -177,25 +158,16 @@ export function useOrderbook() {
         await approveStable(total * 2n);
       }
 
-      // First, take the buy order (sets seller = msg.sender)
-      const takeHash = await walletClient.writeContract({
+      // V3: Take order (auto-deposits collateral in same transaction)
+      const hash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
         functionName: "takeBuyOrder",
         args: [orderId],
       });
-      await publicClient?.waitForTransactionReceipt({ hash: takeHash });
-
-      // Then, deposit seller collateral
-      const depositHash = await walletClient.writeContract({
-        address: ORDERBOOK_ADDRESS,
-        abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "depositSellerCollateral",
-        args: [orderId],
-      });
-      await publicClient?.waitForTransactionReceipt({ hash: depositHash });
+      await publicClient?.waitForTransactionReceipt({ hash });
       
-      return depositHash;
+      return hash;
     },
     [walletClient, publicClient, address, checkAllowance, approveStable]
   );
