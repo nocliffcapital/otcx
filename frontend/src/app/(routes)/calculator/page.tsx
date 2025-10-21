@@ -224,7 +224,7 @@ export default function CalculatorPage() {
       <div className="fixed top-16 left-0 w-24 h-24 border-t-2 border-l-2 border-cyan-500/20 pointer-events-none"></div>
       <div className="fixed top-16 right-0 w-24 h-24 border-t-2 border-r-2 border-violet-500/20 pointer-events-none"></div>
       
-      <div className="relative mx-auto max-w-6xl px-4 py-8">
+      <div className="relative mx-auto max-w-7xl px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3">

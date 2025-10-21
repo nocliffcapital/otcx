@@ -200,7 +200,7 @@ export default function ProjectsPage() {
       <div className="fixed top-16 left-0 w-24 h-24 border-t-2 border-l-2 border-cyan-500/20 pointer-events-none"></div>
       <div className="fixed top-16 right-0 w-24 h-24 border-t-2 border-r-2 border-violet-500/20 pointer-events-none"></div>
       
-      <div className="relative mx-auto max-w-6xl px-4 py-8">
+      <div className="relative mx-auto max-w-7xl px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
