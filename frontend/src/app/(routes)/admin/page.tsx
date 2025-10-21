@@ -762,6 +762,9 @@ export default function AdminPage() {
                       <p className="text-[10px] text-zinc-500 mt-1">
                         For headers & detail pages
                       </p>
+                      <p className="text-[10px] text-zinc-600 mt-0.5">
+                        (Recommended: 400x100px or similar)
+                      </p>
                     </div>
                     <input
                       type="file"
@@ -815,6 +818,9 @@ export default function AdminPage() {
                       </p>
                       <p className="text-[10px] text-zinc-500 mt-1">
                         For lists & navigation
+                      </p>
+                      <p className="text-[10px] text-zinc-600 mt-0.5">
+                        (Recommended: 256x256px square)
                       </p>
                     </div>
                     <input
