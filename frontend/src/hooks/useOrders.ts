@@ -1,0 +1,268 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { usePublicClient } from "wagmi";
+import { ESCROW_ORDERBOOK_ABI, ORDERBOOK_ADDRESS } from "@/lib/contracts";
+import { parseAbiItem } from "viem";
+
+export interface Order {
+  id: bigint;
+  maker: string;
+  buyer: string;
+  seller: string;
+  projectToken: string;
+  amount: bigint;
+  unitPrice: bigint;
+  buyerFunds: bigint;
+  sellerCollateral: bigint;
+  settlementDeadline: bigint;
+  isSell: boolean;
+  tokensDeposited: boolean;
+  status: number;
+  proof?: string; // For Points projects: seller submits proof of token transfer
+  // Note: expiry removed - all orders are Good-Til-Cancel (GTC)
+}
+
+export function useOrders(projectToken?: string) {
+  const publicClient = usePublicClient();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]); // For chart - all historical orders
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!publicClient) return;
+
+    let isInitialLoad = orders.length === 0;
+
+    const fetchOrders = async () => {
+      try {
+        // Only show loading on initial load
+        if (isInitialLoad) {
+          setLoading(true);
+        }
+        
+        // Alchemy free tier only allows 10 block range, so we'll fetch the nextId and query recent orders directly
+        const nextId = await publicClient.readContract({
+          address: ORDERBOOK_ADDRESS,
+          abi: ESCROW_ORDERBOOK_ABI,
+          functionName: "nextId",
+        }) as bigint;
+        
+        console.log("Next order ID:", nextId.toString());
+        
+        // Fetch all orders by ID from 1 to nextId-1
+        // Use Promise.all to batch requests for better performance
+        const allOrdersList: Order[] = [];
+        const orderPromises: Promise<void>[] = [];
+        
+        for (let i = 1n; i < nextId; i++) {
+          const orderPromise = (async (orderId: bigint) => {
+            try {
+              const orderData = await publicClient.readContract({
+                address: ORDERBOOK_ADDRESS,
+                abi: ESCROW_ORDERBOOK_ABI,
+                functionName: "orders",
+                args: [orderId],
+              }) as any;
+
+              // Only fetch proof if order is in TGE_ACTIVATED or later status
+              // This reduces API calls significantly
+              let proof: string | undefined = undefined;
+              const status = orderData[12];
+              if (status >= 2) { // TGE_ACTIVATED = 2
+                try {
+                  const proofData = await publicClient.readContract({
+                    address: ORDERBOOK_ADDRESS,
+                    abi: ESCROW_ORDERBOOK_ABI,
+                    functionName: "settlementProof",
+                    args: [orderId],
+                  }) as string;
+                  if (proofData && proofData.length > 0) {
+                    proof = proofData;
+                  }
+                } catch (err) {
+                  // Proof might not exist, that's ok
+                }
+              }
+
+              allOrdersList.push({
+                id: orderData[0],
+                maker: orderData[1],
+                buyer: orderData[2],
+                seller: orderData[3],
+                projectToken: orderData[4],
+                amount: orderData[5],
+                unitPrice: orderData[6],
+                buyerFunds: orderData[7],
+                sellerCollateral: orderData[8],
+                settlementDeadline: orderData[9],  // expiry removed, indices shifted
+                isSell: orderData[10],
+                tokensDeposited: orderData[11],
+                status: orderData[12],
+                proof,
+              });
+            } catch (err) {
+              console.error(`Error fetching order ${orderId}:`, err);
+            }
+          })(i);
+          
+          orderPromises.push(orderPromise);
+        }
+        
+        // Wait for all orders to be fetched
+        await Promise.all(orderPromises);
+        
+        // Filter by projectToken for display (OPEN orders with collateral OR any orders with status >= 1)
+        const filtered = allOrdersList.filter(o => {
+          const matchesProject = !projectToken || (typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === projectToken.toLowerCase());
+          
+          // Show if: status is OPEN and has collateral, OR status >= FUNDED (includes TGE_ACTIVATED, TOKENS_DEPOSITED, SETTLED, DEFAULTED)
+          const hasCollateral = o.isSell ? o.sellerCollateral > 0n : o.buyerFunds > 0n;
+          const isAvailable = (o.status === 0 && hasCollateral) || o.status >= 1;
+          
+          return isAvailable && matchesProject;
+        });
+        
+        // Filter all orders by projectToken for chart (all statuses)
+        const allFiltered = allOrdersList.filter(o => {
+          return !projectToken || (typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === projectToken.toLowerCase());
+        });
+        
+        setOrders(filtered);
+        setAllOrders(allFiltered);
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+      } finally {
+        if (isInitialLoad) {
+          setLoading(false);
+          isInitialLoad = false;
+        }
+      }
+    };
+
+    fetchOrders();
+    
+    // Refetch every 30 seconds
+    const interval = setInterval(fetchOrders, 30000);
+    return () => clearInterval(interval);
+  }, [publicClient, projectToken]);
+
+  return { orders, allOrders, loading };
+}
+
+export function useMyOrders(address?: string) {
+  const publicClient = usePublicClient();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const refresh = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!publicClient || !address) return;
+
+    let isInitialLoad = orders.length === 0;
+
+    const fetchOrders = async () => {
+      try {
+        // Only show loading on initial load
+        if (isInitialLoad) {
+          setLoading(true);
+        }
+        
+        const nextId = await publicClient.readContract({
+          address: ORDERBOOK_ADDRESS,
+          abi: ESCROW_ORDERBOOK_ABI,
+          functionName: "nextId",
+        }) as bigint;
+        
+        const allOrders: Order[] = [];
+        const orderPromises: Promise<void>[] = [];
+        
+        for (let i = 1n; i < nextId; i++) {
+          const orderPromise = (async (orderId: bigint) => {
+            try {
+              const orderData = await publicClient.readContract({
+                address: ORDERBOOK_ADDRESS,
+                abi: ESCROW_ORDERBOOK_ABI,
+                functionName: "orders",
+                args: [orderId],
+              }) as any;
+
+              // Only fetch proof if order is in TGE_ACTIVATED or later status
+              let proof: string | undefined = undefined;
+              const status = orderData[12];
+              if (status >= 2) { // TGE_ACTIVATED = 2
+                try {
+                  const proofData = await publicClient.readContract({
+                    address: ORDERBOOK_ADDRESS,
+                    abi: ESCROW_ORDERBOOK_ABI,
+                    functionName: "settlementProof",
+                    args: [orderId],
+                  }) as string;
+                  if (proofData && proofData.length > 0) {
+                    proof = proofData;
+                  }
+                } catch (err) {
+                  // Proof might not exist, that's ok
+                }
+              }
+
+              const order = {
+                id: orderData[0],
+                maker: orderData[1],
+                buyer: orderData[2],
+                seller: orderData[3],
+                projectToken: orderData[4],
+                amount: orderData[5],
+                unitPrice: orderData[6],
+                buyerFunds: orderData[7],
+                sellerCollateral: orderData[8],
+                settlementDeadline: orderData[9],  // expiry removed, indices shifted
+                isSell: orderData[10],
+                tokensDeposited: orderData[11],
+                status: orderData[12],
+                proof,
+              };
+              
+              // Filter by maker, buyer, OR seller address (show all orders you're involved in)
+              const lowerAddress = address?.toLowerCase();
+              if (
+                order.maker.toLowerCase() === lowerAddress ||
+                order.buyer.toLowerCase() === lowerAddress ||
+                order.seller.toLowerCase() === lowerAddress
+              ) {
+                allOrders.push(order);
+              }
+            } catch (err) {
+              console.error(`Error fetching order ${orderId}:`, err);
+            }
+          })(i);
+          
+          orderPromises.push(orderPromise);
+        }
+        
+        // Wait for all orders to be fetched
+        await Promise.all(orderPromises);
+        
+        setOrders(allOrders);
+      } catch (error) {
+        console.error("Error fetching my orders:", error);
+      } finally {
+        if (isInitialLoad) {
+          setLoading(false);
+          isInitialLoad = false;
+        }
+      }
+    };
+
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 30000);
+    return () => clearInterval(interval);
+  }, [publicClient, address, refreshTrigger]);
+
+  return { orders, loading, refresh };
+}
+
