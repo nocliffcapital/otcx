@@ -289,105 +289,108 @@ export default function HowItWorksPage() {
         </div>
       </Card>
 
-      {/* Risks */}
-      <Card className="mb-6">
-        <div className="flex items-start gap-3 mb-4">
-          <AlertTriangle className="w-6 h-6 text-red-400 mt-1" />
-          <h2 className="text-2xl font-bold text-red-400">Risks & Limitations</h2>
-        </div>
-        
-        <div className="space-y-3">
-          <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
-            <h3 className="text-sm font-semibold mb-1">1. Smart Contract Risk</h3>
-            <p className="text-xs text-zinc-400">
-              All smart contracts carry inherent risks. Bugs or exploits could result in loss of funds. Use at your own risk.
-            </p>
+      {/* Risks & Best Practices - Side by Side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Risks */}
+        <Card className="h-full">
+          <div className="flex items-start gap-3 mb-4">
+            <AlertTriangle className="w-6 h-6 text-red-400 mt-1" />
+            <h2 className="text-2xl font-bold text-red-400">Risks & Limitations</h2>
           </div>
-
-          <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
-            <h3 className="text-sm font-semibold mb-1">2. Off-Chain Settlement (Points)</h3>
-            <p className="text-xs text-zinc-400">
-              For Points assets, the actual transfer happens off-chain. Requires trust in the admin verification process.
-            </p>
-          </div>
-
-          <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
-            <h3 className="text-sm font-semibold mb-1">3. No Pre-TGE Token Guarantees</h3>
-            <p className="text-xs text-zinc-400 mb-1">
-              Pre-TGE tokens and points are promises of future tokens. No guarantee that:
-            </p>
-            <ul className="space-y-0.5 text-xs text-zinc-500 ml-4">
-              <li>• The project will ever issue tokens (TGE may never happen)</li>
-              <li>• Points will be convertible to tokens at any specific rate</li>
-              <li>• The tokens will have any market value</li>
-            </ul>
-          </div>
-
-          <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
-            <h3 className="text-sm font-semibold mb-1">4. Liquidity Risk</h3>
-            <p className="text-xs text-zinc-400">
-              Orders may take time to fill. There&apos;s no guarantee someone will take your order at your desired price.
-            </p>
-          </div>
-
-          <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
-            <h3 className="text-sm font-semibold mb-1">5. Regulatory Risk</h3>
-            <p className="text-xs text-zinc-400">
-              Trading pre-TGE tokens may be subject to securities laws in your jurisdiction. Ensure you comply with all applicable regulations.
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Best Practices */}
-      <Card className="mb-6">
-        <div className="flex items-start gap-3 mb-4">
-          <CheckCheck className="w-6 h-6 text-green-400 mt-1" />
-          <h2 className="text-2xl font-bold text-green-400">Best Practices</h2>
-        </div>
-        
-        <div className="space-y-3">
-          <div className="flex items-start gap-3 bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
-            <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm font-semibold mb-1">Verify Counterparty Identity</h3>
+          
+          <div className="space-y-3">
+            <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
+              <h3 className="text-sm font-semibold mb-1">1. Smart Contract Risk</h3>
               <p className="text-xs text-zinc-400">
-                Before trading, communicate with your counterparty via Telegram/Discord. Check their reputation and trade history if possible.
+                All smart contracts carry inherent risks. Bugs or exploits could result in loss of funds. Use at your own risk.
+              </p>
+            </div>
+
+            <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
+              <h3 className="text-sm font-semibold mb-1">2. Off-Chain Settlement (Points)</h3>
+              <p className="text-xs text-zinc-400">
+                For Points assets, the actual transfer happens off-chain. Requires trust in the admin verification process.
+              </p>
+            </div>
+
+            <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
+              <h3 className="text-sm font-semibold mb-1">3. No Pre-TGE Token Guarantees</h3>
+              <p className="text-xs text-zinc-400 mb-1">
+                Pre-TGE tokens and points are promises of future tokens. No guarantee that:
+              </p>
+              <ul className="space-y-0.5 text-xs text-zinc-500 ml-4">
+                <li>• The project will ever issue tokens (TGE may never happen)</li>
+                <li>• Points will be convertible to tokens at any specific rate</li>
+                <li>• The tokens will have any market value</li>
+              </ul>
+            </div>
+
+            <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
+              <h3 className="text-sm font-semibold mb-1">4. Liquidity Risk</h3>
+              <p className="text-xs text-zinc-400">
+                Orders may take time to fill. There&apos;s no guarantee someone will take your order at your desired price.
+              </p>
+            </div>
+
+            <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
+              <h3 className="text-sm font-semibold mb-1">5. Regulatory Risk</h3>
+              <p className="text-xs text-zinc-400">
+                Trading pre-TGE tokens may be subject to securities laws in your jurisdiction. Ensure you comply with all applicable regulations.
               </p>
             </div>
           </div>
+        </Card>
 
-          <div className="flex items-start gap-3 bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
-            <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm font-semibold mb-1">Double-Check Addresses</h3>
-              <p className="text-xs text-zinc-400">
-                Confirm the recipient wallet address multiple times before sending tokens/points. One mistake could result in permanent loss.
-              </p>
+        {/* Best Practices */}
+        <Card className="h-full">
+          <div className="flex items-start gap-3 mb-4">
+            <CheckCheck className="w-6 h-6 text-green-400 mt-1" />
+            <h2 className="text-2xl font-bold text-green-400">Best Practices</h2>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
+              <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold mb-1">Verify Counterparty Identity</h3>
+                <p className="text-xs text-zinc-400">
+                  Before trading, communicate with your counterparty via Telegram/Discord. Check their reputation and trade history if possible.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
+              <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold mb-1">Double-Check Addresses</h3>
+                <p className="text-xs text-zinc-400">
+                  Confirm the recipient wallet address multiple times before sending tokens/points. One mistake could result in permanent loss.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
+              <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold mb-1">Start Small</h3>
+                <p className="text-xs text-zinc-400">
+                  For your first trades, start with smaller amounts to get comfortable with the process.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
+              <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold mb-1">Document Everything</h3>
+                <p className="text-xs text-zinc-400">
+                  Take screenshots of your communications, transaction hashes, and order details. This helps resolve disputes if they arise.
+                </p>
+              </div>
             </div>
           </div>
-
-          <div className="flex items-start gap-3 bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
-            <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm font-semibold mb-1">Start Small</h3>
-              <p className="text-xs text-zinc-400">
-                For your first trades, start with smaller amounts to get comfortable with the process.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
-            <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm font-semibold mb-1">Document Everything</h3>
-              <p className="text-xs text-zinc-400">
-                Take screenshots of your communications, transaction hashes, and order details. This helps resolve disputes if they arise.
-              </p>
-            </div>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
 
       {/* FAQ */}
       <Card className="mb-6">
