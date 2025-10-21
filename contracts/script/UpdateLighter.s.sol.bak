@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "forge-std/Script.sol";
+import "../src/ProjectRegistry.sol";
+
+contract UpdateLighterScript is Script {
+    function run() external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address registryAddress = vm.envAddress("REGISTRY_ADDRESS");
+        
+        vm.startBroadcast(deployerPrivateKey);
+        
+        ProjectRegistry registry = ProjectRegistry(registryAddress);
+        
+        // Update Lighter with correct Twitter handle
+        registry.updateProject(
+            "lighter",
+            "Lighter",
+            address(0x000000000000000000000000000000001197471E),
+            "Points",
+            "https://x.com/lighter_xyz",  // Correct Twitter
+            "https://lighter.xyz",
+            "A decentralized orderbook DEX with advanced trading features"
+        );
+        
+        console.log("Updated Lighter project with correct Twitter handle");
+        
+        vm.stopBroadcast();
+    }
+}
+
+

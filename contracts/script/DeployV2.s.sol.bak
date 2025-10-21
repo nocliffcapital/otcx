@@ -1,0 +1,102 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {Script} from "forge-std/Script.sol";
+import {console2} from "forge-std/console2.sol";
+import {EscrowOrderBookV2} from "../src/EscrowOrderBookV2.sol";
+import {MockUSDC} from "../src/mocks/MockUSDC.sol";
+import {ProjectRegistry} from "../src/ProjectRegistry.sol";
+
+contract DeployV2Script is Script {
+    function run() external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        
+        // Check if STABLE_ADDRESS exists
+        address stableAddress;
+        try vm.envAddress("STABLE_ADDRESS") returns (address addr) {
+            stableAddress = addr;
+            console2.log("Using existing stable token at:", stableAddress);
+        } catch {
+            // Deploy MockUSDC if not specified
+            vm.startBroadcast(deployerPrivateKey);
+            MockUSDC stable = new MockUSDC();
+            stableAddress = address(stable);
+            console2.log("Deployed MockUSDC at:", stableAddress);
+            vm.stopBroadcast();
+        }
+
+        vm.startBroadcast(deployerPrivateKey);
+
+        // Deploy new V2 OrderBook
+        EscrowOrderBookV2 orderbookV2 = new EscrowOrderBookV2(stableAddress);
+        console2.log("Deployed EscrowOrderBookV2 at:", address(orderbookV2));
+
+        // Check if we should deploy a new ProjectRegistry or use existing
+        address registryAddress;
+        try vm.envAddress("REGISTRY_ADDRESS") returns (address addr) {
+            registryAddress = addr;
+            console2.log("Using existing ProjectRegistry at:", registryAddress);
+        } catch {
+            // Deploy new ProjectRegistry
+            ProjectRegistry registry = new ProjectRegistry();
+            registryAddress = address(registry);
+            console2.log("Deployed new ProjectRegistry at:", registryAddress);
+
+            // Seed with initial projects (using exact checksummed addresses from compiler)
+            registry.addProject(
+                "lighter",
+                "Lighter",
+                0x000000000000000000000000006C696768746572,
+                "Points",
+                "https://x.com/lighter_xyz",
+                "https://lighter.xyz",
+                "Lighter is a high-performance orderbook DEX built for derivatives trading"
+            );
+
+            registry.addProject(
+                "extended",
+                "Extended",
+                0x0000000000000000000000657874656e64656400,
+                "Points",
+                "https://x.com/extendedxyz",
+                "https://extended.xyz",
+                "Extended brings perpetual futures to Layer 2"
+            );
+
+            registry.addProject(
+                "pacifica",
+                "Pacifica",
+                0x0000000000000000000000007061636966696361,
+                "Tokens",
+                "https://x.com/pacificaxyz",
+                "https://pacifica.xyz",
+                "Pacifica is a decentralized exchange aggregator"
+            );
+
+            registry.addProject(
+                "variational",
+                "Variational",
+                0x0000000076617269617469006f6E616c00000000,
+                "Tokens",
+                "https://x.com/variationalxyz",
+                "https://variational.xyz",
+                "Variational provides advanced trading strategies"
+            );
+
+            console2.log("Seeded ProjectRegistry with 4 projects");
+        }
+
+        vm.stopBroadcast();
+
+        console2.log("\n=== Deployment Summary ===");
+        console2.log("Network: Sepolia (Chain ID: 11155111)");
+        console2.log("Stable Token:", stableAddress);
+        console2.log("EscrowOrderBookV2:", address(orderbookV2));
+        console2.log("ProjectRegistry:", registryAddress);
+        console2.log("\nUpdate your .env.local with:");
+        console2.log("NEXT_PUBLIC_STABLE=", stableAddress);
+        console2.log("NEXT_PUBLIC_ORDERBOOK=", address(orderbookV2));
+        console2.log("NEXT_PUBLIC_REGISTRY=", registryAddress);
+    }
+}
+
