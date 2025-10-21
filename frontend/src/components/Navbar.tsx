@@ -7,13 +7,27 @@ import { Logo } from "./Logo";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { useAccount, useReadContract } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } from "@/lib/contracts";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 
 export function Navbar() {
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
   const [showResourcesDropdown, setShowResourcesDropdown] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setShowResourcesDropdown(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setShowResourcesDropdown(false);
+    }, 150); // 150ms delay
+  };
   
   // Check if connected user is the owner
   const { data: owner } = useReadContract({
@@ -70,8 +84,8 @@ export function Navbar() {
               {/* Resources dropdown */}
               <div 
                 className="relative"
-                onMouseEnter={() => setShowResourcesDropdown(true)}
-                onMouseLeave={() => setShowResourcesDropdown(false)}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
               >
                 <button 
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${
