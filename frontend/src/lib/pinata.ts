@@ -10,7 +10,8 @@ export interface ProjectMetadata {
   description: string;
   twitterUrl?: string;
   websiteUrl?: string;
-  logoUrl: string;  // ipfs:// URL after logo upload
+  logoUrl: string;  // ipfs:// URL for full logo
+  iconUrl: string;  // ipfs:// URL for round icon
   tags?: string[];
   // Add more fields as needed
 }

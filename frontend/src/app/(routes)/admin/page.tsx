@@ -41,10 +41,13 @@ export default function AdminPage() {
     description: "",
   });
 
-  // Logo upload state
+  // Logo and icon upload state
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingMetadata, setUploadingMetadata] = useState(false);
 
   // Read all slugs first
@@ -221,6 +224,7 @@ export default function AdminPage() {
 
     try {
       let logoUrl = "";
+      let iconUrl = "";
       
       // Step 1: Upload logo to Pinata if provided
       if (logoFile) {
@@ -238,7 +242,23 @@ export default function AdminPage() {
         }
       }
 
-      // Step 2: Upload metadata to Pinata
+      // Step 2: Upload icon to Pinata if provided
+      if (iconFile) {
+        setUploadingIcon(true);
+        try {
+          const iconCID = await uploadImageToPinata(iconFile);
+          iconUrl = `ipfs://${iconCID}`;
+          console.log('✅ Icon uploaded to IPFS:', iconUrl);
+        } catch (error) {
+          console.error('❌ Icon upload failed:', error);
+          alert(`Failed to upload icon: ${(error as Error).message}`);
+          return;
+        } finally {
+          setUploadingIcon(false);
+        }
+      }
+
+      // Step 3: Upload metadata to Pinata
       setUploadingMetadata(true);
       let metadataURI = "";
       try {
@@ -249,6 +269,7 @@ export default function AdminPage() {
           twitterUrl: formData.twitterUrl,
           websiteUrl: formData.websiteUrl,
           logoUrl: logoUrl,
+          iconUrl: iconUrl,
           assetType: formData.assetType,
         };
         
@@ -390,6 +411,33 @@ export default function AdminPage() {
     reader.readAsDataURL(file);
   };
 
+  // Handle icon file selection
+  const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Please upload an image (PNG, JPG, GIF, or WebP).');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    setIconFile(file);
+
+    // Generate preview
+    const reader = new FileReader();
+    reader.onload = (e) => setIconPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
   // Reset form
   const resetForm = () => {
     setFormData({
@@ -403,6 +451,8 @@ export default function AdminPage() {
     });
     setLogoFile(null);
     setLogoPreview(null);
+    setIconFile(null);
+    setIconPreview(null);
     setEditingProject(null);
     setShowAddForm(false);
   };
@@ -673,43 +723,44 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* Logo Upload */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">
-                Project Logo
-              </label>
-              <div className="flex items-start gap-4">
-                {/* Preview */}
-                {logoPreview && (
-                  <div className="relative">
-                    <img 
-                      src={logoPreview} 
-                      alt="Logo preview" 
-                      className="w-24 h-24 object-cover rounded-lg border-2 border-cyan-500/30"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLogoFile(null);
-                        setLogoPreview(null);
-                      }}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-700"
-                    >
-                      ×
-                    </button>
-                  </div>
-                )}
-                
-                {/* Upload Button */}
-                <div className="flex-1">
-                  <label className="flex items-center justify-center px-6 py-4 bg-zinc-900/50 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-cyan-500/50 hover:bg-zinc-900/70 transition-all">
+            {/* Logo and Icon Upload */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Logo Upload */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  Project Logo (Full)
+                </label>
+                <div className="flex flex-col gap-3">
+                  {/* Preview */}
+                  {logoPreview && (
+                    <div className="relative w-full h-32 bg-zinc-900/30 rounded-lg overflow-hidden border-2 border-cyan-500/30">
+                      <img 
+                        src={logoPreview} 
+                        alt="Logo preview" 
+                        className="w-full h-full object-contain p-2"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLogoFile(null);
+                          setLogoPreview(null);
+                        }}
+                        className="absolute top-2 right-2 w-6 h-6 bg-red-600 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Upload Button */}
+                  <label className="flex items-center justify-center px-4 py-8 bg-zinc-900/50 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-cyan-500/50 hover:bg-zinc-900/70 transition-all">
                     <div className="text-center">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-zinc-400" />
-                      <p className="text-sm text-zinc-300">
-                        {logoFile ? 'Change logo' : 'Click to upload logo'}
+                      <Upload className="w-6 h-6 mx-auto mb-2 text-zinc-400" />
+                      <p className="text-xs text-zinc-300">
+                        {logoFile ? 'Change' : 'Upload'} Full Logo
                       </p>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        PNG, JPG, GIF, or WebP (max 5MB)
+                      <p className="text-[10px] text-zinc-500 mt-1">
+                        For headers & detail pages
                       </p>
                     </div>
                     <input
@@ -720,9 +771,63 @@ export default function AdminPage() {
                     />
                   </label>
                   {logoFile && (
-                    <p className="text-xs text-cyan-400 mt-2 flex items-center">
+                    <p className="text-xs text-cyan-400 flex items-center">
                       <CheckCircle className="w-3 h-3 mr-1" />
-                      {logoFile.name} ({(logoFile.size / 1024).toFixed(1)} KB)
+                      {logoFile.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Icon Upload */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  Project Icon (Round)
+                </label>
+                <div className="flex flex-col gap-3">
+                  {/* Preview */}
+                  {iconPreview && (
+                    <div className="relative w-full h-32 bg-zinc-900/30 rounded-lg overflow-hidden border-2 border-violet-500/30 flex items-center justify-center">
+                      <img 
+                        src={iconPreview} 
+                        alt="Icon preview" 
+                        className="w-24 h-24 object-cover rounded-full border-4 border-violet-500/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIconFile(null);
+                          setIconPreview(null);
+                        }}
+                        className="absolute top-2 right-2 w-6 h-6 bg-red-600 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Upload Button */}
+                  <label className="flex items-center justify-center px-4 py-8 bg-zinc-900/50 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-violet-500/50 hover:bg-zinc-900/70 transition-all">
+                    <div className="text-center">
+                      <Upload className="w-6 h-6 mx-auto mb-2 text-zinc-400" />
+                      <p className="text-xs text-zinc-300">
+                        {iconFile ? 'Change' : 'Upload'} Round Icon
+                      </p>
+                      <p className="text-[10px] text-zinc-500 mt-1">
+                        For lists & navigation
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleIconChange}
+                      className="hidden"
+                    />
+                  </label>
+                  {iconFile && (
+                    <p className="text-xs text-violet-400 flex items-center">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {iconFile.name}
                     </p>
                   )}
                 </div>
@@ -732,7 +837,7 @@ export default function AdminPage() {
             <div className="flex flex-col gap-3 pt-4">
               <Button
                 type="submit"
-                disabled={isPending || isConfirming || uploadingLogo || uploadingMetadata}
+                disabled={isPending || isConfirming || uploadingLogo || uploadingIcon || uploadingMetadata}
                 variant="custom"
                 className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700"
               >
@@ -740,6 +845,11 @@ export default function AdminPage() {
                   <>
                     <Upload className="w-4 h-4 mr-2 animate-pulse" />
                     Uploading logo to IPFS...
+                  </>
+                ) : uploadingIcon ? (
+                  <>
+                    <Upload className="w-4 h-4 mr-2 animate-pulse" />
+                    Uploading icon to IPFS...
                   </>
                 ) : uploadingMetadata ? (
                   <>
@@ -758,18 +868,24 @@ export default function AdminPage() {
                 {uploadingLogo && (
                   <p className="text-xs text-cyan-400 flex items-center">
                     <Upload className="w-3 h-3 mr-1 animate-pulse" />
-                    Step 1/3: Uploading logo to IPFS...
+                    Step 1/4: Uploading logo to IPFS...
+                  </p>
+                )}
+                {uploadingIcon && (
+                  <p className="text-xs text-violet-400 flex items-center">
+                    <Upload className="w-3 h-3 mr-1 animate-pulse" />
+                    Step 2/4: Uploading icon to IPFS...
                   </p>
                 )}
                 {uploadingMetadata && (
                   <p className="text-xs text-cyan-400 flex items-center">
                     <Upload className="w-3 h-3 mr-1 animate-pulse" />
-                    Step 2/3: Uploading metadata to IPFS...
+                    Step 3/4: Uploading metadata to IPFS...
                   </p>
                 )}
                 {isConfirming && (
                   <p className="text-xs text-cyan-400 flex items-center">
-                    ⏳ Step 3/3: Waiting for blockchain confirmation...
+                    ⏳ Step 4/4: Waiting for blockchain confirmation...
                   </p>
                 )}
                 {isSuccess && (
