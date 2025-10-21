@@ -44,10 +44,7 @@ export function Navbar() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-3 group">
-              <Logo className="w-8 h-8 group-hover:scale-110 transition-transform" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent group-hover:from-blue-300 group-hover:to-purple-300 transition-all">
-                otcX
-              </span>
+              <Logo variant="full" className="h-8 w-auto group-hover:scale-110 transition-transform" />
             </Link>
             <div className="hidden md:flex items-center gap-2">
               <Link 
