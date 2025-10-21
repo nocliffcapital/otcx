@@ -193,8 +193,8 @@ contract EscrowOrderBookV2 is Pausable, ReentrancyGuard {
         }
     }
 
-    /// @notice Buyer takes a sell order (becomes the buyer)
-    function takeSellOrder(uint256 id) external whenNotPaused {
+    /// @notice Buyer takes a sell order AND deposits payment in one transaction (better UX)
+    function takeSellOrder(uint256 id) external nonReentrant whenNotPaused {
         Order storage o = orders[id];
         require(o.status == Status.OPEN, "NOT_OPEN");
         require(o.isSell, "NOT_SELL_ORDER");
@@ -202,10 +202,21 @@ contract EscrowOrderBookV2 is Pausable, ReentrancyGuard {
         require(msg.sender != o.seller, "CANT_TAKE_OWN");
 
         o.buyer = msg.sender;
+        
+        // Immediately deposit buyer funds in same transaction
+        uint256 total = _total(o.amount, o.unitPrice);
+        o.buyerFunds = total;
+        require(stable.transferFrom(msg.sender, address(this), total), "TRANSFER_FAILED");
+
+        // If seller already deposited collateral, mark as FUNDED
+        if (o.sellerCollateral > 0) {
+            o.status = Status.FUNDED;
+            emit OrderFunded(id, o.buyer, o.seller);
+        }
     }
 
-    /// @notice Seller takes a buy order (becomes the seller)
-    function takeBuyOrder(uint256 id) external whenNotPaused {
+    /// @notice Seller takes a buy order AND deposits collateral in one transaction (better UX)
+    function takeBuyOrder(uint256 id) external nonReentrant whenNotPaused {
         Order storage o = orders[id];
         require(o.status == Status.OPEN, "NOT_OPEN");
         require(!o.isSell, "NOT_BUY_ORDER");
@@ -213,6 +224,17 @@ contract EscrowOrderBookV2 is Pausable, ReentrancyGuard {
         require(msg.sender != o.buyer, "CANT_TAKE_OWN");
 
         o.seller = msg.sender;
+        
+        // Immediately deposit seller collateral in same transaction
+        uint256 total = _total(o.amount, o.unitPrice);
+        o.sellerCollateral = total;
+        require(stable.transferFrom(msg.sender, address(this), total), "TRANSFER_FAILED");
+
+        // If buyer already deposited funds, mark as FUNDED
+        if (o.buyerFunds > 0) {
+            o.status = Status.FUNDED;
+            emit OrderFunded(id, o.buyer, o.seller);
+        }
     }
 
     /// @notice Admin activates TGE and starts settlement countdown (for Tokens)
