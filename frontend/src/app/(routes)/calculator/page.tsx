@@ -229,7 +229,7 @@ export default function CalculatorPage() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3">
             <Calculator className="w-10 h-10 text-cyan-400" />
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
               Points Calculator
             </h1>
           </div>

@@ -87,7 +87,7 @@ export default function RequestProjectPage() {
         <Link href="/app" className="text-blue-400 hover:text-blue-300 text-sm mb-4 inline-block">
           ← Back to Projects
         </Link>
-        <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
           Request a Project
         </h1>
         <p className="text-lg text-zinc-400">
