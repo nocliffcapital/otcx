@@ -328,7 +328,7 @@ contract EscrowOrderBookV2 is Pausable, ReentrancyGuard {
         emit SettlementExtended(id, o.settlementDeadline, extensionHours);
     }
 
-    /// @notice Seller deposits actual tokens for settlement
+    /// @notice Seller deposits actual tokens and settlement happens automatically (better UX)
     function depositTokensForSettlement(uint256 id) external nonReentrant {
         Order storage o = orders[id];
         require(msg.sender == o.seller, "NOT_SELLER");
@@ -339,33 +339,31 @@ contract EscrowOrderBookV2 is Pausable, ReentrancyGuard {
         address tokenAddr = actualTokenAddress[id];
         require(tokenAddr != address(0), "NO_TOKEN_ADDRESS");
 
+        // Pull tokens from seller
         IERC20 token = IERC20(tokenAddr);
         require(token.transferFrom(msg.sender, address(this), o.amount), "TOKEN_TRANSFER_FAILED");
 
+        // Mark as settled
         o.tokensDeposited = true;
-        o.status = Status.TOKENS_DEPOSITED;
-
-        emit TokensDeposited(id, msg.sender, o.amount);
-    }
-
-    /// @notice Buyer claims tokens after seller deposits
-    function claimTokens(uint256 id) external nonReentrant whenNotPaused {
-        Order storage o = orders[id];
-        require(o.status == Status.TOKENS_DEPOSITED, "TOKENS_NOT_DEPOSITED");
-        require(msg.sender == o.buyer, "NOT_BUYER");
-
         o.status = Status.SETTLED;
 
-        // Transfer tokens to buyer
-        address tokenAddr = actualTokenAddress[id];
-        IERC20 token = IERC20(tokenAddr);
-        require(token.transfer(o.buyer, o.amount), "TOKEN_TRANSFER_FAILED");
+        // Auto-settle: send tokens to buyer
+        require(token.transfer(o.buyer, o.amount), "TOKEN_TRANSFER_TO_BUYER_FAILED");
 
-        // Transfer payment + collateral to seller
+        // Auto-settle: send payment + collateral to seller
         uint256 total = o.buyerFunds + o.sellerCollateral;
-        require(stable.transfer(o.seller, total), "STABLE_TRANSFER_FAILED");
+        require(stable.transfer(o.seller, total), "STABLE_TRANSFER_TO_SELLER_FAILED");
 
+        emit TokensDeposited(id, msg.sender, o.amount);
         emit OrderSettled(id, o.buyer, o.seller, o.buyerFunds);
+    }
+
+    /// @notice DEPRECATED: Auto-settlement happens in depositTokensForSettlement now
+    /// @dev Keeping for backwards compatibility, but will revert if called
+    function claimTokens(uint256 id) external view {
+        Order storage o = orders[id];
+        require(o.status == Status.SETTLED, "USE_DEPOSIT_TOKENS");
+        revert("AUTO_SETTLED_IN_DEPOSIT");
     }
 
     /// @notice Buyer defaults seller if they miss settlement deadline
