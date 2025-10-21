@@ -7,10 +7,13 @@ import { Logo } from "./Logo";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { useAccount, useReadContract } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } from "@/lib/contracts";
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 export function Navbar() {
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
+  const [showResourcesDropdown, setShowResourcesDropdown] = useState(false);
   
   // Check if connected user is the owner
   const { data: owner } = useReadContract({
@@ -63,16 +66,41 @@ export function Navbar() {
               >
                 Calculator
               </Link>
-              <Link 
-                href="/how-it-works" 
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  pathname === '/how-it-works' 
-                    ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/30' 
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
-                }`}
+              
+              {/* Resources dropdown */}
+              <div 
+                className="relative"
+                onMouseEnter={() => setShowResourcesDropdown(true)}
+                onMouseLeave={() => setShowResourcesDropdown(false)}
               >
-                How It Works
-              </Link>
+                <button 
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${
+                    pathname === '/how-it-works' || pathname === '/docs'
+                      ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/30' 
+                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                  }`}
+                >
+                  Resources
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                
+                {showResourcesDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl overflow-hidden z-50">
+                    <Link 
+                      href="/how-it-works"
+                      className="block px-4 py-3 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all"
+                    >
+                      How It Works
+                    </Link>
+                    <Link 
+                      href="/docs"
+                      className="block px-4 py-3 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all border-t border-zinc-800"
+                    >
+                      Docs
+                    </Link>
+                  </div>
+                )}
+              </div>
               
               {/* Admin link - only visible to owner */}
               {isOwner && (
