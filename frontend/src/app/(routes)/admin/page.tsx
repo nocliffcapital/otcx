@@ -10,7 +10,8 @@ import { TGESettlementManager } from "@/components/TGESettlementManager";
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { isAddress, getAddress } from "viem";
-import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle } from "lucide-react";
+import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle } from "lucide-react";
+import { uploadImageToPinata, uploadMetadataToPinata } from "@/lib/pinata";
 
 type Project = {
   slug: string;
@@ -39,6 +40,12 @@ export default function AdminPage() {
     websiteUrl: "",
     description: "",
   });
+
+  // Logo upload state
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingMetadata, setUploadingMetadata] = useState(false);
 
   // Read all slugs first
   const { data: slugs } = useReadContract({
@@ -213,6 +220,50 @@ export default function AdminPage() {
       : generatePlaceholderAddress(cleanSlug);
 
     try {
+      let logoUrl = "";
+      
+      // Step 1: Upload logo to Pinata if provided
+      if (logoFile) {
+        setUploadingLogo(true);
+        try {
+          const logoCID = await uploadImageToPinata(logoFile);
+          logoUrl = `ipfs://${logoCID}`;
+          console.log('✅ Logo uploaded to IPFS:', logoUrl);
+        } catch (error) {
+          console.error('❌ Logo upload failed:', error);
+          alert(`Failed to upload logo: ${(error as Error).message}`);
+          return;
+        } finally {
+          setUploadingLogo(false);
+        }
+      }
+
+      // Step 2: Upload metadata to Pinata
+      setUploadingMetadata(true);
+      let metadataURI = "";
+      try {
+        const metadata = {
+          slug: cleanSlug,
+          name: formData.name,
+          description: formData.description,
+          twitterUrl: formData.twitterUrl,
+          websiteUrl: formData.websiteUrl,
+          logoUrl: logoUrl,
+          assetType: formData.assetType,
+        };
+        
+        const metadataCID = await uploadMetadataToPinata(metadata);
+        metadataURI = `ipfs://${metadataCID}`;
+        console.log('✅ Metadata uploaded to IPFS:', metadataURI);
+      } catch (error) {
+        console.error('❌ Metadata upload failed:', error);
+        alert(`Failed to upload metadata: ${(error as Error).message}`);
+        return;
+      } finally {
+        setUploadingMetadata(false);
+      }
+
+      // Step 3: Register on-chain
       writeContract({
         address: REGISTRY_ADDRESS,
         abi: PROJECT_REGISTRY_ABI,
@@ -225,7 +276,7 @@ export default function AdminPage() {
           formData.twitterUrl,
           formData.websiteUrl,
           formData.description,
-          "", // logoUrl - empty for now
+          logoUrl, // IPFS URL for logo
         ],
       });
     } catch (error) {
@@ -312,6 +363,33 @@ export default function AdminPage() {
     setShowAddForm(true);
   };
 
+  // Handle logo file selection
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Please upload an image (PNG, JPG, GIF, or WebP).');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    setLogoFile(file);
+
+    // Generate preview
+    const reader = new FileReader();
+    reader.onload = (e) => setLogoPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
   // Reset form
   const resetForm = () => {
     setFormData({
@@ -323,6 +401,8 @@ export default function AdminPage() {
       websiteUrl: "",
       description: "",
     });
+    setLogoFile(null);
+    setLogoPreview(null);
     setEditingProject(null);
     setShowAddForm(false);
   };
@@ -578,27 +658,112 @@ export default function AdminPage() {
               />
             </div>
 
-            <div className="flex gap-4 pt-4">
+            {/* Logo Upload */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
+                Project Logo
+              </label>
+              <div className="flex items-start gap-4">
+                {/* Preview */}
+                {logoPreview && (
+                  <div className="relative">
+                    <img 
+                      src={logoPreview} 
+                      alt="Logo preview" 
+                      className="w-24 h-24 object-cover rounded-lg border-2 border-cyan-500/30"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogoFile(null);
+                        setLogoPreview(null);
+                      }}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-700"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                
+                {/* Upload Button */}
+                <div className="flex-1">
+                  <label className="flex items-center justify-center px-6 py-4 bg-zinc-900/50 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-cyan-500/50 hover:bg-zinc-900/70 transition-all">
+                    <div className="text-center">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-zinc-400" />
+                      <p className="text-sm text-zinc-300">
+                        {logoFile ? 'Change logo' : 'Click to upload logo'}
+                      </p>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        PNG, JPG, GIF, or WebP (max 5MB)
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="hidden"
+                    />
+                  </label>
+                  {logoFile && (
+                    <p className="text-xs text-cyan-400 mt-2 flex items-center">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {logoFile.name} ({(logoFile.size / 1024).toFixed(1)} KB)
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-4">
               <Button
                 type="submit"
-                disabled={isPending || isConfirming}
+                disabled={isPending || isConfirming || uploadingLogo || uploadingMetadata}
                 variant="custom"
                 className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700"
               >
-                {isPending || isConfirming ? "Processing..." : editingProject ? "Update Project" : "Add Project"}
+                {uploadingLogo ? (
+                  <>
+                    <Upload className="w-4 h-4 mr-2 animate-pulse" />
+                    Uploading logo to IPFS...
+                  </>
+                ) : uploadingMetadata ? (
+                  <>
+                    <Upload className="w-4 h-4 mr-2 animate-pulse" />
+                    Uploading metadata to IPFS...
+                  </>
+                ) : isPending || isConfirming ? (
+                  "Processing..."
+                ) : (
+                  editingProject ? "Update Project" : "Add Project"
+                )}
               </Button>
               
-              {isConfirming && (
-                <p className="text-sm text-cyan-400 flex items-center">
-                  ⏳ Waiting for confirmation...
-                </p>
-              )}
-              
-              {isSuccess && (
-                <p className="text-sm text-green-400 flex items-center">
-                  ✓ Transaction confirmed!
-                </p>
-              )}
+              {/* Progress Messages */}
+              <div className="flex flex-col gap-1">
+                {uploadingLogo && (
+                  <p className="text-xs text-cyan-400 flex items-center">
+                    <Upload className="w-3 h-3 mr-1 animate-pulse" />
+                    Step 1/3: Uploading logo to IPFS...
+                  </p>
+                )}
+                {uploadingMetadata && (
+                  <p className="text-xs text-cyan-400 flex items-center">
+                    <Upload className="w-3 h-3 mr-1 animate-pulse" />
+                    Step 2/3: Uploading metadata to IPFS...
+                  </p>
+                )}
+                {isConfirming && (
+                  <p className="text-xs text-cyan-400 flex items-center">
+                    ⏳ Step 3/3: Waiting for blockchain confirmation...
+                  </p>
+                )}
+                {isSuccess && (
+                  <p className="text-xs text-green-400 flex items-center">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    ✓ Project added successfully!
+                  </p>
+                )}
+              </div>
             </div>
           </form>
 
