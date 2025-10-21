@@ -49,6 +49,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   const projectToken = project?.tokenAddress as `0x${string}` | undefined;
   const { orders, allOrders, loading } = useOrders(projectToken);
   
+  // Helper function to ensure URL has protocol
+  const ensureHttps = (url: string | undefined) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `https://${url}`;
+  };
+  
   const [side, setSide] = useState<"SELL" | "BUY">("SELL");
   const [amount, setAmount] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
@@ -277,7 +284,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             <div className="flex gap-2 mt-2">
               {project.twitterUrl && (
                 <a
-                  href={project.twitterUrl}
+                  href={ensureHttps(project.twitterUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 rounded-lg transition-colors group text-xs"
@@ -292,7 +299,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
               )}
               {project.websiteUrl && (
                 <a
-                  href={project.websiteUrl}
+                  href={ensureHttps(project.websiteUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 rounded-lg transition-colors group text-xs"
