@@ -4,9 +4,9 @@
 
 [build.environment]
   SECRETS_SCAN_ENABLED = "false"
+  NODE_VERSION = "22"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Enable Next.js support
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
