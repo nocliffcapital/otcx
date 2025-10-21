@@ -159,7 +159,7 @@ export default function MyOrdersPage() {
 
       <div className="relative mx-auto max-w-6xl px-4 py-8">
         <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-          My Orders
+          Dashboard
         </h1>
         <p className="text-zinc-400 mb-8">Track and manage all your OTC orders</p>
 

@@ -51,7 +51,7 @@ export function Navbar() {
                     : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
                 }`}
               >
-                My Orders
+                Dashboard
               </Link>
               <Link 
                 href="/calculator" 

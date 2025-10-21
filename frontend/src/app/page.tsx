@@ -91,7 +91,7 @@ export default function HomePage() {
                 variant="custom"
                 className="bg-zinc-800 hover:bg-zinc-700 text-base px-8 py-3"
               >
-                My Orders
+                Dashboard
               </Button>
             </Link>
             <Link href="/how-it-works">
