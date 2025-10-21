@@ -64,12 +64,13 @@ export async function GET(
     const prompt = `You are analyzing the cryptocurrency/DeFi project "${projectName}".
 
 PROJECT INFORMATION (from verified on-chain registry):
-- Official Twitter/X: ${twitter || 'Not provided'}
-- Official Website: ${website || 'Not provided'}
+- Project Name: ${projectName}
+${twitter ? `- Official Twitter/X: ${twitter} (handle: ${twitterHandle})` : '- Official Twitter/X: Not provided'}
+${website ? `- Official Website: ${website}` : ''}
 ${description ? `- Project Description: ${description}` : ''}
 
 YOUR TASK:
-Search Twitter/X for "${twitterHandle || projectName}" and find REAL, RECENT price discussions from the last 24-48 hours.
+${twitterHandle ? `Search Twitter/X using the handle "${twitterHandle}" to find REAL, RECENT price discussions from the last 24-48 hours.` : `Search Twitter/X for "${projectName}" to find REAL, RECENT price discussions from the last 24-48 hours.`}
 
 WHAT TO LOOK FOR:
 1. **OTC Market Activity**: People posting "WTB/WTS at $X", "Buying at $Y", "Selling at $Z"
