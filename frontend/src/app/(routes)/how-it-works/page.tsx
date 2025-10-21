@@ -388,6 +388,26 @@ export default function HowItWorksPage() {
                 </p>
               </div>
             </div>
+
+            <div className="flex items-start gap-3 bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
+              <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold mb-1">Research the Project</h3>
+                <p className="text-xs text-zinc-400">
+                  Do your own research on the project before trading. Check their team, roadmap, community engagement, and tokenomics.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
+              <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold mb-1">Understand the Risks</h3>
+                <p className="text-xs text-zinc-400">
+                  Never trade more than you can afford to lose. Pre-TGE trading is highly speculative and carries significant risk.
+                </p>
+              </div>
+            </div>
           </div>
         </Card>
       </div>
