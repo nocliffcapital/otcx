@@ -90,10 +90,12 @@ SENTIMENT:
 
 Return ONLY valid JSON (no markdown, no code blocks, no explanations):
 {
-  "sentiment": {"positive": 65, "negative": 20, "neutral": 15},
-  "priceEstimates": [{"low": "$90", "average": "$120", "high": "$150", "source": "Twitter OTC market"}],
-  "summary": "2-sentence summary of project and market outlook based on latest Twitter discussions."
-}`;
+  "sentiment": {"positive": <number>, "negative": <number>, "neutral": <number>},
+  "priceEstimates": [{"low": "$<actual_low_price>", "average": "$<actual_avg_price>", "high": "$<actual_high_price>", "source": "<where_you_found_this_data>"}],
+  "summary": "<2-sentence summary based on actual Twitter research>"
+}
+
+REMEMBER: Replace ALL placeholder values with REAL data from Twitter. Do NOT use generic numbers.`;
 
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
