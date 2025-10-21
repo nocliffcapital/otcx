@@ -61,30 +61,37 @@ export async function GET(
     }
 
     // Call Grok API (xAI)
-    const prompt = `Analyze the cryptocurrency/DeFi project ${twitterHandle ? `"${twitterHandle}"` : `called "${projectName}"`}.
+    const prompt = `You are analyzing the cryptocurrency/DeFi project "${projectName}".
 
-${twitterHandle ? `CRITICAL: Search Twitter/X using "${twitterHandle}" for the LATEST tweets and discussions about this project's TOKEN PRICE. Look for recent price discussions, OTC deals, valuation estimates, and FDV (Fully Diluted Valuation) mentions from the past 24-48 hours.` : ''}
+PROJECT INFORMATION (from verified on-chain registry):
+- Official Twitter/X: ${twitter || 'Not provided'}
+- Official Website: ${website || 'Not provided'}
+${description ? `- Project Description: ${description}` : ''}
 
-Provide:
-1. **Sentiment Analysis**: Based on recent social media discussions (positive/negative/neutral percentages)
-2. **Price Estimates**: What prices are people ACTUALLY discussing and trading at RIGHT NOW on Twitter? Look for:
-   - OTC deals being mentioned
-   - Price per token estimates
-   - Valuation/FDV discussions
-   - "Buying at X" or "Selling at Y" posts
-3. **Summary**: 2-sentence project description and current market sentiment
+YOUR TASK:
+Search Twitter/X for "${twitterHandle || projectName}" and find REAL, RECENT price discussions from the last 24-48 hours.
 
-${description ? `Context: ${description}` : ''}
-${twitter ? `Twitter: ${twitter}` : ''}
-${website ? `Website: ${website}` : ''}
+WHAT TO LOOK FOR:
+1. **OTC Market Activity**: People posting "WTB/WTS at $X", "Buying at $Y", "Selling at $Z"
+2. **Price Discovery**: Discussions about fair value, what people paid in private deals
+3. **Valuation Estimates**: FDV discussions, market cap estimates, price per token predictions
+4. **Community Consensus**: What price range is being actively discussed and traded
 
-IMPORTANT: Price estimates should reflect REAL current discussions, not generic guesses. If you see Twitter discussions mentioning "$100" or "$150", use those actual numbers.
+CRITICAL INSTRUCTIONS:
+- Use ACTUAL numbers from real Twitter posts, NOT generic placeholder values
+- If Twitter shows discussions at "$100-$150", report that range
+- If you see OTC deals at "$90", include that in your low estimate
+- The source should reflect WHERE you found the data (e.g., "Twitter OTC deals", "Community consensus on X")
 
-Return ONLY valid JSON (no markdown, no code blocks):
+SENTIMENT:
+- Analyze tweet sentiment: positive/negative/neutral percentages
+- Base this on real reactions, retweets, and discussion tone
+
+Return ONLY valid JSON (no markdown, no code blocks, no explanations):
 {
   "sentiment": {"positive": 65, "negative": 20, "neutral": 15},
   "priceEstimates": [{"low": "$90", "average": "$120", "high": "$150", "source": "Twitter OTC market"}],
-  "summary": "Brief summary based on latest discussions."
+  "summary": "2-sentence summary of project and market outlook based on latest Twitter discussions."
 }`;
 
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
