@@ -8,7 +8,7 @@ import { BalanceDisplay } from "./BalanceDisplay";
 import { useAccount, useReadContract } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } from "@/lib/contracts";
 import { useState, useRef } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Settings } from "lucide-react";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -120,13 +120,14 @@ export function Navbar() {
               {isOwner && (
                 <Link 
                   href="/admin" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                     pathname === '/admin' 
                       ? 'bg-violet-600/20 text-violet-400 border border-violet-500/30' 
                       : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
                   }`}
                 >
-                  ⚙️ Admin
+                  <Settings className="w-4 h-4" />
+                  Admin
                 </Link>
               )}
             </div>
