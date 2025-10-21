@@ -6,8 +6,6 @@ import { sepolia } from "wagmi/chains";
 
 const rpcUrl = process.env.NEXT_PUBLIC_RPC || "https://rpc.ankr.com/eth_sepolia";
 
-console.log('Using RPC URL:', rpcUrl);
-
 export const wagmiConfig = getDefaultConfig({
   appName: "otcX",
   projectId: "otcx-demo", // can be any string with getDefaultConfig v1

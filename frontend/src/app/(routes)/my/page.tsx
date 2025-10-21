@@ -8,7 +8,7 @@ import { useOrderbook } from "@/hooks/useOrderbook";
 import { useToast } from "@/components/Toast";
 import ReputationBadge from "@/components/ReputationBadge";
 import { TGEOrderControls } from "@/components/TGEOrderControls";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
 import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } from "@/lib/contracts";
 import { useState, useEffect, useMemo } from "react";
 import { useReadContract } from "wagmi";
@@ -54,7 +54,7 @@ export default function MyOrdersPage() {
   useEffect(() => {
     if (projects) {
       const nameMap: Record<string, string> = {};
-      (projects as any[]).forEach((project: any) => {
+      (projects as Array<{ tokenAddress: string; name: string }>).forEach((project) => {
         nameMap[project.tokenAddress.toLowerCase()] = project.name;
       });
       setProjectNames(nameMap);
@@ -90,7 +90,7 @@ export default function MyOrdersPage() {
       );
       // Refresh orders immediately after canceling
       setTimeout(() => refresh(), 2000); // Wait 2s for blockchain to update
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast.error(
         "Cancellation failed",
@@ -101,7 +101,7 @@ export default function MyOrdersPage() {
     }
   };
 
-  const handleLockCollateral = async (order: any) => {
+  const handleLockCollateral = async (order: { id: bigint; isSell: boolean; amount: bigint; unitPrice: bigint }) => {
     try {
       setLocking(order.id.toString());
       // Convert from 24 decimals to 6 decimals (USDC)
@@ -123,7 +123,7 @@ export default function MyOrdersPage() {
         "Your order is now fully funded."
       );
       setTimeout(() => refresh(), 2000);
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast.error(
         "Failed to lock collateral",
@@ -214,7 +214,7 @@ export default function MyOrdersPage() {
 
         {address && !loading && orders.length === 0 && (
           <Card className="p-6 text-center">
-            <p className="text-zinc-400">You haven't created any orders yet</p>
+            <p className="text-zinc-400">You haven&apos;t created any orders yet</p>
           </Card>
         )}
 

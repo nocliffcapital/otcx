@@ -124,7 +124,7 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
     };
   }, [chartData]);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: { time: string; price: number } }> }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (

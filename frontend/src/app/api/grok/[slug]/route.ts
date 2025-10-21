@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // In-memory cache (in production, use Redis or similar)
-const cache = new Map<string, { data: any; timestamp: number }>();
+const cache = new Map<string, { data: GrokAnalysis; timestamp: number }>();
 const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
 interface GrokAnalysis {

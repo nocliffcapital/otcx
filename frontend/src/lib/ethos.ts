@@ -108,7 +108,7 @@ export function extractTwitterUsername(twitterUrl: string): string | null {
   if (!twitterUrl) return null;
   
   // Remove @ if present
-  let cleaned = twitterUrl.trim().replace(/^@/, '');
+  const cleaned = twitterUrl.trim().replace(/^@/, '');
   
   // Extract username from URL
   const match = cleaned.match(/(?:twitter\.com|x\.com)\/([^\/\?]+)/);

@@ -445,7 +445,7 @@ export default function CalculatorPage() {
                 <div className="p-2 bg-blue-950/20 rounded-lg border border-blue-800/30">
                   <p className="text-[9px] text-blue-300 font-medium mb-0.5">💡 Quick Tip</p>
                   <p className="text-[9px] text-blue-200/70 leading-snug">
-                    If you buy points at ${formatPrice(valuePerPoint)} or less, you'd be getting them at or below 
+                    If you buy points at ${formatPrice(valuePerPoint)} or less, you&apos;d be getting them at or below 
                     estimated airdrop value.
                   </p>
                 </div>
@@ -504,7 +504,7 @@ export default function CalculatorPage() {
                 </h4>
                 <p className="text-xs text-zinc-300 leading-relaxed">
                   Different activities may earn points at different rates. 
-                  Your share of the total points depends on the project's entire community activity.
+                  Your share of the total points depends on the project&apos;s entire community activity.
                 </p>
               </div>
 

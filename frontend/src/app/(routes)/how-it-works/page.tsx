@@ -239,11 +239,11 @@ export default function HowItWorksPage() {
               <div className="space-y-1.5 text-sm ml-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-zinc-400">Buyer's payment released to seller</span>
+                  <span className="text-zinc-400">Buyer&apos;s payment released to seller</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-zinc-400">Seller's collateral returned to them</span>
+                  <span className="text-zinc-400">Seller&apos;s collateral returned to them</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
@@ -262,7 +262,7 @@ export default function HowItWorksPage() {
           <h2 className="text-2xl font-bold">Default Protection</h2>
         </div>
         <p className="text-zinc-300 mb-4 text-sm">
-          If one party fails to fulfill their obligation, the other party can claim the defaulter's collateral:
+          If one party fails to fulfill their obligation, the other party can claim the defaulter&apos;s collateral:
         </p>
         
         <div className="space-y-3">
@@ -277,14 +277,14 @@ export default function HowItWorksPage() {
           <div className="bg-orange-950/30 border border-orange-800/50 rounded-lg p-4">
             <h3 className="text-base font-semibold mb-2 text-orange-400">Seller Defaults (Tokens)</h3>
             <p className="text-sm text-zinc-400">
-              If TGE deadline expires without seller depositing tokens, buyer can claim seller's collateral (2x their payment back).
+              If TGE deadline expires without seller depositing tokens, buyer can claim seller&apos;s collateral (2x their payment back).
             </p>
           </div>
         </div>
 
         <div className="mt-4 bg-cyan-950/30 border border-cyan-800/50 rounded-lg p-4">
           <p className="text-sm text-cyan-300">
-            <strong>⚖️ Economic Incentive:</strong> Since both parties have "skin in the game," it's economically 
+            <strong>⚖️ Economic Incentive:</strong> Since both parties have &ldquo;skin in the game,&rdquo; it&apos;s economically 
             irrational to default. Honest behavior is always more profitable than scamming.
           </p>
         </div>
@@ -327,7 +327,7 @@ export default function HowItWorksPage() {
           <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
             <h3 className="text-sm font-semibold mb-1">4. Liquidity Risk</h3>
             <p className="text-xs text-zinc-400">
-              Orders may take time to fill. There's no guarantee someone will take your order at your desired price.
+              Orders may take time to fill. There&apos;s no guarantee someone will take your order at your desired price.
             </p>
           </div>
 
@@ -401,7 +401,7 @@ export default function HowItWorksPage() {
           <div className="bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
             <h3 className="text-sm font-semibold mb-1.5">Why do I need to lock collateral as a seller?</h3>
             <p className="text-xs text-zinc-400">
-              Collateral ensures you have "skin in the game." It prevents sellers from creating orders without 
+              Collateral ensures you have &ldquo;skin in the game.&rdquo; It prevents sellers from creating orders without 
               intention to fulfill them and provides compensation to buyers if you default.
             </p>
           </div>
@@ -415,7 +415,7 @@ export default function HowItWorksPage() {
           </div>
 
           <div className="bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
-            <h3 className="text-sm font-semibold mb-1.5">What's the difference between Tokens and Points?</h3>
+            <h3 className="text-sm font-semibold mb-1.5">What&apos;s the difference between Tokens and Points?</h3>
             <p className="text-xs text-zinc-400">
               <strong className="text-blue-400">Tokens</strong> settle on-chain via smart contract after TGE. 
               <strong className="text-purple-400"> Points</strong> settle off-chain with proof submission and admin verification.

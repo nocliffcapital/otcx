@@ -59,14 +59,14 @@ export default function ProjectsPage() {
     async function fetchProjectDetails() {
       const fullProjects: Project[] = [];
       
-      for (const proj of projectsData as any[]) {
+      for (const proj of projectsData as Project[]) {
         try {
           const fullProject = await publicClient.readContract({
             address: REGISTRY_ADDRESS,
             abi: PROJECT_REGISTRY_ABI,
             functionName: "getProject",
             args: [proj.slug],
-          }) as any;
+          }) as { name: string; twitterUrl: string; websiteUrl: string; description: string };
           
           fullProjects.push({
             slug: proj.slug,
@@ -107,7 +107,7 @@ export default function ProjectsPage() {
         }) as bigint;
 
         // Fetch all orders in parallel for better performance
-        const allOrders: any[] = [];
+        const allOrders: Array<{ projectToken: string; amount: bigint; unitPrice: bigint; isSell: boolean; status: number }> = [];
         const orderPromises: Promise<void>[] = [];
         
         for (let i = 1n; i < nextId; i++) {
@@ -118,7 +118,7 @@ export default function ProjectsPage() {
                 abi: ESCROW_ORDERBOOK_ABI,
                 functionName: "orders",
                 args: [orderId],
-              }) as any;
+              }) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, boolean, number];
 
               allOrders.push({
                 projectToken: orderData[4],  // Fixed: removed expiry field
@@ -127,7 +127,7 @@ export default function ProjectsPage() {
                 isSell: orderData[10],
                 status: orderData[12],
               });
-            } catch (err) {
+            } catch {
               // Skip failed orders
             }
           })(i);

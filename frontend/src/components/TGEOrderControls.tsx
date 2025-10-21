@@ -10,7 +10,19 @@ import { Clock, PlayCircle, Plus, CheckCircle, AlertCircle } from "lucide-react"
 import { useToast } from "./Toast";
 
 interface TGEOrderControlsProps {
-  order: any;
+  order: {
+    id: bigint;
+    projectToken: string;
+    amount: bigint;
+    unitPrice: bigint;
+    seller: string;
+    buyer: string;
+    maker: string;
+    status: number;
+    tokensDeposited: boolean;
+    settlementDeadline: bigint;
+    proof?: string;
+  };
   isOwner: boolean;
   projectSlug?: string; // Optional: if we know the project slug
 }

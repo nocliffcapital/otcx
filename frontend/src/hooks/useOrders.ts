@@ -3,7 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { usePublicClient } from "wagmi";
 import { ESCROW_ORDERBOOK_ABI, ORDERBOOK_ADDRESS } from "@/lib/contracts";
-import { parseAbiItem } from "viem";
+
+// Type for raw order data from contract
+type OrderDataTuple = readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, boolean, number];
 
 export interface Order {
   id: bigint;
@@ -63,7 +65,7 @@ export function useOrders(projectToken?: string) {
                 abi: ESCROW_ORDERBOOK_ABI,
                 functionName: "orders",
                 args: [orderId],
-              }) as any;
+              }) as OrderDataTuple;
 
               // Only fetch proof if order is in TGE_ACTIVATED or later status
               // This reduces API calls significantly
@@ -80,7 +82,7 @@ export function useOrders(projectToken?: string) {
                   if (proofData && proofData.length > 0) {
                     proof = proofData;
                   }
-                } catch (err) {
+                } catch {
                   // Proof might not exist, that's ok
                 }
               }
@@ -205,7 +207,7 @@ export function useMyOrders(address?: string) {
                   if (proofData && proofData.length > 0) {
                     proof = proofData;
                   }
-                } catch (err) {
+                } catch {
                   // Proof might not exist, that's ok
                 }
               }

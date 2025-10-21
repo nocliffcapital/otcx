@@ -113,13 +113,13 @@ export default function AdminPage() {
     functionName: "nextId",
   });
 
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
 
   const fetchOrders = async () => {
     if (!publicClient || !nextId) return;
     setLoadingOrders(true);
-    const allOrders: any[] = [];
+    const allOrders: Order[] = [];
     const count = Number(nextId);
 
     for (let i = 1; i < count; i++) {
@@ -129,7 +129,7 @@ export default function AdminPage() {
           abi: ESCROW_ORDERBOOK_ABI,
           functionName: "orders",
           args: [BigInt(i)],
-        }) as any;
+        }) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, boolean, number];
         
         // Fetch settlement proof if order is in TGE_ACTIVATED or later status
         let proof: string | undefined;

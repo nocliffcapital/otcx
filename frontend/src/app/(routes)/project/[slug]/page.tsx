@@ -119,7 +119,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         `${side} order created successfully!`,
         "Your Good-Til-Cancel order is now live in the orderbook"
       );
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast.error(
         "Transaction failed",
@@ -130,7 +130,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     }
   };
 
-  const handleTakeSell = async (order: any) => {
+  const handleTakeSell = async (order: { id: bigint }) => {
     try {
       setActionLoading(order.id.toString());
       // Convert from 24 decimals to 6 decimals (USDC)
@@ -141,7 +141,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         "Order taken successfully!",
         "Collateral locked. You can now mark it as filled after settlement."
       );
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast.error(
         "Transaction failed",
@@ -152,7 +152,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     }
   };
 
-  const handleTakeBuy = async (order: any) => {
+  const handleTakeBuy = async (order: { id: bigint }) => {
     try {
       setActionLoading(order.id.toString());
       // Convert from 24 decimals to 6 decimals (USDC)
@@ -163,7 +163,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         "Order taken successfully!",
         "Collateral locked. You can now mark it as filled after settlement."
       );
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast.error(
         "Transaction failed",
@@ -174,7 +174,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     }
   };
 
-  const handleMarkFilled = async (order: any) => {
+  const handleMarkFilled = async (order: { id: bigint }) => {
     try {
       setActionLoading(order.id.toString());
       await markFilled(order.id, order.seller);
@@ -182,7 +182,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         "Order marked as filled! 🎉",
         "The order has been successfully settled."
       );
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast.error(
         "Transaction failed",
@@ -202,7 +202,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         "Minted 10,000 test USDC!",
         "You can now create orders with your new balance."
       );
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast.error(
         "Minting failed",
@@ -225,7 +225,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         "Minted 10,000 test tokens!",
         "You can now deposit tokens for TGE settlement."
       );
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast.error(
         "Minting failed",
