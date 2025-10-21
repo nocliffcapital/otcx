@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // In-memory cache (in production, use Redis or similar)
 const cache = new Map<string, { data: GrokAnalysis; timestamp: number }>();
-const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 
 interface GrokAnalysis {
   sentiment: {
@@ -26,9 +26,10 @@ export async function GET(
 ) {
   const { slug } = await params;
 
-  // Check cache first
+  // Check cache first (allow bypassing with ?refresh=true)
+  const forceRefresh = request.nextUrl.searchParams.get('refresh') === 'true';
   const cached = cache.get(slug);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION && !forceRefresh) {
     return NextResponse.json({
       ...cached.data,
       cached: true,
@@ -60,23 +61,30 @@ export async function GET(
     }
 
     // Call Grok API (xAI)
-    const prompt = `As a cryptocurrency market analyst, analyze the DeFi/Web3 project ${twitterHandle ? `"${twitterHandle}"` : `called "${projectName}"`} ${website ? `(${website})` : ''}.
+    const prompt = `Analyze the cryptocurrency/DeFi project ${twitterHandle ? `"${twitterHandle}"` : `called "${projectName}"`}.
 
-${twitterHandle ? `IMPORTANT: Use the Twitter handle "${twitterHandle}" to search for real-time tweets, discussions, and sentiment about this project.` : ''}
+${twitterHandle ? `CRITICAL: Search Twitter/X using "${twitterHandle}" for the LATEST tweets and discussions about this project's TOKEN PRICE. Look for recent price discussions, OTC deals, valuation estimates, and FDV (Fully Diluted Valuation) mentions from the past 24-48 hours.` : ''}
 
-Provide a market analysis including:
-1. Community sentiment breakdown based on social media discussions (percentages: positive, negative, neutral)
-2. Price predictions being discussed in the community (low/average/high with sources like "Twitter community" or "Market estimates")
-3. Brief 2-sentence project summary and current market outlook
+Provide:
+1. **Sentiment Analysis**: Based on recent social media discussions (positive/negative/neutral percentages)
+2. **Price Estimates**: What prices are people ACTUALLY discussing and trading at RIGHT NOW on Twitter? Look for:
+   - OTC deals being mentioned
+   - Price per token estimates
+   - Valuation/FDV discussions
+   - "Buying at X" or "Selling at Y" posts
+3. **Summary**: 2-sentence project description and current market sentiment
 
-${description ? `Project context: ${description}` : ''}
-${twitter ? `Twitter/X profile: ${twitter}` : ''}
+${description ? `Context: ${description}` : ''}
+${twitter ? `Twitter: ${twitter}` : ''}
+${website ? `Website: ${website}` : ''}
 
-Return ONLY valid JSON in this exact format (no markdown, no code blocks):
+IMPORTANT: Price estimates should reflect REAL current discussions, not generic guesses. If you see Twitter discussions mentioning "$100" or "$150", use those actual numbers.
+
+Return ONLY valid JSON (no markdown, no code blocks):
 {
-  "sentiment": {"positive": 60, "negative": 25, "neutral": 15},
-  "priceEstimates": [{"low": "$0.50", "average": "$1.00", "high": "$2.00", "source": "Twitter community"}],
-  "summary": "Project summary and outlook here."
+  "sentiment": {"positive": 65, "negative": 20, "neutral": 15},
+  "priceEstimates": [{"low": "$90", "average": "$120", "high": "$150", "source": "Twitter OTC market"}],
+  "summary": "Brief summary based on latest discussions."
 }`;
 
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
