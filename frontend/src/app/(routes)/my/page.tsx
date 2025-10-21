@@ -55,38 +55,28 @@ export default function MyOrdersPage() {
     functionName: "getActiveProjects",
   });
 
+  // V3: Map projectId (bytes32) -> name and metadataURI
+  // Orders store projectId in the projectToken field (confusing naming from V2)
   useEffect(() => {
-    if (!publicClient || !projects) return;
+    if (!projects) return;
     
-    async function fetchProjectDetails() {
-      const nameMap: Record<string, string> = {};
-      const metadataMap: Record<string, string> = {};
-      
-      for (const proj of projects as Array<{ tokenAddress: string; name: string; slug: string }>) {
-        try {
-          // Fetch full project details including metadata URI
-          const fullProject = await publicClient.readContract({
-            address: REGISTRY_ADDRESS,
-            abi: PROJECT_REGISTRY_ABI,
-            functionName: "getProject",
-            args: [proj.slug],
-          }) as { name: string; logoUrl: string };
-          
-          nameMap[proj.tokenAddress.toLowerCase()] = fullProject.name || proj.name;
-          metadataMap[proj.tokenAddress.toLowerCase()] = fullProject.logoUrl || ''; // logoUrl is being used as metadataURI
-        } catch (error) {
-          console.error(`Failed to fetch details for ${proj.slug}:`, error);
-          // Fallback to basic project data
-          nameMap[proj.tokenAddress.toLowerCase()] = proj.name;
-        }
+    const nameMap: Record<string, string> = {};
+    const metadataMap: Record<string, string> = {};
+    
+    // V3: getActiveProjects returns full structs with metadataURI
+    for (const proj of projects as Array<{ id: string; name: string; metadataURI: string }>) {
+      try {
+        // V3: projectId (bytes32) is stored in proj.id
+        nameMap[proj.id.toLowerCase()] = proj.name;
+        metadataMap[proj.id.toLowerCase()] = proj.metadataURI || '';
+      } catch (error) {
+        console.error(`Failed to process project ${proj.name}:`, error);
       }
-      
-      setProjectNames(nameMap);
-      setProjectMetadata(metadataMap);
     }
     
-    fetchProjectDetails();
-  }, [publicClient, projects]);
+    setProjectNames(nameMap);
+    setProjectMetadata(metadataMap);
+  }, [projects]);
 
   // Filter orders based on showCanceled toggle
   const filteredOrders = useMemo(() => {

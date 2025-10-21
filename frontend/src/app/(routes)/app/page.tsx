@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
 import { ProjectImage } from "@/components/ProjectImage";
 import { useReadContract, usePublicClient } from "wagmi";
-import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, STABLE_DECIMALS } from "@/lib/contracts";
+import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, STABLE_DECIMALS, slugToProjectId } from "@/lib/contracts";
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
 
@@ -54,46 +54,30 @@ export default function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | "Tokens" | "Points">("all");
 
-  // Fetch full project details including Twitter URLs and metadata URI
+  // V3: getActiveProjects returns full structs with metadataURI
+  // No need to fetch individually - metadata is on IPFS
   useEffect(() => {
-    if (!publicClient || !projectsData) return;
+    if (!projectsData) return;
     
-    async function fetchProjectDetails() {
-      const fullProjects: Project[] = [];
-      
-      for (const proj of projectsData as Project[]) {
-        try {
-          const fullProject = await publicClient.readContract({
-            address: REGISTRY_ADDRESS,
-            abi: PROJECT_REGISTRY_ABI,
-            functionName: "getProject",
-            args: [proj.slug],
-          }) as { name: string; twitterUrl: string; websiteUrl: string; description: string; logoUrl: string };
-          
-          fullProjects.push({
-            slug: proj.slug,
-            name: fullProject.name || proj.name,
-            tokenAddress: proj.tokenAddress,
-            assetType: proj.assetType,
-            active: proj.active,
-            addedAt: proj.addedAt,
-            twitterUrl: fullProject.twitterUrl || '',
-            websiteUrl: fullProject.websiteUrl || '',
-            description: fullProject.description || '',
-            metadataURI: fullProject.logoUrl || '', // logoUrl is now being used as metadataURI
-          });
-        } catch (error) {
-          console.error(`Failed to fetch details for ${proj.slug}:`, error);
-          // Fallback to basic project data
-          fullProjects.push(proj);
-        }
-      }
-      
-      setProjects(fullProjects);
-    }
+    // V3: Projects from getActiveProjects already have all on-chain data
+    // metadataURI points to IPFS for logo, description, twitter, website
+    const mappedProjects = (projectsData as any[]).map((proj) => ({
+      slug: proj.name.toLowerCase().replace(/\s+/g, '-'), // Derive slug from name for now
+      name: proj.name,
+      tokenAddress: proj.tokenAddress,
+      assetType: proj.isPoints ? 'Points' : 'Tokens', // V3: isPoints (bool) -> assetType (string)
+      active: proj.active,
+      addedAt: proj.addedAt,
+      metadataURI: proj.metadataURI || '',
+      // V3: twitterUrl, websiteUrl, description are in IPFS metadata
+      // ProjectImage component will fetch them when needed
+      twitterUrl: '',
+      websiteUrl: '',
+      description: '',
+    }));
     
-    fetchProjectDetails();
-  }, [publicClient, projectsData]);
+    setProjects(mappedProjects);
+  }, [projectsData]);
 
   useEffect(() => {
     if (!publicClient || !projects || projects.length === 0) return;
@@ -149,9 +133,11 @@ export default function ProjectsPage() {
         // Calculate stats for each project
         const stats: Record<string, ProjectStats> = {};
         
+        // V3: Filter orders by projectId (bytes32) instead of tokenAddress
         (projects as Project[]).forEach((project) => {
+          const projectId = slugToProjectId(project.slug);
           const projectOrders = allOrders.filter(
-            o => typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === project.tokenAddress.toLowerCase() && o.status === 0
+            o => typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === projectId.toLowerCase() && o.status === 0
           );
 
           const sellOrders = projectOrders.filter(o => o.isSell);
