@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/Logo";
-import { Shield, Zap, TrendingUp } from "lucide-react";
+import { Shield, Zap, TrendingUp, BookOpen } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -97,9 +97,10 @@ export default function HomePage() {
             <Link href="/how-it-works">
               <Button
                 variant="custom"
-                className="bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-700 text-base px-8 py-3"
+                className="bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-700 text-base px-8 py-3 flex items-center gap-2"
               >
-                📚 How It Works
+                <BookOpen className="w-5 h-5" />
+                How It Works
               </Button>
             </Link>
           </div>
