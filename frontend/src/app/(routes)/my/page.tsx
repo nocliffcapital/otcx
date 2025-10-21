@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { ProjectImage } from "@/components/ProjectImage";
 import { useMyOrders } from "@/hooks/useOrders";
 import { useOrderbook } from "@/hooks/useOrderbook";
 import { useToast } from "@/components/Toast";
@@ -11,7 +12,7 @@ import { TGEOrderControls } from "@/components/TGEOrderControls";
 import { formatUnits } from "viem";
 import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } from "@/lib/contracts";
 import { useState, useEffect, useMemo } from "react";
-import { useReadContract } from "wagmi";
+import { useReadContract, usePublicClient } from "wagmi";
 import { FileText, TrendingUp, Clock, CheckCircle2, Lock } from "lucide-react";
 
 const STATUS_LABELS = [
@@ -42,9 +43,12 @@ export default function MyOrdersPage() {
   const [canceling, setCanceling] = useState<string | null>(null);
   const [locking, setLocking] = useState<string | null>(null);
   const [projectNames, setProjectNames] = useState<Record<string, string>>({});
+  const [projectMetadata, setProjectMetadata] = useState<Record<string, string>>({}); // token address -> metadataURI
   const [showCanceled, setShowCanceled] = useState(false);
 
-  // Fetch all projects to map token addresses to names
+  const publicClient = usePublicClient();
+
+  // Fetch all projects to map token addresses to names and metadata URIs
   const { data: projects } = useReadContract({
     address: REGISTRY_ADDRESS,
     abi: PROJECT_REGISTRY_ABI,
@@ -52,14 +56,37 @@ export default function MyOrdersPage() {
   });
 
   useEffect(() => {
-    if (projects) {
+    if (!publicClient || !projects) return;
+    
+    async function fetchProjectDetails() {
       const nameMap: Record<string, string> = {};
-      (projects as Array<{ tokenAddress: string; name: string }>).forEach((project) => {
-        nameMap[project.tokenAddress.toLowerCase()] = project.name;
-      });
+      const metadataMap: Record<string, string> = {};
+      
+      for (const proj of projects as Array<{ tokenAddress: string; name: string; slug: string }>) {
+        try {
+          // Fetch full project details including metadata URI
+          const fullProject = await publicClient.readContract({
+            address: REGISTRY_ADDRESS,
+            abi: PROJECT_REGISTRY_ABI,
+            functionName: "getProject",
+            args: [proj.slug],
+          }) as { name: string; logoUrl: string };
+          
+          nameMap[proj.tokenAddress.toLowerCase()] = fullProject.name || proj.name;
+          metadataMap[proj.tokenAddress.toLowerCase()] = fullProject.logoUrl || ''; // logoUrl is being used as metadataURI
+        } catch (error) {
+          console.error(`Failed to fetch details for ${proj.slug}:`, error);
+          // Fallback to basic project data
+          nameMap[proj.tokenAddress.toLowerCase()] = proj.name;
+        }
+      }
+      
       setProjectNames(nameMap);
+      setProjectMetadata(metadataMap);
     }
-  }, [projects]);
+    
+    fetchProjectDetails();
+  }, [publicClient, projects]);
 
   // Filter orders based on showCanceled toggle
   const filteredOrders = useMemo(() => {
@@ -269,13 +296,22 @@ export default function MyOrdersPage() {
 
             return (
               <Card key={order.id.toString()} className="p-3 hover:border-cyan-500/30 transition-all">
-                <div className="flex flex-col md:flex-row justify-between gap-3">
-                  {/* Left: Main info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <Badge className={order.isSell ? "bg-red-600 text-xs" : "bg-green-600 text-xs"}>
-                        {order.isSell ? "SELL" : "BUY"}
-                      </Badge>
+                <div className="flex gap-3">
+                  {/* Project Icon */}
+                  <ProjectImage 
+                    metadataURI={projectMetadata[order.projectToken.toLowerCase()]}
+                    imageType="icon"
+                    className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-zinc-700"
+                    fallbackText={(projectNames[order.projectToken.toLowerCase()] || "?").charAt(0).toUpperCase()}
+                  />
+                  
+                  <div className="flex-1 min-w-0 flex flex-col md:flex-row justify-between gap-3">
+                    {/* Left: Main info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <Badge className={order.isSell ? "bg-red-600 text-xs" : "bg-green-600 text-xs"}>
+                          {order.isSell ? "SELL" : "BUY"}
+                        </Badge>
                       {isInSettlement && (
                         <>
                           <Badge className="bg-orange-600 text-xs">TGE ACTIVATED</Badge>
@@ -448,6 +484,7 @@ export default function MyOrdersPage() {
                       )}
                     </div>
                   </div>
+                </div>
                 </div>
               </Card>
             );

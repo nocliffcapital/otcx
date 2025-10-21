@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
+import { ProjectImage } from "@/components/ProjectImage";
 import { useReadContract, usePublicClient } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, STABLE_DECIMALS } from "@/lib/contracts";
 import { useEffect, useState } from "react";
@@ -20,6 +21,7 @@ type Project = {
   twitterUrl?: string;
   websiteUrl?: string;
   description?: string;
+  metadataURI?: string;
 };
 
 type ProjectStats = {
@@ -52,7 +54,7 @@ export default function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | "Tokens" | "Points">("all");
 
-  // Fetch full project details including Twitter URLs
+  // Fetch full project details including Twitter URLs and metadata URI
   useEffect(() => {
     if (!publicClient || !projectsData) return;
     
@@ -66,7 +68,7 @@ export default function ProjectsPage() {
             abi: PROJECT_REGISTRY_ABI,
             functionName: "getProject",
             args: [proj.slug],
-          }) as { name: string; twitterUrl: string; websiteUrl: string; description: string };
+          }) as { name: string; twitterUrl: string; websiteUrl: string; description: string; logoUrl: string };
           
           fullProjects.push({
             slug: proj.slug,
@@ -78,6 +80,7 @@ export default function ProjectsPage() {
             twitterUrl: fullProject.twitterUrl || '',
             websiteUrl: fullProject.websiteUrl || '',
             description: fullProject.description || '',
+            metadataURI: fullProject.logoUrl || '', // logoUrl is now being used as metadataURI
           });
         } catch (error) {
           console.error(`Failed to fetch details for ${proj.slug}:`, error);
@@ -328,10 +331,26 @@ export default function ProjectsPage() {
           return (
             <Link key={project.slug} href={`/project/${project.slug}`}>
               <Card className="hover:border-blue-500/50 hover:scale-[1.02] hover:shadow-blue-500/20 cursor-pointer h-full group transition-all duration-500 ease-out">
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start gap-3 mb-3">
+                  {/* Project Icon */}
+                  <ProjectImage 
+                    metadataURI={project.metadataURI}
+                    imageType="icon"
+                    className="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-zinc-700 group-hover:border-blue-500/50 transition-all"
+                    fallbackText={project.name.charAt(0).toUpperCase()}
+                  />
+                  
+                  {/* Project Info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg">{project.name}</h3>
-                    <p className="text-xs text-zinc-400 mt-1">@{project.slug}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg">{project.name}</h3>
+                        <p className="text-xs text-zinc-400 mt-1">@{project.slug}</p>
+                      </div>
+                      <Badge className={project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"}>
+                        {project.assetType}
+                      </Badge>
+                    </div>
                     {project.twitterUrl && (
                       <div className="mt-2">
                         <ProjectReputationBadge 
@@ -342,9 +361,6 @@ export default function ProjectsPage() {
                       </div>
                     )}
                   </div>
-                  <Badge className={project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"}>
-                    {project.assetType}
-                  </Badge>
                 </div>
                 
                 {/* Price Stats */}

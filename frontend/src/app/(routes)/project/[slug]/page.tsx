@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { useOrderbook } from "@/hooks/useOrderbook";
 import { useOrders } from "@/hooks/useOrders";
 import { useToast } from "@/components/Toast";
+import { ProjectImage } from "@/components/ProjectImage";
 import { parseUnits, formatUnits } from "viem";
 import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { useReadContract } from "wagmi";
@@ -225,6 +226,14 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
+          {/* Project Logo */}
+          <ProjectImage 
+            metadataURI={project?.logoUrl}
+            imageType="logo"
+            className="h-12 max-w-[200px] object-contain"
+            fallbackText={project?.name || slug.toUpperCase()}
+          />
+          
           <h1 className="text-3xl font-semibold">{project?.name || slug.toUpperCase()}</h1>
           <Badge className={`${
             project?.assetType === 'Tokens' 
