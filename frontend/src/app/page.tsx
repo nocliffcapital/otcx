@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/Logo";
-import { Shield, Zap, TrendingUp, BookOpen } from "lucide-react";
+import { Shield, Zap, TrendingUp, BookOpen, Search } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -76,9 +76,10 @@ export default function HomePage() {
             <Link href="/app">
               <Button
                 variant="custom"
-                className="bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-700 hover:to-cyan-700 text-base px-8 py-3 shadow-lg shadow-violet-500/30"
+                className="bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-700 hover:to-cyan-700 text-base px-8 py-3 shadow-lg shadow-violet-500/30 flex items-center gap-2"
               >
-                Browse Markets →
+                <Search className="w-5 h-5" />
+                Browse Markets
               </Button>
             </Link>
             <Link href="/how-it-works">
@@ -86,7 +87,7 @@ export default function HomePage() {
                 variant="custom"
                 className="bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-700 text-base px-8 py-3 flex items-center gap-2"
               >
-                <BookOpen className="w-5 h-5" />
+                <BookOpen className="w-4 h-4" />
                 How It Works
               </Button>
             </Link>
