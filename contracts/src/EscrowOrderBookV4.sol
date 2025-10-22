@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {IERC20} from "./interfaces/IERC20.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {ReentrancyGuard} from "solady/utils/ReentrancyGuard.sol";
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
 /**
  * @title EscrowOrderBookV4
@@ -12,10 +13,14 @@ import {ReentrancyGuard} from "solady/utils/ReentrancyGuard.sol";
  * @dev V4 improvements:
  *   - Project-level TGE activation (no loops, single flag per project)
  *   - Permissionless settlement (anyone can settle once TGE is active)
- *   - Fee system: 1% total (0.5% maker + 0.5% taker) + 0.1% cancellation
+ *   - Fee system: 0.5% settlement + 0.1% cancellation (configurable 0-5%)
  *   - Split fee capture: 0.5% stable + 0.5% token for token projects
+ *   - Rounding policy: All fee calculations use floor division (round down)
+ *   - Token requirements: Only 18-decimal ERC20 tokens supported
+ *   - SafeTransferLib: Robust handling of non-standard ERC20 tokens
  */
 contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
+    using SafeTransferLib for address;
     // ========== TYPES ==========
     
     enum Status { 
@@ -47,6 +52,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     IERC20 public immutable stable;
     uint8 public immutable stableDecimals;
     address public immutable feeCollector;
+    uint256 public immutable MAX_ORDER_VALUE;               // 1M in stable decimals
     
     // Fee Configuration (adjustable by owner)
     uint64 public settlementFeeBps = 50;        // 0.5% commission fee (split between stable + token)
@@ -56,7 +62,8 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     uint256 public constant BPS_DENOMINATOR = 10_000;
     uint256 public constant MAX_FEE_BPS = 500;              // 5% max
     uint256 public constant DEFAULT_SETTLEMENT_WINDOW = 4 hours;
-    uint256 public constant MAX_ORDER_VALUE = 1_000_000 * 10**6; // 1M USDC
+    uint256 public constant MAX_SETTLEMENT_WINDOW = 7 days;
+    address public constant POINTS_SENTINEL = 0x000000000000000000000000000000000000dEaD;
     
     // Mutable
     uint256 public nextId = 1;
@@ -83,7 +90,8 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     event ProofSubmitted(uint256 indexed id, address seller, string proof);
     event SettlementExtended(bytes32 indexed projectId, uint64 newDeadline);
     event FeeCollected(bytes32 indexed projectId, address token, uint256 amount);
-    event FeeUpdated(string feeType, uint64 oldRate, uint64 newRate);
+    event SettlementFeeUpdated(uint64 oldRate, uint64 newRate);
+    event CancellationFeeUpdated(uint64 oldRate, uint64 newRate);
     event Paused(address indexed account);
     event Unpaused(address indexed account);
 
@@ -125,6 +133,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         stable = IERC20(stableToken);
         stableDecimals = IERC20(stableToken).decimals();
         feeCollector = _feeCollector;
+        MAX_ORDER_VALUE = 1_000_000 * (10 ** stableDecimals);  // 1M in stable decimals
         
         _initializeOwner(msg.sender);
     }
@@ -149,7 +158,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (newFeeBps > MAX_FEE_BPS) revert FeeTooHigh();
         uint64 oldFee = settlementFeeBps;
         settlementFeeBps = newFeeBps;
-        emit FeeUpdated("settlement", oldFee, newFeeBps);
+        emit SettlementFeeUpdated(oldFee, newFeeBps);
     }
 
     /// @notice Update the cancellation fee rate
@@ -158,27 +167,40 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (newFeeBps > MAX_FEE_BPS) revert FeeTooHigh();
         uint64 oldFee = cancellationFeeBps;
         cancellationFeeBps = newFeeBps;
-        emit FeeUpdated("cancellation", oldFee, newFeeBps);
+        emit CancellationFeeUpdated(oldFee, newFeeBps);
     }
 
     /// @notice Activate TGE for a project (V4: project-level, not per-order!)
     /// @param projectId The project identifier (keccak256 of slug)
-    /// @param tokenAddress The actual token address (or 0xdead for Points)
+    /// @param tokenAddress The actual token address (or POINTS_SENTINEL for Points)
+    /// @param settlementWindow Duration for settlement (max 7 days)
     function activateProjectTGE(
         bytes32 projectId,
-        address tokenAddress
+        address tokenAddress,
+        uint64 settlementWindow
     ) external onlyOwner {
         if (projectTgeActivated[projectId]) revert TGEAlreadyActivated();
         if (tokenAddress == address(0)) revert InvalidAddress();
         if (tokenAddress == address(stable)) revert InvalidAddress();
+        if (settlementWindow == 0 || settlementWindow > MAX_SETTLEMENT_WINDOW) revert InvalidAmount();
         
-        // For Points projects, allow placeholder
-        bool isPointsProject = (tokenAddress == 0x000000000000000000000000000000000000dEaD);
+        // For Points projects, allow sentinel
+        bool isPointsProject = (tokenAddress == POINTS_SENTINEL);
         
         if (!isPointsProject) {
-            // Validate it's a real ERC20
+            // Validate it's a real ERC20 with code
+            if (tokenAddress.code.length == 0) revert InvalidAddress();
+            
+            // Validate totalSupply() exists
             try IERC20(tokenAddress).totalSupply() returns (uint256) {
                 // Valid token
+            } catch {
+                revert InvalidAddress();
+            }
+            
+            // Enforce 18 decimals for tokens (prevents amount/fee calculation errors)
+            try IERC20(tokenAddress).decimals() returns (uint8 decimals) {
+                if (decimals != 18) revert InvalidAddress();  // Only 18-decimal tokens supported
             } catch {
                 revert InvalidAddress();
             }
@@ -186,7 +208,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         
         projectTgeActivated[projectId] = true;
         projectTokenAddress[projectId] = tokenAddress;
-        projectSettlementDeadline[projectId] = uint64(block.timestamp + DEFAULT_SETTLEMENT_WINDOW);
+        projectSettlementDeadline[projectId] = uint64(block.timestamp + settlementWindow);
         
         emit ProjectTGEActivated(projectId, tokenAddress, projectSettlementDeadline[projectId]);
     }
@@ -207,9 +229,36 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         emit SettlementExtended(projectId, projectSettlementDeadline[projectId]);
     }
 
+    // ========== VIEW / PURE HELPERS ==========
+    
+    /// @notice Calculate total order value in stable
+    /// @param amount Token amount (18 decimals)
+    /// @param unitPrice Price per token (stable decimals)
+    /// @return totalValue Order value in stable
+    function quoteTotalValue(uint256 amount, uint256 unitPrice) public pure returns (uint256) {
+        return (amount * unitPrice) / 1e18;
+    }
+    
+    /// @notice Calculate seller collateral requirement (110% of value)
+    /// @param totalValue Order value in stable
+    /// @return collateral Required seller collateral
+    function quoteSellerCollateral(uint256 totalValue) public pure returns (uint256) {
+        return (totalValue * 110) / 100;
+    }
+    
+    /// @notice Get order value for an existing order
+    /// @param orderId The order ID
+    /// @return value Order value in stable
+    function getOrderValue(uint256 orderId) external view returns (uint256) {
+        Order storage order = orders[orderId];
+        return quoteTotalValue(order.amount, order.unitPrice);
+    }
+    
     // ========== CORE TRADING FUNCTIONS ==========
     
     /// @notice Create a new order
+    /// @dev createOrder and takeOrder: require whenNotPaused
+    /// @dev cancel, settle, handleDefault: remain callable when paused (allow exits)
     /// @param projectId The project identifier
     /// @param amount Token amount to trade
     /// @param unitPrice Price per token in stable
@@ -234,7 +283,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
             : totalValue;               // Buyer: 100% (payment)
         
         // Transfer collateral
-        if (!stable.transferFrom(msg.sender, address(this), collateral)) revert TransferFailed();
+        address(stable).safeTransferFrom(msg.sender, address(this), collateral);
         
         uint256 orderId = nextId++;
         
@@ -272,7 +321,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
             : (totalValue * 110) / 100;  // Seller posts 110% collateral
         
         // Transfer collateral from taker
-        if (!stable.transferFrom(msg.sender, address(this), collateral)) revert TransferFailed();
+        address(stable).safeTransferFrom(msg.sender, address(this), collateral);
         
         // Update order state
         if (order.isSell) {
@@ -333,18 +382,18 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         // INTERACTIONS: External calls
         // Return counterparty's collateral if FUNDED
         if (counterpartyRefund > 0) {
-            if (!stable.transfer(counterparty, counterpartyRefund)) revert TransferFailed();
+            address(stable).safeTransfer(counterparty, counterpartyRefund);
         }
         
         // Refund maker minus fee
         uint256 netRefund = refund - cancellationFee;
         if (netRefund > 0) {
-            if (!stable.transfer(msg.sender, netRefund)) revert TransferFailed();
+            address(stable).safeTransfer(msg.sender, netRefund);
         }
         
         // Collect fee
         if (cancellationFee > 0) {
-            if (!stable.transfer(feeCollector, cancellationFee)) revert TransferFailed();
+            address(stable).safeTransfer(feeCollector, cancellationFee);
             emit FeeCollected(order.projectId, address(stable), cancellationFee);
         }
         
@@ -360,7 +409,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (block.timestamp > projectSettlementDeadline[order.projectId]) revert DeadlinePassed();
         
         address tokenAddress = projectTokenAddress[order.projectId];
-        bool isPointsProject = (tokenAddress == 0x000000000000000000000000000000000000dEaD);
+        bool isPointsProject = (tokenAddress == POINTS_SENTINEL);
         
         if (isPointsProject) {
             // Points: cannot auto-settle, requires manual admin settlement
@@ -382,17 +431,17 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         
         // INTERACTIONS: External calls
         // Seller must deposit tokens
-        if (!IERC20(tokenAddress).transferFrom(seller, address(this), order.amount)) revert TransferFailed();
+        tokenAddress.safeTransferFrom(seller, address(this), order.amount);
         
         // Transfer tokens to buyer (minus fee)
-        if (!IERC20(tokenAddress).transfer(buyer, order.amount - tokenFee)) revert TransferFailed();
+        tokenAddress.safeTransfer(buyer, order.amount - tokenFee);
         
         // Transfer stable to seller (minus fee) + return seller collateral
-        if (!stable.transfer(seller, totalToSeller)) revert TransferFailed();
+        address(stable).safeTransfer(seller, totalToSeller);
         
         // Collect fees
-        if (!IERC20(tokenAddress).transfer(feeCollector, tokenFee)) revert TransferFailed();
-        if (!stable.transfer(feeCollector, stableFee)) revert TransferFailed();
+        tokenAddress.safeTransfer(feeCollector, tokenFee);
+        address(stable).safeTransfer(feeCollector, stableFee);
         
         emit OrderSettled(orderId, buyer, seller, stableFee, tokenFee);
         emit FeeCollected(projectId, address(stable), stableFee);
@@ -437,11 +486,11 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         
         // INTERACTIONS: External calls
         // Distribute collateral minus fee
-        if (!stable.transfer(seller, netToSeller)) revert TransferFailed();
+        address(stable).safeTransfer(seller, netToSeller);
         
         // Collect fee
         if (fee > 0) {
-            if (!stable.transfer(feeCollector, fee)) revert TransferFailed();
+            address(stable).safeTransfer(feeCollector, fee);
             emit FeeCollected(projectId, address(stable), fee);
         }
         
@@ -465,7 +514,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         
         // INTERACTIONS: External call
         // Refund buyer (seller defaulted)
-        if (!stable.transfer(buyer, compensation)) revert TransferFailed();
+        address(stable).safeTransfer(buyer, compensation);
         
         emit OrderDefaulted(orderId, buyer, compensation);
     }
