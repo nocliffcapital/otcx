@@ -106,7 +106,7 @@ export default function HomePage() {
             </div>
             <div className="w-px bg-zinc-800"></div>
             <div>
-              <div className="text-3xl font-bold text-pink-400">24/7</div>
+              <div className="text-3xl font-bold text-cyan-400">24/7</div>
               <div className="text-sm text-zinc-500">Available</div>
             </div>
           </div>
