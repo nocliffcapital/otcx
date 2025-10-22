@@ -10,7 +10,7 @@ import { TGESettlementManager } from "@/components/TGESettlementManager";
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { isAddress, getAddress } from "viem";
-import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle } from "lucide-react";
+import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings } from "lucide-react";
 import { uploadImageToPinata, uploadMetadataToPinata } from "@/lib/pinata";
 
 type Project = {
@@ -516,7 +516,8 @@ export default function AdminPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+        <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent flex items-center gap-3">
+          <Settings className="w-8 h-8 md:w-10 md:h-10 text-violet-400" />
           Admin Panel
         </h1>
         <p className="text-lg text-zinc-400">Manage projects on the otcX platform</p>
