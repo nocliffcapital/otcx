@@ -100,10 +100,12 @@ body {
 }
 
 .animate-scan-horizontal {
+  opacity: 0;
   animation: scan-horizontal 8s ease-in-out infinite;
 }
 
 .animate-scan-vertical {
+  opacity: 0;
   animation: scan-vertical 6s ease-in-out infinite;
 }
 
