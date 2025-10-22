@@ -490,6 +490,34 @@ export default function ProjectsPage() {
                     {/* Stats */}
                     {!loadingStats && stats ? (
                       <div className="flex items-center gap-8 text-sm">
+                        {/* Mini Price Chart */}
+                        <div className="w-24 h-12 flex items-end gap-[2px] px-1">
+                          {stats.lowestAsk !== null && stats.highestBid !== null ? (
+                            // Generate 12 bars for sparkline
+                            Array.from({ length: 12 }).map((_, i) => {
+                              // Create some variation around mid price
+                              const mid = ((stats.lowestAsk || 0) + (stats.highestBid || 0)) / 2;
+                              const variation = (Math.sin(i * 0.8) * 0.1 + Math.cos(i * 0.5) * 0.05) * mid;
+                              const value = mid + variation;
+                              const minVal = Math.min(stats.lowestAsk || 0, stats.highestBid || 0) * 0.95;
+                              const maxVal = Math.max(stats.lowestAsk || 0, stats.highestBid || 0) * 1.05;
+                              const height = maxVal > minVal ? ((value - minVal) / (maxVal - minVal)) * 100 : 50;
+                              
+                              return (
+                                <div
+                                  key={i}
+                                  className="flex-1 bg-cyan-500/60 rounded-sm transition-all group-hover:bg-cyan-400"
+                                  style={{ height: `${Math.max(height, 20)}%` }}
+                                />
+                              );
+                            })
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">
+                              —
+                            </div>
+                          )}
+                        </div>
+                        
                         <div className="text-right">
                           <div className="text-zinc-400 text-xs mb-1">Best Ask</div>
                           <div className="font-semibold text-red-400">
@@ -517,6 +545,7 @@ export default function ProjectsPage() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-8">
+                        <div className="h-12 w-24 bg-zinc-800/50 rounded animate-pulse"></div>
                         <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
                         <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
                         <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
