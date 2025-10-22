@@ -12,6 +12,7 @@ import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDER
 import { isAddress, getAddress } from "viem";
 import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings, DollarSign, Shield, Coins, Trash2 } from "lucide-react";
 import { uploadImageToPinata, uploadMetadataToPinata } from "@/lib/pinata";
+import { useToast } from "@/components/Toast";
 
 // V3 Project structure
 type Project = {
@@ -27,9 +28,11 @@ type Project = {
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
+  const toast = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "disabled">("all");
+  const [collateralToRemove, setCollateralToRemove] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     slug: "",
@@ -532,16 +535,21 @@ export default function AdminPage() {
 
   // V4: Remove collateral
   const handleRemoveCollateral = (tokenAddress: string) => {
-    if (!confirm(`Remove ${tokenAddress} from approved collateral? Existing orders will not be affected.`)) {
-      return;
-    }
+    setCollateralToRemove(tokenAddress);
+  };
+
+  const confirmRemoveCollateral = () => {
+    if (!collateralToRemove) return;
 
     writeContract({
       address: ORDERBOOK_ADDRESS,
       abi: ESCROW_ORDERBOOK_ABI,
       functionName: "removeCollateral",
-      args: [tokenAddress as `0x${string}`],
+      args: [collateralToRemove as `0x${string}`],
     });
+
+    toast.info("Transaction sent", "Removing collateral from whitelist...");
+    setCollateralToRemove(null);
   };
 
   // V3: Load project data into form for editing (mainly for setting token address during TGE)
@@ -1481,6 +1489,58 @@ export default function AdminPage() {
             );
           })()}
       </Card>
+
+      {/* Remove Collateral Confirmation Modal */}
+      {collateralToRemove && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <Card className="max-w-md w-full mx-4 p-6 bg-zinc-900 border-red-500/30">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+                Remove Collateral
+              </h3>
+              <p className="text-sm text-zinc-400 mb-3">
+                Are you sure you want to remove this token from the approved collateral whitelist?
+              </p>
+              <div className="p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
+                <div className="text-xs text-zinc-500 mb-1">Token Address</div>
+                <div className="text-sm font-mono text-red-400 break-all">{collateralToRemove}</div>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <div className="flex items-start gap-2 text-sm text-yellow-400 bg-yellow-950/20 p-3 rounded-lg border border-yellow-500/30">
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Important</p>
+                  <p className="text-xs text-yellow-300/80 mt-1">
+                    Existing orders using this collateral will not be affected. Only new orders will be prevented from using this token.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setCollateralToRemove(null)}
+                variant="custom"
+                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmRemoveCollateral}
+                disabled={isPending}
+                variant="custom"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Remove Collateral
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
