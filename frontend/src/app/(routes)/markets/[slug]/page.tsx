@@ -95,7 +95,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         let httpUrl = project.metadataURI;
         if (project.metadataURI.startsWith('ipfs://')) {
           const cid = project.metadataURI.slice(7);
-          httpUrl = `https://cloudflare-ipfs.com/ipfs/${cid}`;
+          httpUrl = `https://cf-ipfs.com/ipfs/${cid}`;
         }
         
         console.log('Fetching metadata from:', httpUrl);
@@ -124,7 +124,8 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   const sellOrders = orders.filter(o => o.isSell && o.status === 0);
   const buyOrders = orders.filter(o => !o.isSell && o.status === 0);
   // V3: Filled orders = FUNDED (1), TGE_ACTIVATED (2), and SETTLED (3)
-  const filledOrders = orders.filter(o => o.status === 1 || o.status === 2 || o.status === 3).sort((a, b) => Number(b.id) - Number(a.id));
+  // Use allOrders (not filtered by status) for filled orders section
+  const filledOrders = allOrders.filter(o => o.status === 1 || o.status === 2 || o.status === 3).sort((a, b) => Number(b.id) - Number(a.id));
   
   console.log('Sell orders:', sellOrders);
   console.log('Buy orders:', buyOrders);
