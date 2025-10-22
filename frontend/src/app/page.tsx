@@ -76,17 +76,9 @@ export default function HomePage() {
             <Link href="/app">
               <Button
                 variant="custom"
-                className="bg-blue-600 hover:bg-blue-700 text-base px-8 py-3 shadow-lg shadow-blue-500/50"
+                className="bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-700 hover:to-cyan-700 text-base px-8 py-3 shadow-lg shadow-violet-500/30"
               >
                 Browse Markets →
-              </Button>
-            </Link>
-            <Link href="/my">
-              <Button
-                variant="custom"
-                className="bg-zinc-800 hover:bg-zinc-700 text-base px-8 py-3"
-              >
-                Dashboard
               </Button>
             </Link>
             <Link href="/how-it-works">
