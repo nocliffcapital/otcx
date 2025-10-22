@@ -12,6 +12,14 @@ import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
 import { TrendingUp, SearchX } from "lucide-react";
 
+// Smart decimal formatting based on price
+function formatPrice(price: number): string {
+  if (price >= 100) return price.toFixed(2);     // $100+ → 2 decimals
+  if (price >= 10) return price.toFixed(3);      // $10-$99 → 3 decimals
+  if (price >= 1) return price.toFixed(4);       // $1-$9 → 4 decimals
+  return price.toFixed(6);                       // <$1 → 6 decimals
+}
+
 type Project = {
   slug: string;
   name: string;
@@ -439,19 +447,19 @@ export default function ProjectsPage() {
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-zinc-400">Last Price:</span>
                       <span className="font-semibold text-blue-400">
-                        {stats.lastPrice !== null ? `$${stats.lastPrice.toFixed(4)}` : "—"}
+                        {stats.lastPrice !== null ? `$${formatPrice(stats.lastPrice)}` : "—"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-zinc-400">Best Ask:</span>
                       <span className="font-semibold text-red-400">
-                        {stats.lowestAsk !== null ? `$${stats.lowestAsk.toFixed(4)}` : "—"}
+                        {stats.lowestAsk !== null ? `$${formatPrice(stats.lowestAsk)}` : "—"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-zinc-400">Best Bid:</span>
                       <span className="font-semibold text-green-400">
-                        {stats.highestBid !== null ? `$${stats.highestBid.toFixed(4)}` : "—"}
+                        {stats.highestBid !== null ? `$${formatPrice(stats.highestBid)}` : "—"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm border-t border-zinc-800 pt-2 mt-2">
