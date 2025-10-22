@@ -10,7 +10,7 @@ import { useOrders } from "@/hooks/useOrders";
 import { useToast } from "@/components/Toast";
 import { ProjectImage } from "@/components/ProjectImage";
 import { parseUnits, formatUnits } from "viem";
-import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
+import { STABLE_DECIMALS, STABLE_ADDRESS, ERC20_ABI, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
 import { useReadContract } from "wagmi";
 import { PriceChart } from "@/components/PriceChart";
 import { ProjectInfo } from "@/components/ProjectInfo";
@@ -46,6 +46,18 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     functionName: "paused",
   });
   const isOrderbookPaused = isPausedData === true;
+  
+  // Fetch USDC balance
+  const { data: usdcBalance } = useReadContract({
+    address: STABLE_ADDRESS,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address,
+      refetchInterval: 5000,
+    },
+  });
   
   // V3: Use projectId (bytes32) instead of tokenAddress
   const projectId = slugToProjectId(slug);
@@ -588,7 +600,30 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           </div>
           
           <div>
-            <label className="text-xs text-zinc-400 block mb-1">Total (USDC)</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-zinc-400">Total (USDC)</label>
+              {usdcBalance && address && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-zinc-500">
+                    Balance: {parseFloat(formatUnits(usdcBalance, STABLE_DECIMALS)).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC
+                  </span>
+                  <button
+                    onClick={() => {
+                      const maxUsdc = parseFloat(formatUnits(usdcBalance, STABLE_DECIMALS));
+                      if (unitPrice && parseFloat(unitPrice) > 0) {
+                        // Calculate max amount of tokens that can be bought with available USDC
+                        const maxTokens = maxUsdc / parseFloat(unitPrice);
+                        setAmount(maxTokens.toFixed(4));
+                      }
+                    }}
+                    disabled={creating || !unitPrice}
+                    className="px-1.5 py-0.5 text-[10px] bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded text-cyan-400 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    MAX
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="w-full rounded-md px-3 py-2 bg-zinc-800/50 border border-cyan-500/30 text-sm font-medium text-cyan-400">
               ${total.toLocaleString()}
             </div>
