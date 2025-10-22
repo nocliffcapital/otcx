@@ -43,8 +43,8 @@ export default function HomePage() {
           {/* Features grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
             <div className="glass rounded-2xl p-6 hover:scale-105 transform transition-transform group">
-              <div className="mb-4 inline-block p-3 bg-cyan-500/10 rounded-lg border border-cyan-500/20 group-hover:border-cyan-500/40 transition-colors">
-                <Shield className="w-8 h-8 text-cyan-400" strokeWidth={1.5} />
+              <div className="mb-4 inline-block p-2.5 bg-cyan-500/10 rounded-lg border border-cyan-500/20 group-hover:border-cyan-500/40 transition-colors">
+                <Shield className="w-6 h-6 text-cyan-400" strokeWidth={1.5} />
               </div>
               <h3 className="font-semibold text-lg mb-2">Secure Escrow</h3>
               <p className="text-sm text-zinc-400">
@@ -52,8 +52,8 @@ export default function HomePage() {
               </p>
             </div>
             <div className="glass rounded-2xl p-6 hover:scale-105 transform transition-transform group">
-              <div className="mb-4 inline-block p-3 bg-violet-500/10 rounded-lg border border-violet-500/20 group-hover:border-violet-500/40 transition-colors">
-                <Zap className="w-8 h-8 text-violet-400" strokeWidth={1.5} />
+              <div className="mb-4 inline-block p-2.5 bg-violet-500/10 rounded-lg border border-violet-500/20 group-hover:border-violet-500/40 transition-colors">
+                <Zap className="w-6 h-6 text-violet-400" strokeWidth={1.5} />
               </div>
               <h3 className="font-semibold text-lg mb-2">Instant Trading</h3>
               <p className="text-sm text-zinc-400">
@@ -61,8 +61,8 @@ export default function HomePage() {
               </p>
             </div>
             <div className="glass rounded-2xl p-6 hover:scale-105 transform transition-transform group">
-              <div className="mb-4 inline-block p-3 bg-cyan-500/10 rounded-lg border border-cyan-500/20 group-hover:border-cyan-500/40 transition-colors">
-                <TrendingUp className="w-8 h-8 text-cyan-400" strokeWidth={1.5} />
+              <div className="mb-4 inline-block p-2.5 bg-cyan-500/10 rounded-lg border border-cyan-500/20 group-hover:border-cyan-500/40 transition-colors">
+                <TrendingUp className="w-6 h-6 text-cyan-400" strokeWidth={1.5} />
               </div>
               <h3 className="font-semibold text-lg mb-2">Live Price Data</h3>
               <p className="text-sm text-zinc-400">
