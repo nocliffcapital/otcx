@@ -861,7 +861,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                 </tr>
               </thead>
               <tbody>
-                {filledOrders.map((order) => {
+                {filledOrders.sort((a, b) => Number(b.id) - Number(a.id)).map((order) => {
                   // Calculate total in stable decimals (USD value)
                   // amount is 18 decimals, unitPrice is 6 decimals, so divide by 10^18
                   const total = (order.amount * order.unitPrice) / BigInt(10 ** 18);
