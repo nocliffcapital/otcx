@@ -146,8 +146,7 @@ contract EscrowOrderBookV2Test is Test {
         vm.prank(admin);
         orderbook.activateTGE(id, address(actualToken));
 
-        vm.expectRevert("INVALID_HOURS", "" // logoUrl
-        );
+        vm.expectRevert("INVALID_HOURS");
         vm.prank(admin);
         orderbook.extendSettlement(id, 12); // Only 4 or 24 allowed
     }
@@ -155,8 +154,7 @@ contract EscrowOrderBookV2Test is Test {
     function test_RevertExtendNotActivated() public {
         uint256 id = _createFundedOrder();
 
-        vm.expectRevert("NOT_ACTIVATED", "" // logoUrl
-        );
+        vm.expectRevert("NOT_ACTIVATED");
         vm.prank(admin);
         orderbook.extendSettlement(id, 4);
     }
@@ -194,8 +192,7 @@ contract EscrowOrderBookV2Test is Test {
         vm.prank(admin);
         orderbook.activateTGE(id, address(actualToken));
 
-        vm.expectRevert("DEADLINE_NOT_PASSED", "" // logoUrl
-        );
+        vm.expectRevert("DEADLINE_NOT_PASSED");
         vm.prank(buyer);
         orderbook.defaultSeller(id);
     }
@@ -209,8 +206,7 @@ contract EscrowOrderBookV2Test is Test {
         vm.prank(seller);
         orderbook.depositTokensForSettlement(id);
 
-        vm.expectRevert("NOT_ACTIVATED", "" // logoUrl
-        );
+        vm.expectRevert("NOT_ACTIVATED");
         vm.prank(buyer);
         orderbook.defaultSeller(id);
     }
@@ -237,8 +233,7 @@ contract EscrowOrderBookV2Test is Test {
         vm.prank(seller);
         uint256 id = orderbook.createSellOrder(AMOUNT, UNIT_PRICE, projectToken);
 
-        vm.expectRevert("NOT_FUNDED", "" // logoUrl
-        );
+        vm.expectRevert("NOT_FUNDED");
         vm.prank(admin);
         orderbook.manualSettle(id);
     }
@@ -248,8 +243,7 @@ contract EscrowOrderBookV2Test is Test {
     function test_RevertActivateTGENotOwner() public {
         uint256 id = _createFundedOrder();
 
-        vm.expectRevert("NOT_OWNER", "" // logoUrl
-        );
+        vm.expectRevert("NOT_OWNER");
         vm.prank(buyer);
         orderbook.activateTGE(id, address(actualToken));
     }
@@ -260,8 +254,7 @@ contract EscrowOrderBookV2Test is Test {
         vm.prank(admin);
         orderbook.activateTGE(id, address(actualToken));
 
-        vm.expectRevert("NOT_OWNER", "" // logoUrl
-        );
+        vm.expectRevert("NOT_OWNER");
         vm.prank(buyer);
         orderbook.extendSettlement(id, 4);
     }
@@ -274,8 +267,7 @@ contract EscrowOrderBookV2Test is Test {
         vm.prank(admin);
         orderbook.activateTGE(id, address(actualToken));
 
-        vm.expectRevert("NOT_SELLER", "" // logoUrl
-        );
+        vm.expectRevert("NOT_SELLER");
         vm.prank(buyer);
         orderbook.depositTokensForSettlement(id);
     }
@@ -289,8 +281,7 @@ contract EscrowOrderBookV2Test is Test {
         vm.prank(seller);
         orderbook.depositTokensForSettlement(id);
 
-        vm.expectRevert("ALREADY_DEPOSITED", "" // logoUrl
-        );
+        vm.expectRevert("ALREADY_DEPOSITED");
         vm.prank(seller);
         orderbook.depositTokensForSettlement(id);
     }
@@ -304,8 +295,7 @@ contract EscrowOrderBookV2Test is Test {
         EscrowOrderBookV2.Order memory order = orderbook.getOrder(id);
         vm.warp(order.settlementDeadline + 1);
 
-        vm.expectRevert("DEADLINE_PASSED", "" // logoUrl
-        );
+        vm.expectRevert("DEADLINE_PASSED");
         vm.prank(seller);
         orderbook.depositTokensForSettlement(id);
     }
@@ -321,8 +311,7 @@ contract EscrowOrderBookV2Test is Test {
         vm.prank(seller);
         orderbook.depositTokensForSettlement(id);
 
-        vm.expectRevert("NOT_BUYER", "" // logoUrl
-        );
+        vm.expectRevert("NOT_BUYER");
         vm.prank(seller);
         orderbook.claimTokens(id);
     }
@@ -333,8 +322,7 @@ contract EscrowOrderBookV2Test is Test {
         vm.prank(admin);
         orderbook.activateTGE(id, address(actualToken));
 
-        vm.expectRevert("TOKENS_NOT_DEPOSITED", "" // logoUrl
-        );
+        vm.expectRevert("TOKENS_NOT_DEPOSITED");
         vm.prank(buyer);
         orderbook.claimTokens(id);
     }
@@ -349,8 +337,7 @@ contract EscrowOrderBookV2Test is Test {
 
         // TGE activation is owner-only, so it still works when paused
         // But let's test order creation is blocked
-        vm.expectRevert("PAUSED", "" // logoUrl
-        );
+        vm.expectRevert("PAUSED");
         vm.prank(seller);
         orderbook.createSellOrder(AMOUNT, UNIT_PRICE, projectToken);
     }

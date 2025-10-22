@@ -61,8 +61,7 @@ contract OrderbookTest is Test {
 
         // Alice receives total twice? ensure exactly total*2 (funds + collateral returned)
         uint256 balAliceAfter = usdc.balanceOf(alice);
-        assertEq(balAliceAfter, balAliceBefore + total * 2, "seller should get funds and collateral back", "" // logoUrl
-        );
+        assertEq(balAliceAfter, balAliceBefore + total * 2, "seller should get funds and collateral back");
     }
 
     function testCreateBuyAndFillHappyPath() public {
@@ -89,8 +88,7 @@ contract OrderbookTest is Test {
         book.markFilled(id, alice);
 
         uint256 balAliceAfter = usdc.balanceOf(alice);
-        assertEq(balAliceAfter, balAliceBefore + total * 2, "seller receives funds and collateral back", "" // logoUrl
-        );
+        assertEq(balAliceAfter, balAliceBefore + total * 2, "seller receives funds and collateral back");
     }
 
     function testCancelOnlyWhenNoCounterLock() public {
@@ -112,8 +110,7 @@ contract OrderbookTest is Test {
         vm.prank(bob);
         book.depositBuyerFunds(id);
         vm.prank(alice);
-        vm.expectRevert("COUNTER_LOCK", "" // logoUrl
-        );
+        vm.expectRevert("COUNTER_LOCK");
         book.cancel(id);
     }
 
@@ -129,8 +126,7 @@ contract OrderbookTest is Test {
         book.depositSellerCollateral(id);
 
         // before expiry revert
-        vm.expectRevert("NOT_EXPIRED", "" // logoUrl
-        );
+        vm.expectRevert("NOT_EXPIRED");
         book.defaultBuyer(id);
 
         // after expiry buyer (Bob) or anyone defaults to buyer; set buyer = Bob by depositing or rely on maker?
@@ -163,8 +159,7 @@ contract OrderbookTest is Test {
         uint256 balBobBefore = usdc.balanceOf(bob);
         book.defaultBuyer(idBuy);
         uint256 balBobAfter = usdc.balanceOf(bob);
-        assertEq(balBobAfter, balBobBefore + amount * price, "buyer receives seller collateral", "" // logoUrl
-        );
+        assertEq(balBobAfter, balBobBefore + amount * price, "buyer receives seller collateral");
 
         // Seller is maker (Alice); buyer (Bob) funds then times out -> defaultSeller pays seller (Alice)
         expiry = _future(1 days);
@@ -178,22 +173,18 @@ contract OrderbookTest is Test {
         uint256 balAliceBefore = usdc.balanceOf(alice);
         book.defaultSeller(idSell);
         uint256 balAliceAfter = usdc.balanceOf(alice);
-        assertEq(balAliceAfter, balAliceBefore + amount * price, "seller receives buyer funds", "" // logoUrl
-        );
+        assertEq(balAliceAfter, balAliceBefore + amount * price, "seller receives buyer funds");
     }
 
     function testRevertsAndRounding() public {
         uint64 expirySoon = uint64(block.timestamp + 5 minutes);
-        vm.expectRevert("EXPIRY", "" // logoUrl
-        );
+        vm.expectRevert("EXPIRY");
         book.createSellOrder(1, 1, address(0), expirySoon);
 
-        vm.expectRevert("AMOUNT", "" // logoUrl
-        );
+        vm.expectRevert("AMOUNT");
         book.createSellOrder(0, 1, address(0), _future(1 days));
 
-        vm.expectRevert("PRICE", "" // logoUrl
-        );
+        vm.expectRevert("PRICE");
         book.createSellOrder(1, 0, address(0), _future(1 days));
     }
 
@@ -209,8 +200,7 @@ contract OrderbookTest is Test {
         book.depositSellerCollateral(id);
         vm.prank(bob);
         book.markFilled(id, alice);
-        vm.expectRevert("STATUS", "" // logoUrl
-        );
+        vm.expectRevert("STATUS");
         book.markFilled(id, alice);
     }
 }
