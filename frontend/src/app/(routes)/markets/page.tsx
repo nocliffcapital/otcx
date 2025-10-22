@@ -381,7 +381,7 @@ export default function ProjectsPage() {
           const stats = projectStats[project.slug];
           
           return (
-            <Link key={project.slug} href={`/project/${project.slug}`}>
+            <Link key={project.slug} href={`/markets/${project.slug}`}>
               <Card className="hover:border-blue-500/30 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer h-full group transition-all duration-500 ease-out">
                 <div className="flex items-start gap-3 mb-3">
                   {/* Project Icon */}
@@ -468,7 +468,7 @@ export default function ProjectsPage() {
             const stats = projectStats[project.slug];
             
             return (
-              <Link key={project.slug} href={`/project/${project.slug}`}>
+              <Link key={project.slug} href={`/markets/${project.slug}`}>
                 <Card className="hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer group transition-all p-3">
                   <div className="flex items-center gap-4">
                     {/* Project Icon */}
