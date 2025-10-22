@@ -14,7 +14,7 @@ import { STABLE_DECIMALS, STABLE_ADDRESS, ERC20_ABI, REGISTRY_ADDRESS, PROJECT_R
 import { useReadContract } from "wagmi";
 import { PriceChart } from "@/components/PriceChart";
 import { ProjectInfo } from "@/components/ProjectInfo";
-import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, ShoppingCart, Package, CheckCircle } from "lucide-react";
+import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import ReputationBadge from "@/components/ReputationBadge";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
@@ -477,7 +477,11 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-sm flex items-center gap-2">
-              <PlusCircle className="w-4 h-4 text-cyan-400" />
+              {side === "SELL" ? (
+                <MinusCircle className="w-4 h-4 text-red-400" />
+              ) : (
+                <PlusCircle className="w-4 h-4 text-green-400" />
+              )}
               Create Order
             </h2>
             <Link 
