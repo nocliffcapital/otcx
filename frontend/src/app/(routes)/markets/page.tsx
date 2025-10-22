@@ -382,7 +382,7 @@ export default function ProjectsPage() {
           
           return (
             <Link key={project.slug} href={`/project/${project.slug}`}>
-              <Card className="hover:border-blue-500/50 hover:scale-[1.02] hover:shadow-blue-500/20 cursor-pointer h-full group transition-all duration-500 ease-out">
+              <Card className="hover:border-blue-500/30 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer h-full group transition-all duration-500 ease-out">
                 <div className="flex items-start gap-3 mb-3">
                   {/* Project Icon */}
                   <ProjectImage 
