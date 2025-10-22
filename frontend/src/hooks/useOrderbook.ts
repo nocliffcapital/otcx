@@ -62,8 +62,8 @@ export function useOrderbook() {
       // Convert from 24 decimals to 6 decimals (USDC)
       const total = (amount * unitPrice) / BigInt(10 ** 18);
       
-      // Seller needs 110% collateral
-      const collateral = (total * 110n) / 100n;
+      // Seller needs 100% collateral (same as buyer)
+      const collateral = total;
       
       // Check balance first
       const balance = await checkBalance(address);

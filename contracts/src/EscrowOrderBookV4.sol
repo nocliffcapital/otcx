@@ -339,9 +339,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (totalValue > MAX_ORDER_VALUE) revert ExceedsMaxValue();
         
         // Collateral requirement
-        uint256 collateral = isSell 
-            ? (totalValue * 110) / 100  // Seller: 110% collateral
-            : totalValue;               // Buyer: 100% (payment)
+        uint256 collateral = totalValue;  // Both parties: 100% collateral
         
         // Transfer collateral
         address(stable).safeTransferFrom(msg.sender, address(this), collateral);
