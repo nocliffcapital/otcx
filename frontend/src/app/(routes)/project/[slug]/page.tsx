@@ -497,13 +497,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             </div>
           </div>
 
-          <div className={`lg:col-span-4 p-2.5 rounded-lg border ${
+          <div className={`lg:col-span-4 px-3 py-1.5 rounded-lg border flex items-center gap-2 ${
             side === "SELL" ? "bg-red-950/30 border-red-800" : "bg-green-950/30 border-green-800"
           }`}>
             <div className="text-xs font-medium">
               {side === "SELL" ? "🔴 You are SELLING" : "🟢 You are BUYING"}
             </div>
-            <div className="text-[10px] text-zinc-400 mt-0.5">
+            <div className="text-[10px] text-zinc-400">
               {side === "SELL" 
                 ? "You'll receive USDC when someone buys from you" 
                 : "You'll receive tokens when someone sells to you"}
