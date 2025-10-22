@@ -225,25 +225,25 @@ export function Navbar() {
 
                     return (
                       <div className="flex gap-2 items-center">
-                        <BalanceDisplay />
-                        
-                        {/* Mint Test Tokens - Stacked tiny buttons */}
-                        <div className="flex flex-col gap-1">
+                        {/* Mint Test Tokens - Stacked tiny buttons on the left */}
+                        <div className="flex flex-col gap-0.5">
                           <button
                             onClick={handleMintUSDC}
                             disabled={minting || !address}
-                            className="px-2 py-0.5 text-[10px] bg-green-600/80 hover:bg-green-600 text-white font-medium rounded border border-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-1.5 py-[2px] text-[9px] leading-tight bg-green-600/80 hover:bg-green-600 text-white font-medium rounded border border-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {minting ? "..." : "Mint USDC"}
                           </button>
                           <button
                             onClick={handleMintTestTokens}
                             disabled={minting || !address}
-                            className="px-2 py-0.5 text-[10px] bg-blue-600/80 hover:bg-blue-600 text-white font-medium rounded border border-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-1.5 py-[2px] text-[9px] leading-tight bg-blue-600/80 hover:bg-blue-600 text-white font-medium rounded border border-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {minting ? "..." : "Mint Tokens"}
                           </button>
                         </div>
+                        
+                        <BalanceDisplay />
                         
                         <button
                           onClick={openChainModal}
