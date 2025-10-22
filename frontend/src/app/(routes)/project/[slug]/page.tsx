@@ -465,32 +465,36 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         )}
       </div>
 
-      {/* Create Order - Full Width */}
-      <Card className="mb-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-sm">Create Order</h2>
-          <Link 
-            href="/calculator"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group relative"
-          >
-            <Calculator className="w-5 h-5 text-zinc-500 hover:text-cyan-400 transition-colors cursor-pointer" />
-            <div className="absolute right-0 top-full mt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-10">
-              <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 shadow-lg">
-                <p className="text-xs text-zinc-300">
-                  Unsure about pricing? Use our calculator to guide you.
-                </p>
+      {/* Create Order - Full Width with Dynamic Border */}
+      <div className={`mb-4 rounded-xl border-2 transition-colors ${
+        side === "SELL" 
+          ? "border-red-500/50 bg-zinc-900/50" 
+          : "border-green-500/50 bg-zinc-900/50"
+      }`}>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-sm">Create Order</h2>
+            <Link 
+              href="/calculator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative"
+            >
+              <Calculator className="w-5 h-5 text-zinc-500 hover:text-cyan-400 transition-colors cursor-pointer" />
+              <div className="absolute right-0 top-full mt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-10">
+                <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 shadow-lg">
+                  <p className="text-xs text-zinc-300">
+                    Unsure about pricing? Use our calculator to guide you.
+                  </p>
+                </div>
               </div>
-            </div>
-          </Link>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Sell/Buy Toggle + Info Banner */}
-          <div className="lg:col-span-4">
-            <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-              <div className="flex gap-2 flex-shrink-0">
+            </Link>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            {/* Sell/Buy Toggle */}
+            <div className="lg:col-span-4">
+              <div className="flex gap-2">
                 <Button 
                   onClick={() => setSide("SELL")}
                   variant="custom"
@@ -508,34 +512,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                   Buy
                 </Button>
               </div>
-              <div className={`px-4 py-2.5 rounded-lg border flex items-center gap-3 ${
-                side === "SELL" ? "bg-red-950/30 border-red-800" : "bg-green-950/30 border-green-800"
-              }`}>
-                <div className="flex items-center gap-1.5 text-xs font-medium whitespace-nowrap">
-                  {side === "SELL" ? (
-                    <>
-                      <ArrowDownCircle className="w-4 h-4 text-red-400" />
-                      <span>You are SELLING</span>
-                    </>
-                  ) : (
-                    <>
-                      <ArrowUpCircle className="w-4 h-4 text-green-400" />
-                      <span>You are BUYING</span>
-                    </>
-                  )}
-                </div>
-                <div className="text-[10px] text-zinc-400 whitespace-nowrap hidden sm:block">
-                  {side === "SELL" 
-                    ? "You'll receive USDC when someone buys from you" 
-                    : "You'll receive tokens when someone sells to you"}
-                </div>
-              </div>
             </div>
-          </div>
 
           {/* Form Fields */}
           <div>
-            <label className="text-xs text-zinc-400 block mb-1">Amount (tokens)</label>
+            <label className="text-xs text-zinc-400 block mb-1">
+              Amount ({project?.isPoints === false ? 'Tokens' : 'Points'})
+            </label>
             <Input 
               type="number" 
               min={0} 
@@ -603,25 +586,9 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs text-zinc-400">Total (USDC)</label>
               {usdcBalance && address && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-zinc-500">
-                    Balance: {parseFloat(formatUnits(usdcBalance, STABLE_DECIMALS)).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC
-                  </span>
-                  <button
-                    onClick={() => {
-                      const maxUsdc = parseFloat(formatUnits(usdcBalance, STABLE_DECIMALS));
-                      if (unitPrice && parseFloat(unitPrice) > 0) {
-                        // Calculate max amount of tokens that can be bought with available USDC
-                        const maxTokens = maxUsdc / parseFloat(unitPrice);
-                        setAmount(maxTokens.toFixed(4));
-                      }
-                    }}
-                    disabled={creating || !unitPrice}
-                    className="px-1.5 py-0.5 text-[10px] bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded text-cyan-400 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    MAX
-                  </button>
-                </div>
+                <span className="text-[10px] text-zinc-500">
+                  Balance: {parseFloat(formatUnits(usdcBalance, STABLE_DECIMALS)).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC
+                </span>
               )}
             </div>
             <div className="w-full rounded-md px-3 py-2 bg-zinc-800/50 border border-cyan-500/30 text-sm font-medium text-cyan-400">
@@ -652,7 +619,8 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             </div>
           )}
         </div>
-      </Card>
+        </div>
+      </div>
 
       {/* Sell & Buy Orders - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
