@@ -324,21 +324,21 @@ export function getReputationTier(level?: string): {
     case 'reputable': // 1800-1999 - Blue
       return {
         label: 'Reputable',
-        color: 'text-blue-500',
+        color: 'text-blue-400',
         bgColor: 'bg-blue-500/5',
         textColor: 'text-zinc-400',
       };
     case 'established': // 1600-1799 - Light Blue
       return {
         label: 'Established',
-        color: 'text-blue-400',
-        bgColor: 'bg-blue-400/5',
+        color: 'text-cyan-400',
+        bgColor: 'bg-cyan-400/5',
         textColor: 'text-zinc-400',
       };
     case 'known': // 1400-1599 - Blue/Grey
       return {
         label: 'Known',
-        color: 'text-slate-400',
+        color: 'text-slate-300',
         bgColor: 'bg-slate-400/5',
         textColor: 'text-zinc-400',
       };
