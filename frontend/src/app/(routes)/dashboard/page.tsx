@@ -195,9 +195,9 @@ export default function MyOrdersPage() {
                 <div className="p-1.5 bg-cyan-500/20 rounded-lg flex-shrink-0">
                   <FileText className="w-4 h-4 text-cyan-400" />
                 </div>
-                <div className="flex flex-col justify-center items-start min-h-[28px]">
-                  <div className="text-lg font-bold text-cyan-400 leading-tight">{stats.total}</div>
-                  <div className="text-[9px] text-zinc-400 leading-tight">Total Orders</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-cyan-400 leading-none">{stats.total}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Total Orders</div>
                 </div>
               </div>
             </Card>
@@ -208,11 +208,11 @@ export default function MyOrdersPage() {
                 <div className="p-1.5 bg-violet-500/20 rounded-lg flex-shrink-0">
                   <DollarSign className="w-4 h-4 text-violet-400" />
                 </div>
-                <div className="flex flex-col justify-center items-start min-h-[28px]">
-                  <div className="text-lg font-bold text-violet-400 leading-tight">
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-violet-400 leading-none">
                     ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
-                  <div className="text-[9px] text-zinc-400 leading-tight">Total Volume</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Total Volume</div>
                 </div>
               </div>
             </Card>
@@ -223,9 +223,9 @@ export default function MyOrdersPage() {
                 <div className="p-1.5 bg-green-500/20 rounded-lg flex-shrink-0">
                   <ArrowUpRight className="w-4 h-4 text-green-400" />
                 </div>
-                <div className="flex flex-col justify-center items-start min-h-[28px]">
-                  <div className="text-lg font-bold text-green-400 leading-tight">{stats.buyOrders}</div>
-                  <div className="text-[9px] text-zinc-400 leading-tight">Buy Orders</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-green-400 leading-none">{stats.buyOrders}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Buy Orders</div>
                 </div>
               </div>
             </Card>
@@ -236,9 +236,9 @@ export default function MyOrdersPage() {
                 <div className="p-1.5 bg-red-500/20 rounded-lg flex-shrink-0">
                   <ArrowDownRight className="w-4 h-4 text-red-400" />
                 </div>
-                <div className="flex flex-col justify-center items-start min-h-[28px]">
-                  <div className="text-lg font-bold text-red-400 leading-tight">{stats.sellOrders}</div>
-                  <div className="text-[9px] text-zinc-400 leading-tight">Sell Orders</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-red-400 leading-none">{stats.sellOrders}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Sell Orders</div>
                 </div>
               </div>
             </Card>
@@ -249,9 +249,9 @@ export default function MyOrdersPage() {
                 <div className="p-1.5 bg-orange-500/20 rounded-lg flex-shrink-0">
                   <Clock className="w-4 h-4 text-orange-400" />
                 </div>
-                <div className="flex flex-col justify-center items-start min-h-[28px]">
-                  <div className="text-lg font-bold text-orange-400 leading-tight">{stats.active}</div>
-                  <div className="text-[9px] text-zinc-400 leading-tight">Active</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-orange-400 leading-none">{stats.active}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Active</div>
                 </div>
               </div>
             </Card>
@@ -262,9 +262,9 @@ export default function MyOrdersPage() {
                 <div className="p-1.5 bg-blue-500/20 rounded-lg flex-shrink-0">
                   <TrendingUp className="w-4 h-4 text-blue-400" />
                 </div>
-                <div className="flex flex-col justify-center items-start min-h-[28px]">
-                  <div className="text-lg font-bold text-blue-400 leading-tight">{stats.inSettlement}</div>
-                  <div className="text-[9px] text-zinc-400 leading-tight">Settlement</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-blue-400 leading-none">{stats.inSettlement}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Settlement</div>
                 </div>
               </div>
             </Card>
@@ -275,9 +275,9 @@ export default function MyOrdersPage() {
                 <div className="p-1.5 bg-emerald-500/20 rounded-lg flex-shrink-0">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 </div>
-                <div className="flex flex-col justify-center items-start min-h-[28px]">
-                  <div className="text-lg font-bold text-emerald-400 leading-tight">{stats.settled}</div>
-                  <div className="text-[9px] text-zinc-400 leading-tight">Settled</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-emerald-400 leading-none">{stats.settled}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Settled</div>
                 </div>
               </div>
             </Card>
