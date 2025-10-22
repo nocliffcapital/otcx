@@ -475,38 +475,39 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Sell/Buy Toggle */}
+          {/* Sell/Buy Toggle + Info Banner */}
           <div className="lg:col-span-4">
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => setSide("SELL")}
-                variant="custom"
-                className={side === "SELL" ? "bg-red-600 hover:bg-red-700" : "bg-zinc-800 hover:bg-zinc-700"}
-                disabled={creating}
-              >
-                Sell
-              </Button>
-              <Button 
-                onClick={() => setSide("BUY")}
-                variant="custom"
-                className={side === "BUY" ? "bg-green-600 hover:bg-green-700" : "bg-zinc-800 hover:bg-zinc-700"}
-                disabled={creating}
-              >
-                Buy
-              </Button>
-            </div>
-          </div>
-
-          <div className={`lg:col-span-4 px-3 py-1.5 rounded-lg border flex items-center gap-2 ${
-            side === "SELL" ? "bg-red-950/30 border-red-800" : "bg-green-950/30 border-green-800"
-          }`}>
-            <div className="text-xs font-medium">
-              {side === "SELL" ? "🔴 You are SELLING" : "🟢 You are BUYING"}
-            </div>
-            <div className="text-[10px] text-zinc-400">
-              {side === "SELL" 
-                ? "You'll receive USDC when someone buys from you" 
-                : "You'll receive tokens when someone sells to you"}
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+              <div className="flex gap-2 flex-shrink-0">
+                <Button 
+                  onClick={() => setSide("SELL")}
+                  variant="custom"
+                  className={side === "SELL" ? "bg-red-600 hover:bg-red-700" : "bg-zinc-800 hover:bg-zinc-700"}
+                  disabled={creating}
+                >
+                  Sell
+                </Button>
+                <Button 
+                  onClick={() => setSide("BUY")}
+                  variant="custom"
+                  className={side === "BUY" ? "bg-green-600 hover:bg-green-700" : "bg-zinc-800 hover:bg-zinc-700"}
+                  disabled={creating}
+                >
+                  Buy
+                </Button>
+              </div>
+              <div className={`flex-1 px-3 py-1.5 rounded-lg border flex items-center gap-2 ${
+                side === "SELL" ? "bg-red-950/30 border-red-800" : "bg-green-950/30 border-green-800"
+              }`}>
+                <div className="text-xs font-medium whitespace-nowrap">
+                  {side === "SELL" ? "🔴 You are SELLING" : "🟢 You are BUYING"}
+                </div>
+                <div className="text-[10px] text-zinc-400 hidden sm:block">
+                  {side === "SELL" 
+                    ? "You'll receive USDC when someone buys from you" 
+                    : "You'll receive tokens when someone sells to you"}
+                </div>
+              </div>
             </div>
           </div>
 
