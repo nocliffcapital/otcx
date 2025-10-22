@@ -58,26 +58,39 @@ export default function ProjectsPage() {
   // V3: getActiveProjects returns full structs with metadataURI
   // No need to fetch individually - metadata is on IPFS
   useEffect(() => {
-    if (!projectsData) return;
+    if (!projectsData) {
+      console.log('[V3] No projectsData yet');
+      return;
+    }
     
-    // V3: Projects from getActiveProjects already have all on-chain data
-    // metadataURI points to IPFS for logo, description, twitter, website
-    const mappedProjects = (projectsData as any[]).map((proj) => ({
-      slug: proj.name.toLowerCase().replace(/\s+/g, '-'), // Derive slug from name for now
-      name: proj.name,
-      tokenAddress: proj.tokenAddress,
-      assetType: proj.isPoints ? 'Points' : 'Tokens', // V3: isPoints (bool) -> assetType (string)
-      active: proj.active,
-      addedAt: proj.addedAt,
-      metadataURI: proj.metadataURI || '',
-      // V3: twitterUrl, websiteUrl, description are in IPFS metadata
-      // ProjectImage component will fetch them when needed
-      twitterUrl: '',
-      websiteUrl: '',
-      description: '',
-    }));
+    console.log('[V3] Raw projectsData:', projectsData);
     
-    setProjects(mappedProjects);
+    try {
+      // V3: Projects from getActiveProjects already have all on-chain data
+      // metadataURI points to IPFS for logo, description, twitter, website
+      const mappedProjects = (projectsData as any[]).map((proj) => {
+        console.log('[V3] Mapping project:', proj);
+        return {
+          slug: proj.name.toLowerCase().replace(/\s+/g, '-'), // Derive slug from name for now
+          name: proj.name,
+          tokenAddress: proj.tokenAddress,
+          assetType: proj.isPoints ? 'Points' : 'Tokens', // V3: isPoints (bool) -> assetType (string)
+          active: proj.active,
+          addedAt: proj.addedAt,
+          metadataURI: proj.metadataURI || '',
+          // V3: twitterUrl, websiteUrl, description are in IPFS metadata
+          // ProjectImage component will fetch them when needed
+          twitterUrl: '',
+          websiteUrl: '',
+          description: '',
+        };
+      });
+      
+      console.log('[V3] Mapped projects:', mappedProjects);
+      setProjects(mappedProjects);
+    } catch (error) {
+      console.error('[V3] Error mapping projects:', error);
+    }
   }, [projectsData]);
 
   useEffect(() => {

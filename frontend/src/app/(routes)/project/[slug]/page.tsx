@@ -602,14 +602,14 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             <label className="text-xs text-zinc-400 block mb-1 invisible">Placeholder</label>
             <button
               onClick={handleCreate} 
-              disabled={creating || !address || !amount || !unitPrice || !projectToken}
+              disabled={creating || !address || !amount || !unitPrice || !project}
               className={`w-full rounded-md border text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 ${
                 side === "SELL" 
                   ? "bg-red-600 hover:bg-red-700 border-red-500/50" 
                   : "bg-green-600 hover:bg-green-700 border-green-500/50"
               }`}
             >
-              {creating ? "Creating..." : !projectToken ? "Loading..." : `Create ${side}`}
+              {creating ? "Creating..." : !project ? "Loading..." : `Create ${side}`}
             </button>
             <p className="text-[10px] text-zinc-500 mt-1 text-center invisible">Good-Til-Cancel • No Expiry</p>
           </div>
