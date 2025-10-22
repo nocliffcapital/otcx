@@ -10,7 +10,7 @@ import { TGESettlementManager } from "@/components/TGESettlementManager";
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
 import { isAddress, getAddress } from "viem";
-import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings } from "lucide-react";
+import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings, DollarSign, Shield, Coins, Trash2 } from "lucide-react";
 import { uploadImageToPinata, uploadMetadataToPinata } from "@/lib/pinata";
 
 // V3 Project structure
@@ -49,6 +49,13 @@ export default function AdminPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingMetadata, setUploadingMetadata] = useState(false);
+
+  // V4: Fee management state
+  const [newSettlementFee, setNewSettlementFee] = useState("");
+  const [newCancellationFee, setNewCancellationFee] = useState("");
+  const [newCollateralAddress, setNewCollateralAddress] = useState("");
+  const [showFeeManager, setShowFeeManager] = useState(false);
+  const [showCollateralManager, setShowCollateralManager] = useState(false);
 
   // V3: Use getActiveProjects to fetch all projects directly
   const [projects, setProjects] = useState<Project[]>([]);
@@ -107,6 +114,38 @@ export default function AdminPage() {
     console.log('Connected address:', address);
     console.log('Is owner:', isConnected && address && owner && address.toLowerCase() === (owner as string).toLowerCase());
   }, [owner, address, isConnected]);
+
+  // V4: Read fee configuration
+  const { data: settlementFeeBps } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "settlementFeeBps",
+  }) as { data: bigint | undefined };
+
+  const { data: cancellationFeeBps } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "cancellationFeeBps",
+  }) as { data: bigint | undefined };
+
+  const { data: maxFeeBps } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "MAX_FEE_BPS",
+  }) as { data: bigint | undefined };
+
+  const { data: feeCollector } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "feeCollector",
+  }) as { data: string | undefined };
+
+  // V4: Read approved collateral
+  const { data: approvedCollateral, refetch: refetchCollateral } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "getApprovedCollateral",
+  }) as { data: `0x${string}`[] | undefined; refetch: () => void };
 
   // Check if orderbook is paused
   const { data: isPausedData, refetch: refetchPaused } = useReadContract({
@@ -429,6 +468,79 @@ export default function AdminPage() {
     });
   };
 
+  // V4: Update settlement fee
+  const handleUpdateSettlementFee = () => {
+    const feeBps = Number(newSettlementFee);
+    if (isNaN(feeBps) || feeBps < 0 || feeBps > Number(maxFeeBps || 500)) {
+      alert(`Fee must be between 0 and ${(Number(maxFeeBps || 500) / 100).toFixed(2)}%`);
+      return;
+    }
+
+    if (!confirm(`Update settlement fee to ${(feeBps / 100).toFixed(2)}%?`)) {
+      return;
+    }
+
+    writeContract({
+      address: ORDERBOOK_ADDRESS,
+      abi: ESCROW_ORDERBOOK_ABI,
+      functionName: "setSettlementFee",
+      args: [BigInt(feeBps)],
+    });
+  };
+
+  // V4: Update cancellation fee
+  const handleUpdateCancellationFee = () => {
+    const feeBps = Number(newCancellationFee);
+    if (isNaN(feeBps) || feeBps < 0 || feeBps > Number(maxFeeBps || 500)) {
+      alert(`Fee must be between 0 and ${(Number(maxFeeBps || 500) / 100).toFixed(2)}%`);
+      return;
+    }
+
+    if (!confirm(`Update cancellation fee to ${(feeBps / 100).toFixed(2)}%?`)) {
+      return;
+    }
+
+    writeContract({
+      address: ORDERBOOK_ADDRESS,
+      abi: ESCROW_ORDERBOOK_ABI,
+      functionName: "setCancellationFee",
+      args: [BigInt(feeBps)],
+    });
+  };
+
+  // V4: Approve new collateral
+  const handleApproveCollateral = () => {
+    if (!isAddress(newCollateralAddress)) {
+      alert("Invalid token address");
+      return;
+    }
+
+    if (!confirm(`Approve ${newCollateralAddress} as collateral?`)) {
+      return;
+    }
+
+    writeContract({
+      address: ORDERBOOK_ADDRESS,
+      abi: ESCROW_ORDERBOOK_ABI,
+      functionName: "approveCollateral",
+      args: [newCollateralAddress as `0x${string}`],
+    });
+  };
+
+  // V4: Remove collateral
+  const handleRemoveCollateral = (tokenAddress: string) => {
+    if (!confirm(`Remove ${tokenAddress} from approved collateral? Existing orders will not be affected.`)) {
+      return;
+    }
+
+    writeContract({
+      address: ORDERBOOK_ADDRESS,
+      abi: ESCROW_ORDERBOOK_ABI,
+      functionName: "removeCollateral",
+      args: [tokenAddress as `0x${string}`],
+    });
+  };
+
   // V3: Load project data into form for editing (mainly for setting token address during TGE)
   const startEditing = async (project: Project) => {
     // Fetch existing metadata to populate form
@@ -682,6 +794,241 @@ export default function AdminPage() {
             )}
           </Button>
         </div>
+      </Card>
+
+      {/* V4: Fee Management */}
+      <Card className="mb-6 p-6 border-cyan-500/30 bg-cyan-950/10">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-cyan-500/20">
+              <DollarSign className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-cyan-400">Fee Configuration</h3>
+              <p className="text-sm text-zinc-400">
+                Manage protocol fees for settlement and cancellations
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setShowFeeManager(!showFeeManager)}
+            variant="custom"
+            className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500/30"
+          >
+            {showFeeManager ? "Hide" : "Manage Fees"}
+          </Button>
+        </div>
+
+        {/* Current Fee Display */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
+            <div className="text-xs text-zinc-500 mb-1">Settlement Fee</div>
+            <div className="text-2xl font-bold text-cyan-400">
+              {settlementFeeBps ? `${(Number(settlementFeeBps) / 100).toFixed(2)}%` : "Loading..."}
+            </div>
+            <div className="text-xs text-zinc-600 mt-1">
+              {settlementFeeBps && `${settlementFeeBps.toString()} BPS`}
+            </div>
+          </div>
+          
+          <div className="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
+            <div className="text-xs text-zinc-500 mb-1">Cancellation Fee</div>
+            <div className="text-2xl font-bold text-orange-400">
+              {cancellationFeeBps ? `${(Number(cancellationFeeBps) / 100).toFixed(2)}%` : "Loading..."}
+            </div>
+            <div className="text-xs text-zinc-600 mt-1">
+              {cancellationFeeBps && `${cancellationFeeBps.toString()} BPS`}
+            </div>
+          </div>
+          
+          <div className="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
+            <div className="text-xs text-zinc-500 mb-1">Maximum Fee Cap</div>
+            <div className="text-2xl font-bold text-red-400">
+              {maxFeeBps ? `${(Number(maxFeeBps) / 100).toFixed(2)}%` : "Loading..."}
+            </div>
+            <div className="text-xs text-zinc-600 mt-1">
+              {maxFeeBps && `${maxFeeBps.toString()} BPS`}
+            </div>
+          </div>
+        </div>
+
+        {/* Fee Collector Display */}
+        <div className="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800 mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs text-zinc-500 mb-1">Fee Collector Address</div>
+              <div className="text-sm font-mono text-violet-400">
+                {feeCollector || "Loading..."}
+              </div>
+            </div>
+            <Badge className="bg-violet-600/20 text-violet-400 border-violet-500/30">
+              Fees Auto-Transferred
+            </Badge>
+          </div>
+        </div>
+
+        {/* Fee Update Forms */}
+        {showFeeManager && (
+          <div className="space-y-4 pt-4 border-t border-zinc-800">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Update Settlement Fee */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-zinc-300">
+                  Update Settlement Fee (BPS)
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    value={newSettlementFee}
+                    onChange={(e) => setNewSettlementFee(e.target.value)}
+                    placeholder="e.g. 50 = 0.5%"
+                    className="flex-1"
+                    min="0"
+                    max={maxFeeBps ? Number(maxFeeBps) : 500}
+                  />
+                  <Button
+                    onClick={handleUpdateSettlementFee}
+                    disabled={!newSettlementFee || isPending}
+                    variant="custom"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                  >
+                    Update
+                  </Button>
+                </div>
+                <p className="text-xs text-zinc-500">
+                  Applied to both stable and token sides during settlement
+                </p>
+              </div>
+
+              {/* Update Cancellation Fee */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-zinc-300">
+                  Update Cancellation Fee (BPS)
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    value={newCancellationFee}
+                    onChange={(e) => setNewCancellationFee(e.target.value)}
+                    placeholder="e.g. 10 = 0.1%"
+                    className="flex-1"
+                    min="0"
+                    max={maxFeeBps ? Number(maxFeeBps) : 500}
+                  />
+                  <Button
+                    onClick={handleUpdateCancellationFee}
+                    disabled={!newCancellationFee || isPending}
+                    variant="custom"
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    Update
+                  </Button>
+                </div>
+                <p className="text-xs text-zinc-500">
+                  Applied immediately when orders are cancelled
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* V4: Collateral Whitelist Management */}
+      <Card className="mb-6 p-6 border-violet-500/30 bg-violet-950/10">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-violet-500/20">
+              <Shield className="w-5 h-5 text-violet-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-violet-400">Collateral Whitelist</h3>
+              <p className="text-sm text-zinc-400">
+                Manage approved tokens for order collateral
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setShowCollateralManager(!showCollateralManager)}
+            variant="custom"
+            className="bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 border border-violet-500/30"
+          >
+            {showCollateralManager ? "Hide" : "Manage Collateral"}
+          </Button>
+        </div>
+
+        {/* Approved Collateral List */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-zinc-300 mb-3">
+            Approved Tokens ({approvedCollateral?.length || 0})
+          </div>
+          
+          {approvedCollateral && approvedCollateral.length > 0 ? (
+            <div className="grid grid-cols-1 gap-2">
+              {approvedCollateral.map((tokenAddr, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-lg border border-zinc-800"
+                >
+                  <div className="flex items-center gap-3">
+                    <Coins className="w-4 h-4 text-violet-400" />
+                    <div>
+                      <div className="text-sm font-mono text-white">{tokenAddr}</div>
+                      <div className="text-xs text-zinc-500">
+                        {idx === 0 && "Primary Stable (Cannot Remove)"}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {idx !== 0 && (
+                    <Button
+                      onClick={() => handleRemoveCollateral(tokenAddr)}
+                      disabled={isPending}
+                      variant="custom"
+                      className="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 text-xs px-3 py-1"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-zinc-500">
+              No approved collateral found
+            </div>
+          )}
+        </div>
+
+        {/* Add New Collateral */}
+        {showCollateralManager && (
+          <div className="mt-4 pt-4 border-t border-zinc-800">
+            <label className="text-sm font-medium text-zinc-300 block mb-3">
+              Approve New Collateral Token
+            </label>
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                value={newCollateralAddress}
+                onChange={(e) => setNewCollateralAddress(e.target.value)}
+                placeholder="0x... Token Address"
+                className="flex-1 font-mono text-sm"
+              />
+              <Button
+                onClick={handleApproveCollateral}
+                disabled={!newCollateralAddress || isPending}
+                variant="custom"
+                className="bg-violet-600 hover:bg-violet-700 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Approve
+              </Button>
+            </div>
+            <p className="text-xs text-zinc-500 mt-2">
+              ⚠️ Only approve trusted ERC20 tokens. Token must have code deployed and valid decimals.
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* Add Project Button */}
