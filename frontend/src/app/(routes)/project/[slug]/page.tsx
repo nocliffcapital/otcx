@@ -14,7 +14,7 @@ import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDR
 import { useReadContract } from "wagmi";
 import { PriceChart } from "@/components/PriceChart";
 import { ProjectInfo } from "@/components/ProjectInfo";
-import { TrendingUp, Calculator } from "lucide-react";
+import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import Link from "next/link";
 import ReputationBadge from "@/components/ReputationBadge";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
@@ -499,8 +499,18 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
               <div className={`px-4 py-2.5 rounded-lg border flex items-center gap-3 ${
                 side === "SELL" ? "bg-red-950/30 border-red-800" : "bg-green-950/30 border-green-800"
               }`}>
-                <div className="text-xs font-medium whitespace-nowrap">
-                  {side === "SELL" ? "🔴 You are SELLING" : "🟢 You are BUYING"}
+                <div className="flex items-center gap-1.5 text-xs font-medium whitespace-nowrap">
+                  {side === "SELL" ? (
+                    <>
+                      <ArrowUpCircle className="w-4 h-4 text-red-400" />
+                      <span>You are SELLING</span>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDownCircle className="w-4 h-4 text-green-400" />
+                      <span>You are BUYING</span>
+                    </>
+                  )}
                 </div>
                 <div className="text-[10px] text-zinc-400 whitespace-nowrap hidden sm:block">
                   {side === "SELL" 
