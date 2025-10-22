@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/Logo";
-import { Home, ArrowLeft, Search } from "lucide-react";
+import { Home, Search } from "lucide-react";
 
 export default function NotFound() {
   return (
@@ -53,13 +53,6 @@ export default function NotFound() {
                 Go Home
               </Button>
             </Link>
-            <button
-              onClick={() => window.history.back()}
-              className="px-6 py-3 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 text-zinc-100 font-medium border border-zinc-700 transition-all flex items-center gap-2 justify-center"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Go Back
-            </button>
             <Link href="/app">
               <Button
                 variant="custom"
