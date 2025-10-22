@@ -113,9 +113,16 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   const total = Number(amount || 0) * Number(unitPrice || 0);
 
   // Filter orders: OPEN (0) orders for orderbook, FUNDED (1) for filled section
+  // Debug logging
+  console.log('All orders for project:', orders);
+  console.log('Orders filtered by projectId:', projectId);
+  
   const sellOrders = orders.filter(o => o.isSell && o.status === 0);
   const buyOrders = orders.filter(o => !o.isSell && o.status === 0);
   const filledOrders = orders.filter(o => o.status === 1); // FUNDED orders
+  
+  console.log('Sell orders:', sellOrders);
+  console.log('Buy orders:', buyOrders);
 
   // Find TGE-activated orders (status >= 2) to get settlement window
   const tgeActivatedOrders = orders.filter(o => o.status >= 2 && o.settlementDeadline > 0n);
