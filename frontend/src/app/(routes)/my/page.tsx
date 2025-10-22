@@ -13,7 +13,7 @@ import { formatUnits } from "viem";
 import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } from "@/lib/contracts";
 import { useState, useEffect, useMemo } from "react";
 import { useReadContract, usePublicClient } from "wagmi";
-import { FileText, TrendingUp, Clock, CheckCircle2, Lock } from "lucide-react";
+import { FileText, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 const STATUS_LABELS = [
   "OPEN",            // 0
@@ -94,7 +94,31 @@ export default function MyOrdersPage() {
     const settled = orders.filter(o => o.status === 4).length; // SETTLED
     const canceled = orders.filter(o => o.status === 6).length; // CANCELED
 
-    return { inSettlement, active, funded, settled, canceled, total: orders.length };
+    // Calculate total volume (sum of all order values in USDC)
+    const totalVolume = orders.reduce((sum, order) => {
+      const orderValue = (order.amount * order.unitPrice) / BigInt(10 ** 18); // Convert to USDC decimals
+      return sum + Number(formatUnits(orderValue, STABLE_DECIMALS));
+    }, 0);
+
+    // Buy vs Sell breakdown
+    const buyOrders = orders.filter(o => !o.isSell).length;
+    const sellOrders = orders.filter(o => o.isSell).length;
+
+    // Calculate average order size
+    const avgOrderSize = orders.length > 0 ? totalVolume / orders.length : 0;
+
+    return { 
+      inSettlement, 
+      active, 
+      funded, 
+      settled, 
+      canceled, 
+      total: orders.length,
+      totalVolume,
+      buyOrders,
+      sellOrders,
+      avgOrderSize
+    };
   }, [orders]);
 
   const handleCancel = async (orderId: bigint) => {
@@ -154,18 +178,19 @@ export default function MyOrdersPage() {
   return (
     <div className="relative min-h-screen">
       {/* Corner accents */}
-      <div className="fixed top-16 left-0 w-24 h-24 border-t-2 border-l-2 border-cyan-500/20 pointer-events-none"></div>
-      <div className="fixed top-16 right-0 w-24 h-24 border-t-2 border-r-2 border-violet-500/20 pointer-events-none"></div>
+      <div className="fixed top-16 left-0 w-24 h-24 border-t-2 border-l-2 border-amber-500/20 pointer-events-none"></div>
+      <div className="fixed top-16 right-0 w-24 h-24 border-t-2 border-r-2 border-blue-500/20 pointer-events-none"></div>
 
       <div className="relative mx-auto max-w-7xl px-4 py-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+        <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
           Dashboard
         </h1>
         <p className="text-zinc-400 mb-8">Track and manage all your OTC orders</p>
 
         {/* Summary Stats */}
         {address && !loading && orders.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+            {/* Total Orders */}
             <Card className="p-4 border-cyan-500/30 bg-cyan-950/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-cyan-500/20 rounded-lg">
@@ -178,6 +203,48 @@ export default function MyOrdersPage() {
               </div>
             </Card>
             
+            {/* Total Volume */}
+            <Card className="p-4 border-violet-500/30 bg-violet-950/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-violet-500/20 rounded-lg">
+                  <DollarSign className="w-5 h-5 text-violet-400" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-violet-400">
+                    ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </div>
+                  <div className="text-xs text-zinc-400">Total Volume</div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Buy Orders */}
+            <Card className="p-4 border-green-500/30 bg-green-950/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/20 rounded-lg">
+                  <ArrowUpRight className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-green-400">{stats.buyOrders}</div>
+                  <div className="text-xs text-zinc-400">Buy Orders</div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Sell Orders */}
+            <Card className="p-4 border-red-500/30 bg-red-950/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-500/20 rounded-lg">
+                  <ArrowDownRight className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-red-400">{stats.sellOrders}</div>
+                  <div className="text-xs text-zinc-400">Sell Orders</div>
+                </div>
+              </div>
+            </Card>
+            
+            {/* Active Orders */}
             <Card className="p-4 border-orange-500/30 bg-orange-950/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-500/20 rounded-lg">
@@ -185,23 +252,25 @@ export default function MyOrdersPage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-orange-400">{stats.active}</div>
-                  <div className="text-xs text-zinc-400">Active Orders</div>
+                  <div className="text-xs text-zinc-400">Active</div>
                 </div>
               </div>
             </Card>
             
-            <Card className="p-4 border-violet-500/30 bg-violet-950/10">
+            {/* In Settlement */}
+            <Card className="p-4 border-blue-500/30 bg-blue-950/10">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-violet-500/20 rounded-lg">
-                  <TrendingUp className="w-5 h-5 text-violet-400" />
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <TrendingUp className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-violet-400">{stats.inSettlement}</div>
-                  <div className="text-xs text-zinc-400">In Settlement</div>
+                  <div className="text-2xl font-bold text-blue-400">{stats.inSettlement}</div>
+                  <div className="text-xs text-zinc-400">Settlement</div>
                 </div>
               </div>
             </Card>
             
+            {/* Settled */}
             <Card className="p-4 border-emerald-500/30 bg-emerald-950/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-emerald-500/20 rounded-lg">
@@ -285,7 +354,7 @@ export default function MyOrdersPage() {
             const iAmBuyer = order.buyer.toLowerCase() === address?.toLowerCase();
 
             return (
-              <Card key={order.id.toString()} className="p-3 hover:border-cyan-500/30 transition-all">
+              <Card key={order.id.toString()} className="p-3 hover:border-amber-500/30 transition-all">
                 <div className="flex gap-3">
                   {/* Project Icon */}
                   <ProjectImage 
