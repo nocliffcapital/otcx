@@ -260,7 +260,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3 mb-3">
           {/* Project Logo */}
           <ProjectImage 
             metadataURI={project?.metadataURI}
@@ -269,7 +269,6 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             fallbackText={project?.name || slug.toUpperCase()}
           />
           
-          <h1 className="text-3xl font-semibold">{project?.name || slug.toUpperCase()}</h1>
           <Badge className={`${
             project?.isPoints === false
               ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
@@ -310,7 +309,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         </div>
           <div className="flex items-center gap-3 flex-wrap">
             <p className="text-sm text-zinc-400">
-              Pre-TGE OTC Trading
+              <span className="font-bold text-white">{project?.name || slug.toUpperCase()}</span> Pre-TGE OTC Trading
             </p>
             
             {/* Project Reputation Badge */}
