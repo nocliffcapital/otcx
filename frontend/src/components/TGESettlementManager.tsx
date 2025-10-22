@@ -185,14 +185,14 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
         </div>
       )}
 
-      {/* Batch TGE Activation - Primary Action */}
+      {/* V4: Project-Level TGE Activation - Single Global Command */}
       <div className="mb-6 p-6 bg-gradient-to-br from-green-950/30 to-violet-950/30 border border-green-800/30 rounded-lg">
         <h4 className="text-lg font-bold text-green-400 mb-2 flex items-center gap-2">
           <PlayCircle className="w-5 h-5" />
-          Batch Activate TGE
+          Activate Project TGE
         </h4>
         <p className="text-sm text-zinc-400 mb-4">
-          Activate TGE for all {fundedOrders.length} funded order(s) at once
+          Set global TGE flag for this project. All {fundedOrders.length} funded order(s) will become settleable.
         </p>
         
         {fundedOrders.length === 0 ? (
@@ -221,7 +221,7 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border-2 border-green-500/50 shadow-lg shadow-green-500/20 px-6 h-[42px]"
               >
                 <PlayCircle className="w-5 h-5 mr-2" />
-                Activate TGE for All ({fundedOrders.length})
+                Activate Project TGE
               </Button>
             </div>
             
@@ -423,10 +423,15 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
           <Card className="max-w-md w-full mx-4 p-6 bg-zinc-900 border-cyan-500/30">
             <div className="mb-4">
-              <h3 className="text-xl font-bold text-white mb-2">Activate TGE</h3>
-              <p className="text-sm text-zinc-400">
-                Batch activate TGE for ALL <span className="font-semibold text-cyan-400">{fundedOrders.length}</span> funded order(s)?
+              <h3 className="text-xl font-bold text-white mb-2">Activate Project TGE</h3>
+              <p className="text-sm text-zinc-400 mb-3">
+                Set global TGE flag for this entire project. This enables settlement for <span className="font-semibold text-cyan-400">{fundedOrders.length}</span> funded order(s).
               </p>
+              <div className="p-3 bg-violet-950/30 border border-violet-500/30 rounded-lg">
+                <p className="text-xs text-violet-300">
+                  <strong>V4 Change:</strong> This is a <strong>single global command</strong> - not a batch operation. Once activated, anyone can permissionlessly settle individual orders.
+                </p>
+              </div>
             </div>
 
             <div className="space-y-3 mb-6">
@@ -434,7 +439,7 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
                 <Clock className="w-4 h-4 text-blue-400 mt-0.5" />
                 <div>
                   <p className="font-medium text-blue-400">Settlement Window</p>
-                  <p className="text-zinc-400">Starts a 4-hour settlement window for all orders</p>
+                  <p className="text-zinc-400">Opens a 4-hour window for anyone to settle orders</p>
                 </div>
               </div>
 
@@ -468,7 +473,7 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
                 className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
               >
                 <PlayCircle className="w-4 h-4 mr-2" />
-                Confirm & Activate
+                Activate Project TGE
               </Button>
             </div>
           </Card>
