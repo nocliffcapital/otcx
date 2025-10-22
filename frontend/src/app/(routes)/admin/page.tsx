@@ -517,7 +517,7 @@ export default function AdminPage() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3">
-          <Settings className="w-8 h-8 md:w-10 md:h-10 text-violet-400" />
+          <Settings className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
           <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
             Admin Panel
           </span>
