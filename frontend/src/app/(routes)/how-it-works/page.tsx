@@ -19,9 +19,11 @@ export default function HowItWorksPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent flex items-center gap-3">
+        <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3">
           <BookOpen className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
-          How otcX Works
+          <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+            How otcX Works
+          </span>
         </h1>
         <p className="text-lg text-zinc-400 mb-4">
           A trustless, on-chain escrow system for pre-TGE token trading

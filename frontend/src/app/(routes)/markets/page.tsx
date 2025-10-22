@@ -218,9 +218,11 @@ export default function ProjectsPage() {
       <div className="relative mx-auto max-w-7xl px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent flex items-center gap-3">
+            <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
               <TrendingUp className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
-              Explore Markets
+              <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+                Explore Markets
+              </span>
             </h1>
             <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 ${
               isOrderbookPaused 
