@@ -469,7 +469,7 @@ export default function ProjectsPage() {
             
             return (
               <Link key={project.slug} href={`/project/${project.slug}`}>
-                <Card className="hover:border-blue-500/50 hover:shadow-blue-500/20 cursor-pointer group transition-all p-3">
+                <Card className="hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer group transition-all p-3">
                   <div className="flex items-center gap-4">
                     {/* Project Icon */}
                     <ProjectImage 
