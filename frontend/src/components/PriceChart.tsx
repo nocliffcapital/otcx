@@ -42,9 +42,8 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
 
   const chartData = useMemo(() => {
-    // Filter for FILLED orders only (status 4 = SETTLED)
-    // Show FUNDED (1) and SETTLED (4) orders in chart
-    const filledOrders = allOrders.filter(order => order.status === 1 || order.status === 4);
+    // V3: Filter for FUNDED (1) and SETTLED (3) orders to show in chart
+    const filledOrders = allOrders.filter(order => order.status === 1 || order.status === 3);
     
     // Sort by order ID (chronological)
     filledOrders.sort((a, b) => Number(a.id) - Number(b.id));

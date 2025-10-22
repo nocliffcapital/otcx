@@ -28,7 +28,8 @@ interface Order {
   proof?: string; // For Points projects: seller submits proof of token transfer
 }
 
-const STATUS_NAMES = ["OPEN", "FUNDED", "TGE_ACTIVATED", "TOKENS_DEPOSITED", "SETTLED", "DEFAULTED", "CANCELED", "EXPIRED"];
+// V3 Status Names
+const STATUS_NAMES = ["OPEN", "FUNDED", "TGE_ACTIVATED", "SETTLED", "DEFAULTED", "CANCELED"];
 
 export function TGESettlementManager({ orders, assetType }: { orders: Order[]; assetType: string }) {
   const [selectedOrder, setSelectedOrder] = useState<bigint | null>(null);
@@ -48,7 +49,7 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
   const toast = useToast();
 
   // Show all orders - let admin decide which to activate
-  // Status 0=OPEN, 1=FUNDED, 2=TGE_ACTIVATED, 3=TOKENS_DEPOSITED, 4=SETTLED, 5=DEFAULTED, 6=CANCELED, 7=EXPIRED
+  // V3 Status: 0=OPEN, 1=FUNDED, 2=TGE_ACTIVATED, 3=SETTLED, 4=DEFAULTED, 5=CANCELED
   const fundedOrders = orders.filter((o) => o.status === 1); // Only FUNDED orders for batch activation
   const eligibleOrders = orders.filter((o) => o.status <= 2); // OPEN, FUNDED, or already TGE_ACTIVATED
   const tgeOrders = orders.filter((o) => o.status === 2); // Already activated

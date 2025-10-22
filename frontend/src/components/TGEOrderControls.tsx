@@ -130,7 +130,7 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
   const isSeller = address && order.seller && address.toLowerCase() === order.seller.toLowerCase();
   const isBuyer = address && order.buyer && address.toLowerCase() === order.buyer.toLowerCase();
 
-  // Status: 0=OPEN, 1=FUNDED, 2=TGE_ACTIVATED, 3=TOKENS_DEPOSITED, 4=SETTLED, 5=DEFAULTED
+  // V3 Status: 0=OPEN, 1=FUNDED, 2=TGE_ACTIVATED, 3=SETTLED, 4=DEFAULTED, 5=CANCELED
   const status = Number(order.status);
   const deadline = order.settlementDeadline ? Number(order.settlementDeadline) * 1000 : 0;
   const isOverdue = deadline > 0 && Date.now() > deadline;
@@ -356,7 +356,7 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
       )}
 
       {/* Proof Display - Show to Admin */}
-      {isOwner && submittedProof && (submittedProof as string).length > 0 && status === 1 && (
+      {isOwner && submittedProof && (submittedProof as string).length > 0 && status === 2 && (
         <div className="bg-purple-950/30 border border-purple-800/30 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-4 h-4 text-purple-400" />
@@ -427,7 +427,7 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
       )}
 
       {/* Proof Submitted - Show to Seller (POINTS ONLY) */}
-      {isSeller && isPointsProject && submittedProof && (submittedProof as string).length > 0 && status === 1 && (
+      {isSeller && isPointsProject && submittedProof && (submittedProof as string).length > 0 && status === 2 && (
         <div className="bg-green-950/30 border border-green-800/30 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-4 h-4 text-green-400" />

@@ -449,15 +449,15 @@ export default function MyOrdersPage() {
                       }`}>
                         3
                       </div>
-                      <div className={`h-0.5 w-6 ${order.status >= 4 ? 'bg-emerald-600' : 'bg-zinc-800'}`}></div>
+                      <div className={`h-0.5 w-6 ${order.status === 3 ? 'bg-emerald-600' : order.status >= 4 ? 'bg-red-700' : 'bg-zinc-800'}`}></div>
                       
                       <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
-                        order.status === 4 ? 'bg-emerald-600 text-white' : 
+                        order.status === 3 ? 'bg-emerald-600 text-white' : 
+                        order.status === 4 ? 'bg-orange-600 text-white' : 
                         order.status === 5 ? 'bg-red-700 text-white' : 
-                        order.status === 6 ? 'bg-gray-600 text-white' : 
                         'bg-zinc-800 text-zinc-600'
                       }`}>
-                        {order.status === 4 ? '✓' : order.status === 5 ? '✗' : order.status === 6 ? 'C' : '4'}
+                        {order.status === 3 ? '✓' : order.status === 4 ? 'D' : order.status === 5 ? '✗' : '4'}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 mt-1 text-[9px] text-zinc-500">

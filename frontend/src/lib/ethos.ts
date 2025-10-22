@@ -8,6 +8,7 @@ const CLIENT_HEADER = 'otcx.fun@1.0';
 
 export interface EthosScore {
   score: number;
+  level?: string; // API returns: "unknown", "new", "known", "trusted", "elite"
   positiveReviews: number;
   negativeReviews: number;
   neutralReviews: number;
@@ -35,9 +36,11 @@ export interface EthosProjectVote {
  */
 export async function getWalletReputation(address: string): Promise<EthosScore | null> {
   try {
-    // Use v1 API with userkey format
-    const response = await fetch(
-      `${ETHOS_BASE_URL}/api/score/userkey:address:${address}`,
+    console.log('🔍 Fetching Ethos profile for:', address);
+    
+    // First, get the score and level
+    const scoreResponse = await fetch(
+      `${ETHOS_BASE_URL}/api/v2/score/address?address=${address}`,
       {
         headers: {
           'X-Ethos-Client': CLIENT_HEADER,
@@ -46,20 +49,63 @@ export async function getWalletReputation(address: string): Promise<EthosScore |
       }
     );
 
-    if (!response.ok) {
-      console.log(`Ethos API returned ${response.status} for address ${address}`);
+    if (!scoreResponse.ok) {
+      console.log(`❌ Ethos v2 score API returned ${scoreResponse.status} for address ${address}`);
       return null;
     }
 
-    const data = await response.json();
-    console.log('Ethos wallet data for', address, ':', data);
+    const scoreData = await scoreResponse.json();
+    console.log('✅ Ethos v2 score API SUCCESS for', address);
+    console.log('Score data:', scoreData);
+    
+    // Then, get full user data with stats via users endpoint
+    const usersResponse = await fetch(
+      `${ETHOS_BASE_URL}/api/v2/users/by/address`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Ethos-Client': CLIENT_HEADER,
+        },
+        body: JSON.stringify({
+          addresses: [address],
+        }),
+        cache: 'no-store',
+      }
+    );
+
+    let stats = {
+      positiveReviews: 0,
+      negativeReviews: 0,
+      neutralReviews: 0,
+      vouchesReceived: 0,
+    };
+
+    if (usersResponse.ok) {
+      const usersData = await usersResponse.json();
+      console.log('✅ Ethos v2 users API SUCCESS');
+      console.log('Users data:', usersData);
+      
+      // Extract stats from the first user in the response
+      if (usersData && usersData.length > 0) {
+        const user = usersData[0];
+        if (user?.stats) {
+          stats = {
+            positiveReviews: user.stats.review?.received?.positive || 0,
+            negativeReviews: user.stats.review?.received?.negative || 0,
+            neutralReviews: user.stats.review?.received?.neutral || 0,
+            vouchesReceived: user.stats.vouch?.received?.count || 0,
+          };
+        }
+      }
+    } else {
+      console.log('⚠️ Users API not available, stats will be zero');
+    }
     
     return {
-      score: data.score || 0,
-      positiveReviews: data.positiveReviews || 0,
-      negativeReviews: data.negativeReviews || 0,
-      neutralReviews: data.neutralReviews || 0,
-      vouchesReceived: data.vouchesReceived || 0,
+      score: scoreData.score || 0,
+      level: scoreData.level || 'unknown',
+      ...stats,
     };
   } catch (error) {
     console.error('Failed to fetch Ethos reputation:', error);
@@ -125,7 +171,7 @@ export function extractTwitterUsername(twitterUrl: string): string | null {
 }
 
 /**
- * Fetch reputation for a Twitter account using Ethos
+ * Fetch reputation for a Twitter account using Ethos v2 API
  * Example: getTwitterReputation("https://x.com/Lighter_xyz") or getTwitterReputation("Lighter_xyz")
  */
 export async function getTwitterReputation(twitterUrlOrUsername: string): Promise<EthosScore | null> {
@@ -136,9 +182,11 @@ export async function getTwitterReputation(twitterUrlOrUsername: string): Promis
   }
 
   try {
-    // Use v1 API with userkey format for Twitter
+    console.log('🔍 Fetching Ethos profile for Twitter @', username);
+    
+    // Use v2 API to get user data by Twitter username
     const response = await fetch(
-      `${ETHOS_BASE_URL}/api/score/userkey:service:x.com:username:${username}`,
+      `${ETHOS_BASE_URL}/api/v2/user/by/x/${username}`,
       {
         headers: {
           'X-Ethos-Client': CLIENT_HEADER,
@@ -148,19 +196,47 @@ export async function getTwitterReputation(twitterUrlOrUsername: string): Promis
     );
 
     if (!response.ok) {
-      console.log(`Ethos API returned ${response.status} for Twitter @${username}`);
+      console.log(`❌ Ethos v2 user API returned ${response.status} for Twitter @${username}`);
       return null;
     }
 
     const data = await response.json();
-    console.log(`Ethos Twitter data for @${username}:`, data);
+    
+    // Extract score and stats from the response
+    const score = data.score || 0;
+    const stats = data.stats || {};
+    
+    // Calculate level based on Ethos official score ranges
+    let level = 'unknown';
+    if (score >= 2600) {
+      level = 'renowned';
+    } else if (score >= 2400) {
+      level = 'revered';
+    } else if (score >= 2200) {
+      level = 'distinguished';
+    } else if (score >= 2000) {
+      level = 'exemplary';
+    } else if (score >= 1800) {
+      level = 'reputable';
+    } else if (score >= 1600) {
+      level = 'established';
+    } else if (score >= 1400) {
+      level = 'known';
+    } else if (score >= 1200) {
+      level = 'neutral';
+    } else if (score >= 800) {
+      level = 'questionable';
+    } else if (score > 0) {
+      level = 'untrusted';
+    }
     
     return {
-      score: data.score || 0,
-      positiveReviews: data.positiveReviews || 0,
-      negativeReviews: data.negativeReviews || 0,
-      neutralReviews: data.neutralReviews || 0,
-      vouchesReceived: data.vouchesReceived || 0,
+      score,
+      level,
+      positiveReviews: stats.review?.received?.positive || 0,
+      negativeReviews: stats.review?.received?.negative || 0,
+      neutralReviews: stats.review?.received?.neutral || 0,
+      vouchesReceived: stats.vouch?.received?.count || 0,
     };
   } catch (error) {
     console.error('Failed to fetch Twitter reputation from Ethos:', error);
@@ -206,56 +282,95 @@ export async function getTwitterProfile(twitterUrlOrUsername: string): Promise<E
 }
 
 /**
- * Get reputation tier based on score
+ * Get reputation tier based on Ethos official score ranges
  */
-export function getReputationTier(score: number): {
+export function getReputationTier(level?: string): {
   label: string;
   color: string;
   bgColor: string;
   textColor: string;
 } {
-  if (score >= 800) {
-    return {
-      label: 'Elite',
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-500/20',
-      textColor: 'text-purple-300',
-    };
-  } else if (score >= 600) {
-    return {
-      label: 'Trusted',
-      color: 'text-green-400',
-      bgColor: 'bg-green-500/20',
-      textColor: 'text-green-300',
-    };
-  } else if (score >= 400) {
-    return {
-      label: 'Verified',
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-500/20',
-      textColor: 'text-blue-300',
-    };
-  } else if (score >= 200) {
-    return {
-      label: 'Active',
-      color: 'text-cyan-400',
-      bgColor: 'bg-cyan-500/20',
-      textColor: 'text-cyan-300',
-    };
-  } else if (score > 0) {
-    return {
-      label: 'New',
-      color: 'text-zinc-400',
-      bgColor: 'bg-zinc-500/20',
-      textColor: 'text-zinc-300',
-    };
-  } else {
-    return {
-      label: 'Unknown',
-      color: 'text-zinc-500',
-      bgColor: 'bg-zinc-600/20',
-      textColor: 'text-zinc-400',
-    };
+  const normalizedLevel = (level || 'unknown').toLowerCase();
+  
+  switch (normalizedLevel) {
+    case 'renowned': // 2600-2800 - Purple
+      return {
+        label: 'Renowned',
+        color: 'text-purple-500',
+        bgColor: 'bg-purple-500/5',
+        textColor: 'text-zinc-400',
+      };
+    case 'revered': // 2400-2599 - Light Purple
+      return {
+        label: 'Revered',
+        color: 'text-purple-400',
+        bgColor: 'bg-purple-400/5',
+        textColor: 'text-zinc-400',
+      };
+    case 'distinguished': // 2200-2399 - Light Green
+      return {
+        label: 'Distinguished',
+        color: 'text-green-300',
+        bgColor: 'bg-green-300/5',
+        textColor: 'text-zinc-400',
+      };
+    case 'exemplary': // 2000-2199 - Green
+      return {
+        label: 'Exemplary',
+        color: 'text-green-500',
+        bgColor: 'bg-green-500/5',
+        textColor: 'text-zinc-400',
+      };
+    case 'reputable': // 1800-1999 - Blue
+      return {
+        label: 'Reputable',
+        color: 'text-blue-500',
+        bgColor: 'bg-blue-500/5',
+        textColor: 'text-zinc-400',
+      };
+    case 'established': // 1600-1799 - Light Blue
+      return {
+        label: 'Established',
+        color: 'text-blue-400',
+        bgColor: 'bg-blue-400/5',
+        textColor: 'text-zinc-400',
+      };
+    case 'known': // 1400-1599 - Blue/Grey
+      return {
+        label: 'Known',
+        color: 'text-slate-400',
+        bgColor: 'bg-slate-400/5',
+        textColor: 'text-zinc-400',
+      };
+    case 'neutral': // 1200-1399 - White
+      return {
+        label: 'Neutral',
+        color: 'text-zinc-200',
+        bgColor: 'bg-zinc-200/5',
+        textColor: 'text-zinc-400',
+      };
+    case 'questionable': // 800-1199 - Yellow
+      return {
+        label: 'Questionable',
+        color: 'text-yellow-400',
+        bgColor: 'bg-yellow-400/5',
+        textColor: 'text-zinc-400',
+      };
+    case 'untrusted': // 0-799 - Red
+      return {
+        label: 'Untrusted',
+        color: 'text-red-500',
+        bgColor: 'bg-red-500/5',
+        textColor: 'text-zinc-400',
+      };
+    case 'unknown':
+    default:
+      return {
+        label: 'Unknown',
+        color: 'text-zinc-500',
+        bgColor: 'bg-zinc-600/5',
+        textColor: 'text-zinc-500',
+      };
   }
 }
 

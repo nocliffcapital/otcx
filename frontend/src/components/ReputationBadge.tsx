@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Shield, CheckCircle2, AlertCircle } from 'lucide-react';
 import { getWalletReputation, getReputationTier, formatScore, type EthosScore } from '@/lib/ethos';
 
@@ -17,6 +18,11 @@ export default function ReputationBadge({
 }: ReputationBadgeProps) {
   const [reputation, setReputation] = useState<EthosScore | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     async function fetchReputation() {
@@ -35,6 +41,16 @@ export default function ReputationBadge({
 
     fetchReputation();
   }, [address]);
+
+  useEffect(() => {
+    if (isHovered && badgeRef.current) {
+      const rect = badgeRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        top: rect.top - 10,
+        left: rect.left + rect.width / 2,
+      });
+    }
+  }, [isHovered]);
 
   if (loading) {
     return (
@@ -60,23 +76,35 @@ export default function ReputationBadge({
     );
   }
 
-  const tier = getReputationTier(reputation.score);
+  const tier = getReputationTier(reputation.level);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+    }, 150);
+  };
 
   if (variant === 'compact') {
-    return (
-      <div className="group relative inline-flex">
-        <div 
-          className={`inline-flex items-center gap-1 px-2 py-1 ${tier.bgColor} rounded border border-${tier.color}/30`}
-        >
-          <Shield className={`w-3 h-3 ${tier.color}`} />
-          <span className={`text-[10px] font-semibold ${tier.textColor}`}>
-            {formatScore(reputation.score)}
-          </span>
-        </div>
-        
-        {showTooltip && (
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-20">
-            <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 shadow-xl min-w-[200px]">
+    const tooltipContent = showTooltip && isHovered && (
+      <div 
+        ref={tooltipRef}
+        className="fixed pointer-events-auto z-[9999] transition-opacity duration-200"
+        style={{
+          top: `${tooltipPosition.top}px`,
+          left: `${tooltipPosition.left}px`,
+          transform: 'translate(-50%, -100%)',
+        }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 shadow-2xl min-w-[200px]">
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-xs font-bold ${tier.color}`}>{tier.label}</span>
                 <span className="text-xs text-zinc-400">Score: {reputation.score}</span>
@@ -99,7 +127,7 @@ export default function ReputationBadge({
               </div>
               <div className="mt-2 pt-2 border-t border-zinc-700">
                 <a 
-                  href={`https://ethos.network/profile/address:${address}`}
+                  href={`https://app.ethos.network/profile/${address}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[10px] text-cyan-400 hover:text-cyan-300 transition-colors"
@@ -109,8 +137,27 @@ export default function ReputationBadge({
               </div>
             </div>
           </div>
-        )}
-      </div>
+    );
+
+    return (
+      <>
+              <div 
+                ref={badgeRef}
+                className="inline-flex"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                <div 
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 ${tier.bgColor} rounded border-[0.5px] border-${tier.color}/20 cursor-help opacity-70 hover:opacity-100 transition-opacity`}
+                >
+                  <Shield className={`w-2.5 h-2.5 ${tier.color} opacity-50`} />
+                  <span className={`text-[10px] font-semibold ${tier.textColor}`}>
+                    {formatScore(reputation.score)}
+                  </span>
+                </div>
+              </div>
+        {typeof window !== 'undefined' && createPortal(tooltipContent, document.body)}
+      </>
     );
   }
 

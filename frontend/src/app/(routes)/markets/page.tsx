@@ -28,6 +28,7 @@ type Project = {
 type ProjectStats = {
   lowestAsk: number | null;  // Lowest sell price
   highestBid: number | null;  // Highest buy price
+  lastPrice: number | null;  // Last filled order price
   orderCount: number;
   totalVolume: number;  // Total USDC volume across all orders
 };
@@ -60,17 +61,13 @@ export default function ProjectsPage() {
   // No need to fetch individually - metadata is on IPFS
   useEffect(() => {
     if (!projectsData) {
-      console.log('[V3] No projectsData yet');
       return;
     }
-    
-    console.log('[V3] Raw projectsData:', projectsData);
     
     try {
       // V3: Projects from getActiveProjects already have all on-chain data
       // metadataURI points to IPFS for logo, description, twitter, website
       const mappedProjects = (projectsData as any[]).map((proj) => {
-        console.log('[V3] Mapping project:', proj);
         return {
           slug: proj.name.toLowerCase().replace(/\s+/g, '-'), // Derive slug from name for now
           name: proj.name,
@@ -87,7 +84,6 @@ export default function ProjectsPage() {
         };
       });
       
-      console.log('[V3] Mapped projects:', mappedProjects);
       setProjects(mappedProjects);
     } catch (error) {
       console.error('[V3] Error mapping projects:', error);
@@ -109,28 +105,30 @@ export default function ProjectsPage() {
         }) as bigint;
 
         // Fetch all orders in parallel for better performance
-        const allOrders: Array<{ projectToken: string; amount: bigint; unitPrice: bigint; isSell: boolean; status: number }> = [];
+        const allOrders: Array<{ id: bigint; projectToken: string; amount: bigint; unitPrice: bigint; isSell: boolean; status: number }> = [];
         const orderPromises: Promise<void>[] = [];
         
         for (let i = 1n; i < nextId; i++) {
           const orderPromise = (async (orderId: bigint) => {
             try {
+              // V3 Order struct: id, maker, buyer, seller, projectId, amount, unitPrice, buyerFunds, sellerCollateral, settlementDeadline, isSell, status
               const orderData = await publicClient.readContract({
                 address: ORDERBOOK_ADDRESS,
                 abi: ESCROW_ORDERBOOK_ABI,
                 functionName: "orders",
                 args: [orderId],
-              }) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, boolean, number];
+              }) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, number];
 
               allOrders.push({
-                projectToken: orderData[4],  // Fixed: removed expiry field
+                id: orderData[0],
+                projectToken: orderData[4],  // projectId (bytes32)
                 amount: orderData[5],
                 unitPrice: orderData[6],
                 isSell: orderData[10],
-                status: orderData[12],
+                status: orderData[11],  // V3: status is at index 11 (removed tokensDeposited)
               });
-            } catch {
-              // Skip failed orders
+            } catch (err) {
+              console.error(`Failed to fetch order ${orderId}:`, err);
             }
           })(i);
           
@@ -151,12 +149,25 @@ export default function ProjectsPage() {
         // V3: Filter orders by projectId (bytes32) instead of tokenAddress
         (projects as Project[]).forEach((project) => {
           const projectId = slugToProjectId(project.slug);
-          const projectOrders = allOrders.filter(
-            o => typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === projectId.toLowerCase() && o.status === 0
+          
+          // Get all orders for this project
+          const allProjectOrders = allOrders.filter(
+            o => typeof o.projectToken === 'string' && 
+            o.projectToken.toLowerCase() === projectId.toLowerCase()
           );
+          
+          // V3: OPEN orders (status 0) - these show in the orderbook
+          const openOrders = allProjectOrders.filter(o => o.status === 0);
+          
+          // V3: "Filled" orders for volume/price calculation = FUNDED (1), TGE_ACTIVATED (2), SETTLED (3)
+          // These are orders that have been matched and have real price data
+          const filledOrders = allProjectOrders
+            .filter(o => o.status === 1 || o.status === 2 || o.status === 3)
+            .sort((a, b) => Number(b.id) - Number(a.id));
 
-          const sellOrders = projectOrders.filter(o => o.isSell);
-          const buyOrders = projectOrders.filter(o => !o.isSell);
+          // For orderbook display: only OPEN orders
+          const sellOrders = openOrders.filter(o => o.isSell);
+          const buyOrders = openOrders.filter(o => !o.isSell);
 
           const lowestAsk = sellOrders.length > 0
             ? Math.min(...sellOrders.map(o => parseFloat(formatUnits(o.unitPrice, STABLE_DECIMALS))))
@@ -165,9 +176,14 @@ export default function ProjectsPage() {
           const highestBid = buyOrders.length > 0
             ? Math.max(...buyOrders.map(o => parseFloat(formatUnits(o.unitPrice, STABLE_DECIMALS))))
             : null;
+          
+          // Last price from most recent filled/matched order (highest ID = most recent)
+          const lastPrice = filledOrders.length > 0
+            ? parseFloat(formatUnits(filledOrders[0].unitPrice, STABLE_DECIMALS))
+            : null;
 
-          // Calculate total volume (amount * price for all orders)
-          const totalVolume = projectOrders.reduce((sum, order) => {
+          // Calculate total volume (amount * price for all matched orders)
+          const totalVolume = filledOrders.reduce((sum, order) => {
             const amount = parseFloat(formatUnits(order.amount, 18));
             const price = parseFloat(formatUnits(order.unitPrice, STABLE_DECIMALS));
             return sum + (amount * price);
@@ -176,7 +192,8 @@ export default function ProjectsPage() {
           stats[project.slug] = {
             lowestAsk,
             highestBid,
-            orderCount: projectOrders.length,
+            lastPrice,
+            orderCount: openOrders.length, // Only count OPEN orders
             totalVolume,
           };
         });
@@ -383,7 +400,7 @@ export default function ProjectsPage() {
           return (
             <Link key={project.slug} href={`/markets/${project.slug}`}>
               <Card className="hover:border-blue-500/30 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer h-full group transition-all duration-500 ease-out">
-                <div className="flex items-start gap-3 mb-3">
+                <div className="flex items-center gap-3 mb-3">
                   {/* Project Icon */}
                   <ProjectImage 
                     metadataURI={project.metadataURI}
@@ -394,10 +411,9 @@ export default function ProjectsPage() {
                   
                   {/* Project Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-lg">{project.name}</h3>
-                        <p className="text-xs text-zinc-400 mt-1">@{project.slug}</p>
                       </div>
                       <Badge className={project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"}>
                         {project.assetType}
@@ -418,6 +434,12 @@ export default function ProjectsPage() {
                 {/* Price Stats */}
                 {!loadingStats && stats ? (
                   <div className="mb-3 space-y-2">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-zinc-400">Last Price:</span>
+                      <span className="font-semibold text-blue-400">
+                        {stats.lastPrice !== null ? `$${stats.lastPrice.toFixed(4)}` : "—"}
+                      </span>
+                    </div>
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-zinc-400">Best Ask:</span>
                       <span className="font-semibold text-red-400">
@@ -444,6 +466,7 @@ export default function ProjectsPage() {
                   </div>
                 ) : (
                   <div className="mb-3 space-y-2">
+                    <div className="h-4 bg-zinc-800/50 rounded animate-pulse"></div>
                     <div className="h-4 bg-zinc-800/50 rounded animate-pulse"></div>
                     <div className="h-4 bg-zinc-800/50 rounded animate-pulse"></div>
                     <div className="h-4 bg-zinc-800/50 rounded animate-pulse"></div>
@@ -519,6 +542,12 @@ export default function ProjectsPage() {
                         </div>
                         
                         <div className="text-right">
+                          <div className="text-zinc-400 text-xs mb-1">Last Price</div>
+                          <div className="font-semibold text-blue-400">
+                            {stats.lastPrice !== null ? `$${stats.lastPrice.toFixed(4)}` : "—"}
+                          </div>
+                        </div>
+                        <div className="text-right">
                           <div className="text-zinc-400 text-xs mb-1">Best Ask</div>
                           <div className="font-semibold text-red-400">
                             {stats.lowestAsk !== null ? `$${stats.lowestAsk.toFixed(4)}` : "—"}
@@ -546,6 +575,7 @@ export default function ProjectsPage() {
                     ) : (
                       <div className="flex items-center gap-8">
                         <div className="h-12 w-24 bg-zinc-800/50 rounded animate-pulse"></div>
+                        <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
                         <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
                         <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
                         <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>

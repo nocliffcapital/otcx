@@ -8,21 +8,21 @@ import { Badge } from "@/components/ui/Badge";
 import { Switch } from "@/components/ui/Switch";
 import { TGESettlementManager } from "@/components/TGESettlementManager";
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
-import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
+import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
 import { isAddress, getAddress } from "viem";
 import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings } from "lucide-react";
 import { uploadImageToPinata, uploadMetadataToPinata } from "@/lib/pinata";
 
+// V3 Project structure
 type Project = {
+  id: `0x${string}`; // bytes32 projectId
   slug: string;
   name: string;
-  tokenAddress: `0x${string}`;
-  assetType: string;
+  metadataURI: string;
+  isPoints: boolean;
   active: boolean;
   addedAt: bigint;
-  twitterUrl: string;
-  websiteUrl: string;
-  description: string;
+  tokenAddress: `0x${string}`; // Actual token address (set during TGE)
 };
 
 export default function AdminPage() {
@@ -50,46 +50,49 @@ export default function AdminPage() {
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingMetadata, setUploadingMetadata] = useState(false);
 
-  // Read all slugs first
-  const { data: slugs } = useReadContract({
-    address: REGISTRY_ADDRESS,
-    abi: PROJECT_REGISTRY_ABI,
-    functionName: "getAllSlugs",
-  }) as { data: string[] | undefined };
-
-  // Read each project individually
+  // V3: Use getActiveProjects to fetch all projects directly
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const publicClient = usePublicClient();
 
   const refetch = async () => {
-    if (!publicClient || !slugs || slugs.length === 0) return;
-    
-    setLoadingProjects(true);
-    const allProjects: Project[] = [];
-    
-    for (const slug of slugs) {
-      try {
-        const project = await publicClient.readContract({
-          address: REGISTRY_ADDRESS,
-          abi: PROJECT_REGISTRY_ABI,
-          functionName: "getProject",
-          args: [slug],
-        }) as Project;
-        
-        allProjects.push(project);
-      } catch (error) {
-        console.error(`Failed to load project ${slug}:`, error);
-      }
+    if (!publicClient) {
+      console.log('⚠️ Public client not ready');
+      setLoadingProjects(false);
+      return;
     }
     
-    setProjects(allProjects);
-    setLoadingProjects(false);
+    console.log('🔍 Fetching all projects from registry...');
+    setLoadingProjects(true);
+    
+    try {
+      // V3: getActiveProjects returns all projects (both active and inactive)
+      const rawProjects = await publicClient.readContract({
+        address: REGISTRY_ADDRESS,
+        abi: PROJECT_REGISTRY_ABI,
+        functionName: "getActiveProjects",
+      }) as any[];
+      
+      // V3: Contract doesn't return slug, need to derive it from name or fetch from metadata
+      // For now, we'll derive slug from name (lowercase, no spaces)
+      const allProjects: Project[] = rawProjects.map((proj: any) => ({
+        ...proj,
+        slug: proj.name.toLowerCase().replace(/\s+/g, '-'),
+      }));
+      
+      console.log('✅ Projects loaded:', allProjects);
+      setProjects(allProjects);
+    } catch (error) {
+      console.error('❌ Failed to load projects:', error);
+      setProjects([]);
+    } finally {
+      setLoadingProjects(false);
+    }
   };
 
   useEffect(() => {
     refetch();
-  }, [slugs, publicClient]);
+  }, [publicClient]);
 
   // Read contract owner
   const { data: owner } = useReadContract({
@@ -139,11 +142,11 @@ export default function AdminPage() {
           abi: ESCROW_ORDERBOOK_ABI,
           functionName: "orders",
           args: [BigInt(i)],
-        }) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, boolean, number];
+        }) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, number];
         
         // Fetch settlement proof if order is in TGE_ACTIVATED or later status
         let proof: string | undefined;
-        const status = Number(orderData[12]);
+        const status = Number(orderData[11]); // V3: status at index 11
         if (status >= 2) { // TGE_ACTIVATED = 2
           try {
             const proofData = await publicClient.readContract({
@@ -160,7 +163,7 @@ export default function AdminPage() {
           }
         }
         
-        // Map the raw tuple to an object structure
+        // Map the raw tuple to an object structure (V3: no tokensDeposited)
         allOrders.push({
           id: orderData[0],
           maker: orderData[1],
@@ -173,8 +176,8 @@ export default function AdminPage() {
           sellerCollateral: orderData[8],
           settlementDeadline: orderData[9],
           isSell: orderData[10],
-          tokensDeposited: orderData[11],
-          status: orderData[12],
+          tokensDeposited: false, // V3: removed from contract, always false
+          status: orderData[11], // V3: status at index 11
           proof: proof,
         });
       } catch (error) {
@@ -304,7 +307,7 @@ export default function AdminPage() {
     }
   };
 
-  // Handle form submission for updating project
+  // V3: Handle form submission for updating project
   const handleUpdateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -313,40 +316,103 @@ export default function AdminPage() {
       return;
     }
 
-    // If no token address provided, generate a deterministic placeholder
+    // V3: Convert slug to projectId (bytes32) using keccak256
+    const projectId = slugToProjectId(formData.slug);
+    
+    // Token address (use zero address if empty)
     const tokenAddr = formData.tokenAddress 
       ? getAddress(formData.tokenAddress) 
-      : generatePlaceholderAddress(formData.slug);
+      : "0x0000000000000000000000000000000000000000" as `0x${string}`;
+
+    // Get current project to check if metadata needs updating
+    const currentProject = projects.find(p => p.slug === formData.slug);
+    const active = currentProject?.active ?? true;
 
     try {
-      writeContract({
-        address: REGISTRY_ADDRESS,
-        abi: PROJECT_REGISTRY_ABI,
-        functionName: "updateProject",
-        args: [
-          formData.slug,
-          formData.name,
-          tokenAddr,
-          formData.assetType,
-          formData.twitterUrl,
-          formData.websiteUrl,
-          formData.description,
-          "", // logoUrl - empty for now
-        ],
-      });
+      console.log('Updating project with:', { projectId, name: formData.name, tokenAddr, active });
+      
+      // Check if Twitter/Website URLs have changed - if so, update metadata
+      if (formData.twitterUrl || formData.websiteUrl || formData.description) {
+        console.log('📦 Metadata fields provided, will update metadata URI...');
+        
+        // Fetch existing metadata to preserve logo/icon
+        let existingMetadata: any = {};
+        if (currentProject?.metadataURI) {
+          try {
+            const { fetchMetadataFromIPFS } = await import('@/lib/pinata');
+            existingMetadata = await fetchMetadataFromIPFS(currentProject.metadataURI);
+            console.log('✅ Fetched existing metadata:', existingMetadata);
+          } catch (error) {
+            console.warn('⚠️ Could not fetch existing metadata, will create new:', error);
+          }
+        }
+        
+        // Create updated metadata, preserving logos from existing data
+        setUploadingMetadata(true);
+        try {
+          const metadata = {
+            slug: formData.slug,
+            name: formData.name,
+            description: formData.description || existingMetadata.description || "",
+            twitterUrl: formData.twitterUrl || existingMetadata.twitterUrl || "",
+            websiteUrl: formData.websiteUrl || existingMetadata.websiteUrl || "",
+            logoUrl: existingMetadata.logoUrl || "",
+            iconUrl: existingMetadata.iconUrl || "",
+            assetType: formData.assetType,
+          };
+          
+          const { uploadMetadataToPinata } = await import('@/lib/pinata');
+          const metadataCID = await uploadMetadataToPinata(metadata);
+          const metadataURI = `ipfs://${metadataCID}`;
+          console.log('✅ New metadata uploaded to IPFS:', metadataURI);
+          
+          // Update metadata URI on-chain
+          writeContract({
+            address: REGISTRY_ADDRESS,
+            abi: PROJECT_REGISTRY_ABI,
+            functionName: "updateMetadata",
+            args: [projectId, metadataURI],
+          });
+          
+          // Wait a bit for the metadata update to complete, then update the rest
+          setTimeout(() => {
+            // V3: updateProject(bytes32 id, string name, address tokenAddress, bool active)
+            writeContract({
+              address: REGISTRY_ADDRESS,
+              abi: PROJECT_REGISTRY_ABI,
+              functionName: "updateProject",
+              args: [projectId, formData.name, tokenAddr, active],
+            });
+          }, 2000);
+        } catch (error) {
+          console.error('❌ Failed to update metadata:', error);
+          alert(`Failed to update metadata: ${(error as Error).message}`);
+          return;
+        } finally {
+          setUploadingMetadata(false);
+        }
+      } else {
+        // No metadata changes, just update on-chain data
+        writeContract({
+          address: REGISTRY_ADDRESS,
+          abi: PROJECT_REGISTRY_ABI,
+          functionName: "updateProject",
+          args: [projectId, formData.name, tokenAddr, active],
+        });
+      }
     } catch (error) {
       console.error("Error updating project:", error);
       alert("Failed to update project. See console for details.");
     }
   };
 
-  // Toggle project status
-  const handleToggleStatus = (slug: string, currentStatus: boolean) => {
+  // V3: Toggle project status using projectId directly
+  const handleToggleStatus = (projectId: `0x${string}`, currentStatus: boolean) => {
     writeContract({
       address: REGISTRY_ADDRESS,
       abi: PROJECT_REGISTRY_ABI,
       functionName: "setProjectStatus",
-      args: [slug, !currentStatus],
+      args: [projectId, !currentStatus],
     });
   };
 
@@ -363,23 +429,42 @@ export default function AdminPage() {
     });
   };
 
-  // Load project data into form for editing
-  const startEditing = (project: Project) => {
-    // Check if the token address is a placeholder (generated from slug)
-    const expectedPlaceholder = generatePlaceholderAddress(project.slug);
-    const isPlaceholder = project.tokenAddress.toLowerCase() === expectedPlaceholder.toLowerCase();
+  // V3: Load project data into form for editing (mainly for setting token address during TGE)
+  const startEditing = async (project: Project) => {
+    // Fetch existing metadata to populate form
+    let metadata: any = {};
+    if (project.metadataURI) {
+      try {
+        const { fetchMetadataFromIPFS } = await import('@/lib/pinata');
+        metadata = await fetchMetadataFromIPFS(project.metadataURI);
+      } catch (error) {
+        console.error('Could not fetch metadata:', error);
+      }
+    }
     
-    setFormData({
+    const newFormData = {
       slug: project.slug,
       name: project.name,
-      tokenAddress: isPlaceholder ? "" : project.tokenAddress, // Show empty if placeholder
-      assetType: project.assetType,
-      twitterUrl: project.twitterUrl,
-      websiteUrl: project.websiteUrl,
-      description: project.description,
-    });
+      tokenAddress: project.tokenAddress && project.tokenAddress !== '0x0000000000000000000000000000000000000000' 
+        ? project.tokenAddress 
+        : "",
+      assetType: project.isPoints ? "Points" : "Tokens",
+      twitterUrl: metadata.twitterUrl || "",
+      websiteUrl: metadata.websiteUrl || "",
+      description: metadata.description || "",
+    };
+    
+    setFormData(newFormData);
     setEditingProject(project.slug);
     setShowAddForm(true);
+    
+    // Scroll to form
+    setTimeout(() => {
+      const formElement = document.querySelector('[data-edit-form]');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   // Handle logo file selection
@@ -603,7 +688,10 @@ export default function AdminPage() {
       {!showAddForm && (
         <div className="mb-6">
           <Button
-            onClick={() => setShowAddForm(true)}
+            onClick={() => {
+              resetForm(); // Clear any editing state
+              setShowAddForm(true);
+            }}
             variant="custom"
             className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700"
           >
@@ -615,11 +703,13 @@ export default function AdminPage() {
 
       {/* Add/Edit Project Form */}
       {showAddForm && (
-        <Card className="mb-8 border-cyan-500/30">
+        <Card className="mb-8 border-cyan-500/30" data-edit-form>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-cyan-400">
-              {editingProject ? "Edit Project" : "Add New Project"}
-            </h2>
+            <div>
+              <h2 className="text-2xl font-bold text-cyan-400">
+                {editingProject ? `Edit ${formData.name || 'Project'}` : "Add New Project"}
+              </h2>
+            </div>
             <Button
               onClick={resetForm}
               variant="custom"
@@ -917,9 +1007,11 @@ export default function AdminPage() {
                 <TGESettlementManager 
                   orders={orders.filter(o => {
                     const project = projects.find(p => p.slug === editingProject);
-                    return project && o.projectToken && typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === project.tokenAddress.toLowerCase();
+                    if (!project) return false;
+                    // V3: Compare projectId (bytes32) from order with project.id
+                    return o.projectToken && typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === project.id.toLowerCase();
                   })}
-                  assetType={projects.find(p => p.slug === editingProject)?.assetType || "Tokens"}
+                  assetType={projects.find(p => p.slug === editingProject)?.isPoints ? "Points" : "Tokens"}
                 />
               )}
             </div>
@@ -982,8 +1074,8 @@ export default function AdminPage() {
                     <Badge className={project.active ? "bg-green-600" : "bg-zinc-600"}>
                       {project.active ? "Active" : "Inactive"}
                     </Badge>
-                    <Badge className={project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"}>
-                      {project.assetType}
+                    <Badge className={project.isPoints ? "bg-purple-600" : "bg-blue-600"}>
+                      {project.isPoints ? "Points" : "Tokens"}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-4 mb-1">
@@ -996,41 +1088,36 @@ export default function AdminPage() {
                       })}
                     </p>
                   </div>
-                  {project.description && (
-                    <p className="text-sm text-zinc-500">{project.description}</p>
+                  {project.metadataURI && (
+                    <p className="text-xs text-zinc-500 truncate max-w-md">
+                      Metadata: {project.metadataURI}
+                    </p>
                   )}
-                  <div className="flex gap-4 mt-2">
-                    {project.twitterUrl && (
-                      <a href={project.twitterUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-400 hover:underline">
-                        Twitter
-                      </a>
-                    )}
-                    {project.websiteUrl && (
-                      <a href={project.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-400 hover:underline">
-                        Website
-                      </a>
-                    )}
-                  </div>
+                  {project.tokenAddress && project.tokenAddress !== '0x0000000000000000000000000000000000000000' && (
+                    <p className="text-xs text-zinc-500 truncate max-w-md">
+                      Token: {project.tokenAddress}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3">
+                  <Button
+                    onClick={() => startEditing(project)}
+                    variant="custom"
+                    className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-sm px-3 py-1.5"
+                  >
+                    Edit
+                  </Button>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-zinc-400">
                       {project.active ? "Active" : "Disabled"}
                     </span>
                     <Switch
                       checked={project.active}
-                      onChange={() => handleToggleStatus(project.slug, project.active)}
+                      onChange={() => handleToggleStatus(project.id, project.active)}
                       disabled={isPending || isConfirming}
                     />
                   </div>
-                  <Button
-                    onClick={() => startEditing(project)}
-                    variant="custom"
-                    className="bg-zinc-800 hover:bg-zinc-700 border border-cyan-500/20"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
                 </div>
               </div>
                       ))}

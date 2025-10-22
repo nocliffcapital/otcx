@@ -192,20 +192,7 @@ export function useOrderbook() {
     [walletClient, publicClient, address, checkAllowance, approveStable]
   );
 
-  const markFilled = useCallback(
-    async (orderId: bigint, beneficiary: Address) => {
-      if (!walletClient) throw new Error("Wallet not connected");
-      const hash = await walletClient.writeContract({
-        address: ORDERBOOK_ADDRESS,
-        abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "markFilled",
-        args: [orderId, beneficiary],
-      });
-      await publicClient?.waitForTransactionReceipt({ hash });
-      return hash;
-    },
-    [walletClient, publicClient]
-  );
+  // V3: markFilled removed - settlement is automatic when tokens deposited
 
   const cancel = useCallback(
     async (orderId: bigint) => {
@@ -258,7 +245,6 @@ export function useOrderbook() {
     createBuyOrder, 
     takeSellOrder, 
     takeBuyOrder, 
-    markFilled, 
     cancel,
     mintTestUSDC,
     mintTestTokens,

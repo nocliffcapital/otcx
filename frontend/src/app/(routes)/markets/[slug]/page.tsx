@@ -21,7 +21,7 @@ import ProjectReputationBadge from "@/components/ProjectReputationBadge";
 
 export default function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const { address, createSellOrder, createBuyOrder, takeSellOrder, takeBuyOrder, markFilled, mintTestUSDC, mintTestTokens } = useOrderbook();
+  const { address, createSellOrder, createBuyOrder, takeSellOrder, takeBuyOrder, mintTestUSDC, mintTestTokens } = useOrderbook();
   const toast = useToast();
   
   // V3: Fetch project details from registry using slug
@@ -119,7 +119,8 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   
   const sellOrders = orders.filter(o => o.isSell && o.status === 0);
   const buyOrders = orders.filter(o => !o.isSell && o.status === 0);
-  const filledOrders = orders.filter(o => o.status === 1); // FUNDED orders
+  // V3: Filled orders = FUNDED (1), TGE_ACTIVATED (2), and SETTLED (3)
+  const filledOrders = orders.filter(o => o.status === 1 || o.status === 2 || o.status === 3).sort((a, b) => Number(b.id) - Number(a.id));
   
   console.log('Sell orders:', sellOrders);
   console.log('Buy orders:', buyOrders);
@@ -136,11 +137,16 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   const settlementStartTime = settlementDeadline ? new Date(settlementDeadline - (4 * 60 * 60 * 1000)) : null;
   const settlementEndTime = settlementDeadline ? new Date(settlementDeadline) : null;
 
-  // Calculate spread
+  // Calculate spread and last price
   const lowestAsk = sellOrders.length > 0 ? Number(formatUnits(sellOrders[0].unitPrice, STABLE_DECIMALS)) : null;
   const highestBid = buyOrders.length > 0 ? Number(formatUnits(buyOrders[0].unitPrice, STABLE_DECIMALS)) : null;
   const spread = lowestAsk && highestBid ? ((lowestAsk - highestBid) / highestBid * 100) : null;
   const midMarket = lowestAsk && highestBid ? (lowestAsk + highestBid) / 2 : null;
+  
+  // Last price from most recent filled order
+  const lastPrice = filledOrders.length > 0 
+    ? Number(formatUnits(filledOrders[0].unitPrice, STABLE_DECIMALS))
+    : null;
 
   // Calculate max order size for depth visualization
   // amount is in 18 decimals, unitPrice is in 6 decimals, so total is in 24 decimals
@@ -376,7 +382,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       </div>
 
       {/* Market Info Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6 p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-lg">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 mb-6 p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-lg">
+        <div>
+          <p className="text-[10px] text-zinc-500 uppercase mb-1">Last Price</p>
+          <p className="text-sm font-semibold text-blue-400">
+            {lastPrice ? `$${lastPrice.toFixed(2)}` : "—"}
+          </p>
+        </div>
         <div>
           <p className="text-[10px] text-zinc-500 uppercase mb-1">Current Ask</p>
           <p className="text-sm font-semibold text-red-400">
