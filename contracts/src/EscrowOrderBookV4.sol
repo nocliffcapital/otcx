@@ -209,6 +209,16 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (token == address(stable)) revert InvalidAddress();  // Can't remove primary stable
         
         approvedCollateral[token] = false;
+        
+        // Remove from array (find and swap with last element, then pop)
+        for (uint256 i = 0; i < approvedCollateralList.length; i++) {
+            if (approvedCollateralList[i] == token) {
+                approvedCollateralList[i] = approvedCollateralList[approvedCollateralList.length - 1];
+                approvedCollateralList.pop();
+                break;
+            }
+        }
+        
         emit CollateralRemoved(token);
     }
 
