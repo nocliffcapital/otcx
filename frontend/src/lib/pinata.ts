@@ -80,7 +80,7 @@ export async function uploadMetadataToPinata(metadata: ProjectMetadata): Promise
 export async function fetchMetadataFromIPFS(ipfsUri: string): Promise<ProjectMetadata> {
   // Convert ipfs:// to https:// gateway URL
   const httpUrl = ipfsUri.startsWith('ipfs://')
-    ? `https://gateway.pinata.cloud/ipfs/${ipfsUri.slice(7)}`
+    ? `https://ipfs.io/ipfs/${ipfsUri.slice(7)}`
     : ipfsUri;
 
   const response = await fetch(httpUrl);
@@ -97,7 +97,7 @@ export async function fetchMetadataFromIPFS(ipfsUri: string): Promise<ProjectMet
  * @param gateway - Gateway to use (default: Pinata)
  * @returns HTTP URL
  */
-export function ipfsToHttp(ipfsUri: string, gateway = 'https://gateway.pinata.cloud/ipfs/'): string {
+export function ipfsToHttp(ipfsUri: string, gateway = 'https://ipfs.io/ipfs/'): string {
   if (!ipfsUri) return '';
   if (ipfsUri.startsWith('http')) return ipfsUri;
   if (ipfsUri.startsWith('ipfs://')) {
