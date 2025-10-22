@@ -55,7 +55,10 @@ export default function ProjectReputationBadge({
       rel="noopener noreferrer"
       className="inline-flex items-center gap-1.5 px-2 py-1 bg-zinc-800/30 hover:bg-zinc-800/50 rounded border border-zinc-700/30 hover:border-zinc-700/50 transition-all cursor-pointer group"
     >
-      <Shield className={`w-3 h-3 ${tier.color} opacity-70 group-hover:opacity-100`} />
+      <Shield 
+        className="w-3 h-3 opacity-70 group-hover:opacity-100 transition-opacity" 
+        style={{ color: tier.hexColor }}
+      />
       <span className={`text-[10px] font-semibold ${tier.textColor}`}>
         {formatScore(reputation.score)}
       </span>
