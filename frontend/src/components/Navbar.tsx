@@ -144,12 +144,14 @@ export function Navbar() {
                     >
                       How It Works
                     </Link>
-                    <Link 
-                      href="/docs"
+                    <a 
+                      href="https://docs.otcx.fun"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="block px-4 py-3 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all border-t border-zinc-800"
                     >
                       Docs
-                    </Link>
+                    </a>
                   </div>
                 )}
               </div>
@@ -371,6 +373,15 @@ export function Navbar() {
               >
                 How It Works
               </Link>
+              <a 
+                href="https://docs.otcx.fun" 
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowMobileMenu(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
+              >
+                Docs
+              </a>
               {isOwner && (
                 <Link 
                   href="/admin" 
