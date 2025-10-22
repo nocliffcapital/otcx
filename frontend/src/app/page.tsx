@@ -73,7 +73,7 @@ export default function HomePage() {
 
           {/* CTA buttons */}
           <div className="flex gap-4 justify-center flex-wrap">
-            <Link href="/app">
+            <Link href="/markets">
               <Button
                 variant="custom"
                 className="bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-700 hover:to-cyan-700 text-base px-6 py-3 shadow-lg shadow-violet-500/30 flex items-center gap-2"

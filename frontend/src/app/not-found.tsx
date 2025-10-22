@@ -53,13 +53,13 @@ export default function NotFound() {
                 Go Home
               </Button>
             </Link>
-            <Link href="/app">
+            <Link href="/markets">
               <Button
                 variant="custom"
                 className="bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 px-6 py-3 flex items-center gap-2"
               >
                 <Search className="w-4 h-4" />
-                Browse Projects
+                Browse Markets
               </Button>
             </Link>
           </div>
@@ -68,10 +68,10 @@ export default function NotFound() {
           <div className="pt-8 border-t border-zinc-800/50 mt-8">
             <p className="text-sm text-zinc-500 mb-3">Popular pages:</p>
             <div className="flex flex-wrap gap-2 justify-center">
-              <Link href="/app" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-3 py-1 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50">
-                Projects
+              <Link href="/markets" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-3 py-1 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50">
+                Markets
               </Link>
-              <Link href="/my" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-3 py-1 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50">
+              <Link href="/dashboard" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-3 py-1 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50">
                 Dashboard
               </Link>
               <Link href="/calculator" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-3 py-1 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50">

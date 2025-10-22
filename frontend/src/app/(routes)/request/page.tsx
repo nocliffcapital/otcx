@@ -51,9 +51,9 @@ export default function RequestProjectPage() {
             Thank you for your project request. We'll review it and get back to you soon.
           </p>
           <div className="flex gap-4 justify-center">
-            <Link href="/app">
+            <Link href="/markets">
               <Button variant="custom" className="bg-blue-600 hover:bg-blue-700">
-                Browse Projects
+                Browse Markets
               </Button>
             </Link>
             <Button
@@ -84,8 +84,8 @@ export default function RequestProjectPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="mb-8">
-        <Link href="/app" className="text-blue-400 hover:text-blue-300 text-sm mb-4 inline-block">
-          ← Back to Projects
+        <Link href="/markets" className="text-blue-400 hover:text-blue-300 text-sm mb-4 inline-block">
+          ← Back to Markets
         </Link>
         <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
           Request a Project
