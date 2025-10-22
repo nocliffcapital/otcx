@@ -375,9 +375,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (projectTgeActivated[order.projectId]) revert TGEAlreadyActivated();
         
         uint256 totalValue = (order.amount * order.unitPrice) / 1e18;
-        uint256 collateral = order.isSell 
-            ? totalValue                 // Buyer pays purchase price
-            : (totalValue * 110) / 100;  // Seller posts 110% collateral
+        uint256 collateral = totalValue;  // Both parties: 100% collateral
         
         // Transfer collateral from taker
         address(stable).safeTransferFrom(msg.sender, address(this), collateral);
