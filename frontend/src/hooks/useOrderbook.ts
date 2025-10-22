@@ -52,8 +52,8 @@ export function useOrderbook() {
   );
 
   /**
-   * V3: Create sell order with bytes32 projectId
-   * Then immediately locks seller collateral
+   * V4: Create sell order with bytes32 projectId
+   * Collateral is locked in same transaction
    */
   const createSellOrder = useCallback(
     async ({ amount, unitPrice, projectId }: { amount: bigint; unitPrice: bigint; projectId: `0x${string}` }) => {
@@ -62,16 +62,19 @@ export function useOrderbook() {
       // Convert from 24 decimals to 6 decimals (USDC)
       const total = (amount * unitPrice) / BigInt(10 ** 18);
       
+      // Seller needs 110% collateral
+      const collateral = (total * 110n) / 100n;
+      
       // Check balance first
       const balance = await checkBalance(address);
-      if (balance < total) {
-        throw new Error(`Insufficient USDC balance. You need ${(Number(total) / 1e6).toFixed(2)} USDC but only have ${(Number(balance) / 1e6).toFixed(2)} USDC.`);
+      if (balance < collateral) {
+        throw new Error(`Insufficient USDC balance. You need ${(Number(collateral) / 1e6).toFixed(2)} USDC collateral but only have ${(Number(balance) / 1e6).toFixed(2)} USDC.`);
       }
       
       // Check and approve if needed (need approval for collateral)
       const allowance = await checkAllowance(address);
-      if (allowance < total) {
-        await approveStable(total * 2n);
+      if (allowance < collateral) {
+        await approveStable(collateral * 2n);
       }
 
       // Get current nextId before creating order
@@ -81,36 +84,26 @@ export function useOrderbook() {
         functionName: "nextId",
       }) as bigint;
       
-      // V3: Create order
+      // V4: Create order (collateral locked in same tx)
       const createHash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "createSellOrder",
-        args: [amount, unitPrice, projectId],
+        functionName: "createOrder",
+        args: [projectId, amount, unitPrice, true], // isSell = true
       });
       await publicClient?.waitForTransactionReceipt({ hash: createHash });
       
       const orderId = nextIdBefore;
       console.log('Created sell order ID:', orderId.toString());
 
-      // V3: Immediately lock seller collateral
-      const lockHash = await walletClient.writeContract({
-        address: ORDERBOOK_ADDRESS,
-        abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "lockSellerCollateral",
-        args: [orderId],
-      });
-      await publicClient?.waitForTransactionReceipt({ hash: lockHash });
-      console.log('Locked seller collateral for order:', orderId.toString());
-
-      return { orderId, createHash, lockHash };
+      return { orderId, createHash };
     },
     [walletClient, publicClient, address, checkAllowance, checkBalance, approveStable]
   );
 
   /**
-   * V3: Create buy order with bytes32 projectId
-   * Then immediately locks buyer funds
+   * V4: Create buy order with bytes32 projectId
+   * Funds are locked in same transaction
    */
   const createBuyOrder = useCallback(
     async ({ amount, unitPrice, projectId }: { amount: bigint; unitPrice: bigint; projectId: `0x${string}` }) => {
@@ -138,35 +131,26 @@ export function useOrderbook() {
         functionName: "nextId",
       }) as bigint;
       
-      // V3: Create order
+      // V4: Create order (funds locked in same tx)
       const createHash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "createBuyOrder",
-        args: [amount, unitPrice, projectId],
+        functionName: "createOrder",
+        args: [projectId, amount, unitPrice, false], // isSell = false
       });
       await publicClient?.waitForTransactionReceipt({ hash: createHash });
       
       const orderId = nextIdBefore;
       console.log('Created buy order ID:', orderId.toString());
 
-      // V3: Immediately lock buyer funds
-      const lockHash = await walletClient.writeContract({
-        address: ORDERBOOK_ADDRESS,
-        abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "lockBuyerFunds",
-        args: [orderId],
-      });
-      await publicClient?.waitForTransactionReceipt({ hash: lockHash });
-      console.log('Locked buyer funds for order:', orderId.toString());
-
-      return { orderId, createHash, lockHash };
+      return { orderId, createHash };
     },
     [walletClient, publicClient, address, checkAllowance, checkBalance, approveStable]
   );
 
   /**
-   * V3: Take sell order (automatically deposits buyer funds in same transaction)
+   * V4: Take sell order (automatically deposits buyer funds in same transaction)
+   * Unified takeOrder function handles both sell and buy orders
    */
   const takeSellOrder = useCallback(
     async (orderId: bigint, total: bigint) => {
@@ -177,11 +161,11 @@ export function useOrderbook() {
         await approveStable(total * 2n);
       }
 
-      // V3: Take order (auto-deposits funds in same transaction)
+      // V4: Take order (auto-deposits funds in same transaction)
       const hash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "takeSellOrder",
+        functionName: "takeOrder",
         args: [orderId],
       });
       await publicClient?.waitForTransactionReceipt({ hash });
@@ -192,7 +176,8 @@ export function useOrderbook() {
   );
 
   /**
-   * V3: Take buy order (automatically deposits seller collateral in same transaction)
+   * V4: Take buy order (automatically deposits seller collateral in same transaction)
+   * Unified takeOrder function handles both sell and buy orders
    */
   const takeBuyOrder = useCallback(
     async (orderId: bigint, total: bigint) => {
@@ -203,11 +188,11 @@ export function useOrderbook() {
         await approveStable(total * 2n);
       }
 
-      // V3: Take order (auto-deposits collateral in same transaction)
+      // V4: Take order (auto-deposits collateral in same transaction)
       const hash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "takeBuyOrder",
+        functionName: "takeOrder",
         args: [orderId],
       });
       await publicClient?.waitForTransactionReceipt({ hash });
