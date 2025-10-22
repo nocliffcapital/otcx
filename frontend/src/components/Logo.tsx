@@ -8,8 +8,8 @@ interface LogoProps {
 }
 
 export function Logo({ className = "w-8 h-8", variant = "icon" }: LogoProps) {
-  const logoUrl = "https://gateway.pinata.cloud/ipfs/bafkreibt2ucqwtni2lrl7yaecojdjk3d3impzctrdqdgheb36oj46pdslm";
-  const iconUrl = "https://gateway.pinata.cloud/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq";
+  const logoUrl = "https://ipfs.io/ipfs/bafkreibt2ucqwtni2lrl7yaecojdjk3d3impzctrdqdgheb36oj46pdslm";
+  const iconUrl = "https://ipfs.io/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq";
   
   return (
     <img

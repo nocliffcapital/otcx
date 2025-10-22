@@ -93,7 +93,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       try {
         // Convert IPFS URI to HTTP gateway URL
         const httpUrl = project.metadataURI.startsWith('ipfs://')
-          ? project.metadataURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+          ? project.metadataURI.replace('ipfs://', 'https://ipfs.io/ipfs/')
           : project.metadataURI;
         
         const response = await fetch(httpUrl);
