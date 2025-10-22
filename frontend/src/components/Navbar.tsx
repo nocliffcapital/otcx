@@ -8,13 +8,14 @@ import { BalanceDisplay } from "./BalanceDisplay";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, STABLE_ADDRESS, ERC20_ABI } from "@/lib/contracts";
 import { useState, useRef } from "react";
-import { ChevronDown, Settings } from "lucide-react";
+import { ChevronDown, Settings, Menu, X } from "lucide-react";
 import { parseUnits } from "viem";
 
 export function Navbar() {
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
   const [showResourcesDropdown, setShowResourcesDropdown] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [minting, setMinting] = useState(false);
   
@@ -169,6 +170,9 @@ export function Navbar() {
               )}
             </div>
           </div>
+          
+          {/* Desktop wallet/controls - hidden on mobile */}
+          <div className="hidden md:flex">
           <ConnectButton.Custom>
             {({
               account,
@@ -286,7 +290,104 @@ export function Navbar() {
               );
             }}
           </ConnectButton.Custom>
+          </div>
+          
+          {/* Mobile: Just show connect button and hamburger */}
+          <div className="flex md:hidden items-center gap-2">
+            <ConnectButton.Custom>
+            {({
+              openConnectModal,
+              authenticationStatus,
+              mounted,
+            }) => {
+              const ready = mounted && authenticationStatus !== 'loading';
+              
+              return (
+                <button
+                  onClick={openConnectModal}
+                  type="button"
+                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700 text-white font-medium rounded-lg border border-cyan-500/30 transition-all"
+                >
+                  Connect
+                </button>
+              );
+            }}
+            </ConnectButton.Custom>
+            
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="p-2 text-zinc-400 hover:text-white transition-colors"
+            >
+              {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
+        
+        {/* Mobile menu */}
+        {showMobileMenu && (
+          <div className="md:hidden mt-4 pb-4 border-t border-zinc-800/50 pt-4">
+            <div className="flex flex-col gap-2">
+              <Link 
+                href="/app" 
+                onClick={() => setShowMobileMenu(false)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  pathname === '/app' 
+                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                }`}
+              >
+                Projects
+              </Link>
+              <Link 
+                href="/my" 
+                onClick={() => setShowMobileMenu(false)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  pathname === '/my' 
+                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                }`}
+              >
+                Dashboard
+              </Link>
+              <Link 
+                href="/calculator" 
+                onClick={() => setShowMobileMenu(false)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  pathname === '/calculator' 
+                    ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/30' 
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                }`}
+              >
+                Calculator
+              </Link>
+              <Link 
+                href="/how-it-works" 
+                onClick={() => setShowMobileMenu(false)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  pathname === '/how-it-works' 
+                    ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/30' 
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                }`}
+              >
+                How It Works
+              </Link>
+              {isOwner && (
+                <Link 
+                  href="/admin" 
+                  onClick={() => setShowMobileMenu(false)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                    pathname === '/admin' 
+                      ? 'bg-violet-600/20 text-violet-400 border border-violet-500/30' 
+                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  Admin
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
