@@ -289,6 +289,7 @@ export function getReputationTier(level?: string): {
   color: string;
   bgColor: string;
   textColor: string;
+  hexColor: string;
 } {
   const normalizedLevel = (level || 'unknown').toLowerCase();
   
@@ -299,6 +300,7 @@ export function getReputationTier(level?: string): {
         color: 'text-purple-500',
         bgColor: 'bg-purple-500/5',
         textColor: 'text-zinc-400',
+        hexColor: '#a855f7',
       };
     case 'revered': // 2400-2599 - Light Purple
       return {
@@ -306,6 +308,7 @@ export function getReputationTier(level?: string): {
         color: 'text-purple-400',
         bgColor: 'bg-purple-400/5',
         textColor: 'text-zinc-400',
+        hexColor: '#c084fc',
       };
     case 'distinguished': // 2200-2399 - Light Green
       return {
@@ -313,6 +316,7 @@ export function getReputationTier(level?: string): {
         color: 'text-green-300',
         bgColor: 'bg-green-300/5',
         textColor: 'text-zinc-400',
+        hexColor: '#86efac',
       };
     case 'exemplary': // 2000-2199 - Green
       return {
@@ -320,6 +324,7 @@ export function getReputationTier(level?: string): {
         color: 'text-green-500',
         bgColor: 'bg-green-500/5',
         textColor: 'text-zinc-400',
+        hexColor: '#22c55e',
       };
     case 'reputable': // 1800-1999 - Blue
       return {
@@ -327,6 +332,7 @@ export function getReputationTier(level?: string): {
         color: 'text-blue-400',
         bgColor: 'bg-blue-500/5',
         textColor: 'text-zinc-400',
+        hexColor: '#60a5fa',
       };
     case 'established': // 1600-1799 - Light Blue
       return {
@@ -334,6 +340,7 @@ export function getReputationTier(level?: string): {
         color: 'text-cyan-400',
         bgColor: 'bg-cyan-400/5',
         textColor: 'text-zinc-400',
+        hexColor: '#22d3ee',
       };
     case 'known': // 1400-1599 - Blue/Grey
       return {
@@ -341,6 +348,7 @@ export function getReputationTier(level?: string): {
         color: 'text-slate-300',
         bgColor: 'bg-slate-400/5',
         textColor: 'text-zinc-400',
+        hexColor: '#cbd5e1',
       };
     case 'neutral': // 1200-1399 - White
       return {
@@ -348,6 +356,7 @@ export function getReputationTier(level?: string): {
         color: 'text-zinc-200',
         bgColor: 'bg-zinc-200/5',
         textColor: 'text-zinc-400',
+        hexColor: '#e4e4e7',
       };
     case 'questionable': // 800-1199 - Yellow
       return {
@@ -355,6 +364,7 @@ export function getReputationTier(level?: string): {
         color: 'text-yellow-400',
         bgColor: 'bg-yellow-400/5',
         textColor: 'text-zinc-400',
+        hexColor: '#facc15',
       };
     case 'untrusted': // 0-799 - Red
       return {
@@ -362,6 +372,7 @@ export function getReputationTier(level?: string): {
         color: 'text-red-500',
         bgColor: 'bg-red-500/5',
         textColor: 'text-zinc-400',
+        hexColor: '#ef4444',
       };
     case 'unknown':
     default:
@@ -370,6 +381,7 @@ export function getReputationTier(level?: string): {
         color: 'text-zinc-500',
         bgColor: 'bg-zinc-600/5',
         textColor: 'text-zinc-500',
+        hexColor: '#71717a',
       };
   }
 }

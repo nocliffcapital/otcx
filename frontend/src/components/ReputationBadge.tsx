@@ -150,7 +150,10 @@ export default function ReputationBadge({
                 <div 
                   className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-zinc-800/30 rounded border border-zinc-700/30 cursor-help group"
                 >
-                  <Shield className={`w-2.5 h-2.5 ${tier.color} opacity-70 group-hover:opacity-100`} />
+                  <Shield 
+                    className="w-2.5 h-2.5 opacity-70 group-hover:opacity-100 transition-opacity" 
+                    style={{ color: tier.hexColor }}
+                  />
                   <span className={`text-[10px] font-semibold ${tier.textColor}`}>
                     {formatScore(reputation.score)}
                   </span>
@@ -164,7 +167,7 @@ export default function ReputationBadge({
   // Full variant
   return (
     <div className={`flex items-center gap-2 px-3 py-2 ${tier.bgColor} rounded-lg border border-${tier.color}/30`}>
-      <Shield className={`w-4 h-4 ${tier.color}`} />
+      <Shield className="w-4 h-4" style={{ color: tier.hexColor }} />
       <div className="flex flex-col">
         <span className={`text-xs font-bold ${tier.color}`}>{tier.label}</span>
         <span className="text-[10px] text-zinc-400">Score: {reputation.score}</span>
