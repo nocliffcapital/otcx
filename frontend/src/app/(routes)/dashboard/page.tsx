@@ -460,14 +460,14 @@ export default function MyOrdersPage() {
                         {order.status === 4 ? '✓' : order.status === 5 ? '✗' : order.status === 6 ? 'C' : '4'}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-1 text-[9px] text-zinc-500">
-                      <span className="w-7 text-center">Open</span>
-                      <span className="w-8"></span>
-                      <span className="w-7 text-center">Lock</span>
-                      <span className="w-8"></span>
-                      <span className="w-7 text-center">TGE</span>
-                      <span className="w-8"></span>
-                      <span className="w-7 text-center">Done</span>
+                    <div className="flex items-center gap-1.5 mt-1 text-[9px] text-zinc-500">
+                      <span className="w-5 text-center">Open</span>
+                      <span className="w-6"></span>
+                      <span className="w-5 text-center">Lock</span>
+                      <span className="w-6"></span>
+                      <span className="w-5 text-center">TGE</span>
+                      <span className="w-6"></span>
+                      <span className="w-5 text-center">Done</span>
                     </div>
                   </div>
 
