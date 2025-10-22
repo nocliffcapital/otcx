@@ -14,8 +14,34 @@ import {
   Zap,
   BookOpen
 } from "lucide-react";
+import { useReadContract } from "wagmi";
+import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 
 export default function HowItWorksPage() {
+  // Fetch current fees from contract
+  const { data: settlementFeeBps } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "settlementFeeBps",
+  });
+
+  const { data: cancellationFeeBps } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "cancellationFeeBps",
+  });
+
+  const { data: maxFeeBps } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "MAX_FEE_BPS",
+  });
+
+  // Convert BPS to percentage (e.g., 50 BPS = 0.50%)
+  const settlementFeePercent = settlementFeeBps ? (Number(settlementFeeBps) / 100).toFixed(2) : "0.50";
+  const cancellationFeePercent = cancellationFeeBps ? (Number(cancellationFeeBps) / 100).toFixed(2) : "0.10";
+  const maxFeePercent = maxFeeBps ? (Number(maxFeeBps) / 100).toFixed(2) : "5.00";
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
@@ -242,7 +268,7 @@ export default function HowItWorksPage() {
               <div className="space-y-1.5 text-sm ml-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-zinc-400">Buyer&apos;s payment released to seller (minus 0.5% settlement fee)</span>
+                  <span className="text-zinc-400">Buyer&apos;s payment released to seller (minus {settlementFeePercent}% settlement fee)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
@@ -250,7 +276,7 @@ export default function HowItWorksPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-zinc-400">Buyer receives tokens/points (minus 0.5% settlement fee from their side)</span>
+                  <span className="text-zinc-400">Buyer receives tokens/points (minus {settlementFeePercent}% settlement fee from their side)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
@@ -259,7 +285,7 @@ export default function HowItWorksPage() {
               </div>
               <div className="mt-3 p-2 bg-cyan-950/20 border border-cyan-800/30 rounded-lg">
                 <p className="text-xs text-cyan-300">
-                  💡 <strong>Fee Split:</strong> The 0.5% settlement fee is applied to both sides - buyer pays 0.5% in stablecoins, seller pays 0.5% in project tokens.
+                  💡 <strong>Fee Split:</strong> The {settlementFeePercent}% settlement fee is applied to both sides - buyer pays {settlementFeePercent}% in stablecoins, seller pays {settlementFeePercent}% in project tokens.
                 </p>
               </div>
             </div>
@@ -472,11 +498,11 @@ export default function HowItWorksPage() {
             <ul className="space-y-1 text-xs text-zinc-400 ml-4">
               <li className="flex items-start gap-2">
                 <div className="w-1 h-1 bg-cyan-400 rounded-full mt-1.5"></div>
-                <span><strong className="text-cyan-400">Settlement Fee:</strong> 0.5% from both buyer and seller when the trade settles</span>
+                <span><strong className="text-cyan-400">Settlement Fee:</strong> {settlementFeePercent}% from both buyer and seller when the trade settles</span>
               </li>
               <li className="flex items-start gap-2">
                 <div className="w-1 h-1 bg-orange-400 rounded-full mt-1.5"></div>
-                <span><strong className="text-orange-400">Cancellation Fee:</strong> 0.1% if you cancel an order (discourages spam)</span>
+                <span><strong className="text-orange-400">Cancellation Fee:</strong> {cancellationFeePercent}% if you cancel an order (discourages spam)</span>
               </li>
               <li className="flex items-start gap-2">
                 <div className="w-1 h-1 bg-zinc-500 rounded-full mt-1.5"></div>
@@ -484,7 +510,7 @@ export default function HowItWorksPage() {
               </li>
             </ul>
             <p className="text-xs text-green-400 mt-2">
-              💡 Fees are capped at 5% maximum and can be adjusted by protocol governance.
+              💡 Fees are capped at {maxFeePercent}% maximum and can be adjusted by protocol governance.
             </p>
           </div>
 
