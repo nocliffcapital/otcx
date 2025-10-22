@@ -10,7 +10,7 @@ import { useReadContract, usePublicClient } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, STABLE_DECIMALS, slugToProjectId } from "@/lib/contracts";
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, SearchX } from "lucide-react";
 
 type Project = {
   slug: string;
@@ -385,7 +385,9 @@ export default function ProjectsPage() {
 
       {!isLoading && filteredProjects.length === 0 && projects && projects.length > 0 && (
         <div className="text-center py-12">
-          <div className="text-5xl mb-4">🔍</div>
+          <div className="flex justify-center mb-4">
+            <SearchX className="w-16 h-16 text-zinc-600" />
+          </div>
           <p className="text-zinc-400 text-lg mb-2">No projects match your search</p>
           <p className="text-zinc-500 text-sm">Try searching for something else</p>
         </div>
