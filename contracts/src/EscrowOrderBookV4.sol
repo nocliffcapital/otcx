@@ -48,11 +48,13 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     uint8 public immutable stableDecimals;
     address public immutable feeCollector;
     
+    // Fee Configuration (adjustable by owner)
+    uint64 public settlementFeeBps = 50;        // 0.5% commission fee (split between stable + token)
+    uint64 public cancellationFeeBps = 10;      // 0.1% cancellation fee
+    
     // Constants (gas optimization)
     uint256 public constant BPS_DENOMINATOR = 10_000;
     uint256 public constant MAX_FEE_BPS = 200;              // 2% max
-    uint256 public constant SETTLEMENT_FEE_BPS = 50;        // 0.5% (total 1% split maker/taker)
-    uint256 public constant CANCELLATION_FEE_BPS = 10;      // 0.1%
     uint256 public constant GRACE_PERIOD = 10 minutes;
     uint256 public constant DEFAULT_SETTLEMENT_WINDOW = 4 hours;
     uint256 public constant MAX_ORDER_VALUE = 1_000_000 * 10**6; // 1M USDC
@@ -82,6 +84,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     event ProofSubmitted(uint256 indexed id, address seller, string proof);
     event SettlementExtended(bytes32 indexed projectId, uint64 newDeadline);
     event FeeCollected(bytes32 indexed projectId, address token, uint256 amount);
+    event FeeUpdated(string feeType, uint64 oldRate, uint64 newRate);
     event Paused(address indexed account);
     event Unpaused(address indexed account);
 
@@ -101,6 +104,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     error InsufficientBalance();
     error TransferFailed();
     error ExceedsMaxValue();
+    error FeeTooHigh();
 
     // ========== MODIFIERS ==========
     
@@ -138,6 +142,24 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     function unpause() external onlyOwner {
         paused = false;
         emit Unpaused(msg.sender);
+    }
+
+    /// @notice Update the settlement fee rate
+    /// @param newFeeBps New fee in basis points (50 = 0.5%)
+    function setSettlementFee(uint64 newFeeBps) external onlyOwner {
+        if (newFeeBps > MAX_FEE_BPS) revert FeeTooHigh();
+        uint64 oldFee = settlementFeeBps;
+        settlementFeeBps = newFeeBps;
+        emit FeeUpdated("settlement", oldFee, newFeeBps);
+    }
+
+    /// @notice Update the cancellation fee rate
+    /// @param newFeeBps New fee in basis points (10 = 0.1%)
+    function setCancellationFee(uint64 newFeeBps) external onlyOwner {
+        if (newFeeBps > MAX_FEE_BPS) revert FeeTooHigh();
+        uint64 oldFee = cancellationFeeBps;
+        cancellationFeeBps = newFeeBps;
+        emit FeeUpdated("cancellation", oldFee, newFeeBps);
     }
 
     /// @notice Activate TGE for a project (V4: project-level, not per-order!)
@@ -286,7 +308,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
             if (orderAge > GRACE_PERIOD) {
                 // 0.1% fee after grace period
                 uint256 orderValue = (order.amount * order.unitPrice) / 1e18;
-                cancellationFee = (orderValue * CANCELLATION_FEE_BPS) / BPS_DENOMINATOR;
+                cancellationFee = (orderValue * cancellationFeeBps) / BPS_DENOMINATOR;
                 if (cancellationFee > refund) cancellationFee = 0; // Safety check
             }
         } else if (order.status == Status.FUNDED) {
@@ -341,8 +363,8 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (!IERC20(tokenAddress).transferFrom(order.seller, address(this), order.amount)) revert TransferFailed();
         
         // Calculate fees: 0.5% stable + 0.5% token
-        uint256 stableFee = (order.buyerFunds * SETTLEMENT_FEE_BPS) / BPS_DENOMINATOR;
-        uint256 tokenFee = (order.amount * SETTLEMENT_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 stableFee = (order.buyerFunds * settlementFeeBps) / BPS_DENOMINATOR;
+        uint256 tokenFee = (order.amount * settlementFeeBps) / BPS_DENOMINATOR;
         
         // Transfer tokens to buyer (minus fee)
         if (!IERC20(tokenAddress).transfer(order.buyer, order.amount - tokenFee)) revert TransferFailed();
@@ -387,7 +409,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         
         // Calculate fee: 0.5% of total collateral (no token to capture for Points)
         uint256 totalCollateral = order.buyerFunds + order.sellerCollateral;
-        uint256 fee = (totalCollateral * SETTLEMENT_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 fee = (totalCollateral * settlementFeeBps) / BPS_DENOMINATOR;
         
         // Distribute collateral minus fee
         uint256 netToSeller = totalCollateral - fee;
