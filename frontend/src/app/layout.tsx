@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <title>otcX - Decentralized OTC Marketplace</title>
         <meta name="description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
-        <link rel="icon" href="https://cf-ipfs.com/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq" type="image/png" />
+        <link rel="icon" href="https://dweb.link/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq" type="image/png" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta property="og:title" content="otcX - Decentralized OTC Marketplace" />
         <meta property="og:description" content="Trade pre-TGE tokens & points with secure on-chain escrow." />

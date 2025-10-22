@@ -95,7 +95,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         let httpUrl = project.metadataURI;
         if (project.metadataURI.startsWith('ipfs://')) {
           const cid = project.metadataURI.slice(7);
-          httpUrl = `https://cf-ipfs.com/ipfs/${cid}`;
+          httpUrl = `https://dweb.link/ipfs/${cid}`;
         }
         
         console.log('Fetching metadata from:', httpUrl);

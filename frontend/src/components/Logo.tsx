@@ -8,8 +8,8 @@ interface LogoProps {
 }
 
 export function Logo({ className = "w-8 h-8", variant = "icon" }: LogoProps) {
-  const logoUrl = "https://cf-ipfs.com/ipfs/bafkreibt2ucqwtni2lrl7yaecojdjk3d3impzctrdqdgheb36oj46pdslm";
-  const iconUrl = "https://cf-ipfs.com/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq";
+  const logoUrl = "https://dweb.link/ipfs/bafkreibt2ucqwtni2lrl7yaecojdjk3d3impzctrdqdgheb36oj46pdslm";
+  const iconUrl = "https://dweb.link/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq";
   
   return (
     <img

@@ -78,9 +78,9 @@ export async function uploadMetadataToPinata(metadata: ProjectMetadata): Promise
  * @returns Parsed metadata object
  */
 export async function fetchMetadataFromIPFS(ipfsUri: string): Promise<ProjectMetadata> {
-  // Convert ipfs:// to https:// gateway URL - use Cloudflare gateway for better reliability
+  // Convert ipfs:// to https:// gateway URL - use dweb.link (Protocol Labs official gateway)
   const httpUrl = ipfsUri.startsWith('ipfs://')
-    ? `https://cf-ipfs.com/ipfs/${ipfsUri.slice(7)}`
+    ? `https://dweb.link/ipfs/${ipfsUri.slice(7)}`
     : ipfsUri;
 
   const response = await fetch(httpUrl);
@@ -97,7 +97,7 @@ export async function fetchMetadataFromIPFS(ipfsUri: string): Promise<ProjectMet
  * @param gateway - Gateway to use (default: Pinata)
  * @returns HTTP URL
  */
-export function ipfsToHttp(ipfsUri: string, gateway = 'https://cf-ipfs.com/ipfs/'): string {
+export function ipfsToHttp(ipfsUri: string, gateway = 'https://dweb.link/ipfs/'): string {
   if (!ipfsUri) return '';
   if (ipfsUri.startsWith('http')) return ipfsUri;
   if (ipfsUri.startsWith('ipfs://')) {
