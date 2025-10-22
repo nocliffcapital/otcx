@@ -164,3 +164,24 @@ input[type="range"].slider-thumb::-moz-range-thumb:hover {
   transform: scale(1.1);
   box-shadow: 0 0 15px rgba(6, 182, 212, 0.7);
 }
+
+/* RainbowKit custom font styling */
+[data-rk] {
+  font-family: var(--font-space-grotesk), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+}
+
+/* Apply Space Grotesk to all RainbowKit modal content */
+div[role="dialog"] {
+  font-family: var(--font-space-grotesk), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+}
+
+/* Ensure buttons in RainbowKit also use Space Grotesk */
+[data-rk] button,
+[data-rk] div,
+[data-rk] span,
+[data-rk] p,
+[data-rk] h1,
+[data-rk] h2,
+[data-rk] h3 {
+  font-family: var(--font-space-grotesk), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+}

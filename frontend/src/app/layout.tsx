@@ -43,7 +43,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <div className="relative z-10 pb-20">
           <WagmiProvider config={wagmiConfig}>
             <QueryClientProvider client={queryClient}>
-              <RainbowKitProvider theme={darkTheme({})}>
+              <RainbowKitProvider 
+                theme={darkTheme({
+                  accentColor: '#06b6d4', // cyan-500
+                  accentColorForeground: 'white',
+                  borderRadius: 'large',
+                  fontStack: 'system',
+                  overlayBlur: 'small',
+                })}
+                modalSize="compact"
+              >
                 <ToastProvider>
                   <Navbar />
                   {children}
