@@ -19,21 +19,17 @@ const STATUS_LABELS = [
   "OPEN",            // 0
   "FUNDED",          // 1
   "TGE ACTIVATED",   // 2
-  "TOKENS DEPOSITED",// 3
-  "SETTLED",         // 4
-  "DEFAULTED",       // 5
-  "CANCELED",        // 6
-  "EXPIRED"          // 7
+  "SETTLED",         // 3 (V3: auto-settled when tokens deposited)
+  "DEFAULTED",       // 4
+  "CANCELED"         // 5 (V3: no EXPIRED status)
 ];
 const STATUS_COLORS = [
   "bg-orange-500",   // OPEN
   "bg-blue-500",     // FUNDED
   "bg-violet-600",   // TGE_ACTIVATED
-  "bg-purple-600",   // TOKENS_DEPOSITED
   "bg-emerald-600",  // SETTLED
   "bg-red-700",      // DEFAULTED
-  "bg-gray-600",     // CANCELED
-  "bg-red-600"       // EXPIRED
+  "bg-gray-600"      // CANCELED
 ];
 
 export default function MyOrdersPage() {
@@ -81,18 +77,18 @@ export default function MyOrdersPage() {
   // Filter orders based on showCanceled toggle
   const filteredOrders = useMemo(() => {
     if (showCanceled) return orders;
-    return orders.filter(o => o.status !== 6); // Exclude CANCELED (status 6)
+    return orders.filter(o => o.status !== 5); // Exclude CANCELED (status 5 in V3)
   }, [orders, showCanceled]);
 
   // Calculate summary stats (always based on all orders)
   const stats = useMemo(() => {
-    // In Settlement: only TGE_ACTIVATED (2) or TOKENS_DEPOSITED (3)
-    const inSettlement = orders.filter(o => o.status === 2 || o.status === 3).length;
+    // In Settlement: only TGE_ACTIVATED (2) in V3 (no TOKENS_DEPOSITED state anymore)
+    const inSettlement = orders.filter(o => o.status === 2).length;
 
     const active = orders.filter(o => o.status === 0).length; // OPEN
     const funded = orders.filter(o => o.status === 1).length; // FUNDED
-    const settled = orders.filter(o => o.status === 4).length; // SETTLED
-    const canceled = orders.filter(o => o.status === 6).length; // CANCELED
+    const settled = orders.filter(o => o.status === 3).length; // SETTLED (V3: status 3)
+    const canceled = orders.filter(o => o.status === 5).length; // CANCELED (V3: status 5)
 
     // Calculate total volume (sum of all order values in USDC)
     const totalVolume = orders.reduce((sum, order) => {
@@ -350,7 +346,7 @@ export default function MyOrdersPage() {
               (!order.isSell && !hasSellerLock)
             );
             // Note: GTC orders don't expire
-            const isInSettlement = order.status === 2 || order.status === 3; // TGE_ACTIVATED or TOKENS_DEPOSITED
+            const isInSettlement = order.status === 2; // TGE_ACTIVATED (V3: no TOKENS_DEPOSITED state)
             
             // Determine user's role in this order
             const iAmSeller = order.seller.toLowerCase() === address?.toLowerCase();
