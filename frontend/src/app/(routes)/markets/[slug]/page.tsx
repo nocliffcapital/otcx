@@ -91,15 +91,19 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       if (!project?.metadataURI) return;
       
       try {
-        // Convert IPFS URI to HTTP gateway URL
-        const httpUrl = project.metadataURI.startsWith('ipfs://')
-          ? project.metadataURI.replace('ipfs://', 'https://ipfs.io/ipfs/')
-          : project.metadataURI;
+        // Convert IPFS URI to HTTP gateway URL - try multiple gateways
+        let httpUrl = project.metadataURI;
+        if (project.metadataURI.startsWith('ipfs://')) {
+          const cid = project.metadataURI.slice(7);
+          httpUrl = `https://cloudflare-ipfs.com/ipfs/${cid}`;
+        }
         
+        console.log('Fetching metadata from:', httpUrl);
         const response = await fetch(httpUrl);
-        if (!response.ok) throw new Error('Failed to fetch metadata');
+        if (!response.ok) throw new Error(`Failed to fetch metadata: ${response.status}`);
         
         const data = await response.json();
+        console.log('Fetched metadata:', data);
         setMetadata(data);
       } catch (error) {
         console.error('Error fetching project metadata:', error);
