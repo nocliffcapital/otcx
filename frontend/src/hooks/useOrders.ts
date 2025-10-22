@@ -152,7 +152,7 @@ export function useOrders(projectId?: `0x${string}`) {
     // Refetch every 30 seconds
     const interval = setInterval(fetchOrders, 30000);
     return () => clearInterval(interval);
-  }, [publicClient, projectToken]);
+  }, [publicClient, projectId]);
 
   return { orders, allOrders, loading };
 }
