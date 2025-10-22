@@ -124,15 +124,16 @@ export function useOrders(projectId?: `0x${string}`) {
         
         // Filter by projectToken for display
         // V3: Filter by projectId (bytes32) instead of projectToken (address)
-        // V3: Show all OPEN orders (collateral is deposited when taking the order, not creating)
+        // Only show orders with collateral deposited (buyerFunds > 0 OR sellerCollateral > 0)
         const filtered = allOrdersList.filter(o => {
           console.log('Order projectToken:', o.projectToken, 'Comparing to projectId:', projectId);
           const matchesProject = !projectId || (typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === projectId.toLowerCase());
           
-          // V3: Show all orders with status OPEN or higher (collateral check removed)
-          const isAvailable = o.status >= 0; // Show OPEN (0), FUNDED (1), TGE_ACTIVATED (2+)
+          // Only show orders with collateral deposited
+          const hasCollateral = o.isSell ? o.sellerCollateral > 0n : o.buyerFunds > 0n;
+          const isAvailable = o.status === 0 && hasCollateral; // OPEN (0) with collateral
           
-          console.log(`Order ${o.id}: matchesProject=${matchesProject}, status=${o.status}, isAvailable=${isAvailable}`);
+          console.log(`Order ${o.id}: matchesProject=${matchesProject}, status=${o.status}, hasCollateral=${hasCollateral}, isAvailable=${isAvailable}`);
           
           return isAvailable && matchesProject;
         });

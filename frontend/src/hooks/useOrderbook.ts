@@ -38,6 +38,19 @@ export function useOrderbook() {
     [publicClient]
   );
 
+  const checkBalance = useCallback(
+    async (owner: Address) => {
+      if (!publicClient) return 0n;
+      return publicClient.readContract({
+        address: STABLE_ADDRESS,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [owner],
+      }) as Promise<bigint>;
+    },
+    [publicClient]
+  );
+
   /**
    * V3: Create sell order with bytes32 projectId
    * Then immediately locks seller collateral
@@ -48,6 +61,12 @@ export function useOrderbook() {
       
       // Convert from 24 decimals to 6 decimals (USDC)
       const total = (amount * unitPrice) / BigInt(10 ** 18);
+      
+      // Check balance first
+      const balance = await checkBalance(address);
+      if (balance < total) {
+        throw new Error(`Insufficient USDC balance. You need ${(Number(total) / 1e6).toFixed(2)} USDC but only have ${(Number(balance) / 1e6).toFixed(2)} USDC.`);
+      }
       
       // Check and approve if needed (need approval for collateral)
       const allowance = await checkAllowance(address);
@@ -86,7 +105,7 @@ export function useOrderbook() {
 
       return { orderId, createHash, lockHash };
     },
-    [walletClient, publicClient, address, checkAllowance, approveStable]
+    [walletClient, publicClient, address, checkAllowance, checkBalance, approveStable]
   );
 
   /**
@@ -99,6 +118,12 @@ export function useOrderbook() {
       
       // Convert from 24 decimals to 6 decimals (USDC)
       const total = (amount * unitPrice) / BigInt(10 ** 18);
+      
+      // Check balance first
+      const balance = await checkBalance(address);
+      if (balance < total) {
+        throw new Error(`Insufficient USDC balance. You need ${(Number(total) / 1e6).toFixed(2)} USDC but only have ${(Number(balance) / 1e6).toFixed(2)} USDC.`);
+      }
       
       // Check and approve if needed (need approval for funds)
       const allowance = await checkAllowance(address);
@@ -137,7 +162,7 @@ export function useOrderbook() {
 
       return { orderId, createHash, lockHash };
     },
-    [walletClient, publicClient, address, checkAllowance, approveStable]
+    [walletClient, publicClient, address, checkAllowance, checkBalance, approveStable]
   );
 
   /**
