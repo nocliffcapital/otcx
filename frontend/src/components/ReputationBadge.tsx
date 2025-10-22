@@ -148,9 +148,9 @@ export default function ReputationBadge({
                 onMouseLeave={handleMouseLeave}
               >
                 <div 
-                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-zinc-800/30 rounded border border-zinc-700/30 cursor-help opacity-80 hover:opacity-100 transition-opacity"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-zinc-800/30 rounded border border-zinc-700/30 cursor-help opacity-90 hover:opacity-100 transition-opacity"
                 >
-                  <Shield className={`w-2.5 h-2.5 ${tier.color}`} fill="currentColor" fillOpacity="0.2" />
+                  <Shield className={`w-2.5 h-2.5 ${tier.color}`} fill="currentColor" fillOpacity="0.3" strokeWidth={2.5} />
                   <span className={`text-[10px] font-semibold ${tier.textColor}`}>
                     {formatScore(reputation.score)}
                   </span>
