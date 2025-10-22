@@ -198,13 +198,13 @@ export default function ProjectsPage() {
   return (
     <div className="relative min-h-screen">
       {/* Corner accents - tech frame */}
-      <div className="fixed top-16 left-0 w-24 h-24 border-t-2 border-l-2 border-cyan-500/20 pointer-events-none"></div>
-      <div className="fixed top-16 right-0 w-24 h-24 border-t-2 border-r-2 border-violet-500/20 pointer-events-none"></div>
+      <div className="fixed top-16 left-0 w-24 h-24 border-t-2 border-l-2 border-amber-500/20 pointer-events-none"></div>
+      <div className="fixed top-16 right-0 w-24 h-24 border-t-2 border-r-2 border-blue-500/20 pointer-events-none"></div>
       
       <div className="relative mx-auto max-w-7xl px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
               Explore Markets
             </h1>
             <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 ${
@@ -267,7 +267,7 @@ export default function ProjectsPage() {
               size="sm"
               variant="custom"
               onClick={() => setAssetFilter("all")}
-              className={assetFilter === "all" ? "bg-cyan-600 hover:bg-cyan-700" : "bg-zinc-800 hover:bg-zinc-700"}
+              className={assetFilter === "all" ? "bg-amber-600 hover:bg-amber-700" : "bg-zinc-800 hover:bg-zinc-700"}
             >
               All
             </Button>
@@ -295,7 +295,7 @@ export default function ProjectsPage() {
               onClick={() => setViewMode("cards")}
               className={`p-2 rounded-lg transition-all ${
                 viewMode === "cards" 
-                  ? "bg-cyan-600 text-white" 
+                  ? "bg-amber-600 text-white" 
                   : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
               }`}
               title="Card View"
@@ -308,7 +308,7 @@ export default function ProjectsPage() {
               onClick={() => setViewMode("list")}
               className={`p-2 rounded-lg transition-all ${
                 viewMode === "list" 
-                  ? "bg-cyan-600 text-white" 
+                  ? "bg-amber-600 text-white" 
                   : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
               }`}
               title="List View"
@@ -330,12 +330,12 @@ export default function ProjectsPage() {
 
       {!isLoading && projects && projects.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 px-4">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500/20 to-violet-500/20 flex items-center justify-center mb-6">
-            <svg className="w-10 h-10 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500/20 to-yellow-500/20 flex items-center justify-center mb-6">
+            <svg className="w-10 h-10 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
           </div>
-          <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+          <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
             No Active Projects
           </h3>
           <p className="text-zinc-400 text-center max-w-md mb-6">

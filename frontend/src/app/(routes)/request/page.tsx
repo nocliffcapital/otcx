@@ -87,7 +87,7 @@ export default function RequestProjectPage() {
         <Link href="/app" className="text-blue-400 hover:text-blue-300 text-sm mb-4 inline-block">
           ← Back to Projects
         </Link>
-        <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
           Request a Project
         </h1>
         <p className="text-lg text-zinc-400">
@@ -249,7 +249,7 @@ export default function RequestProjectPage() {
               type="submit"
               disabled={submitting}
               variant="custom"
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600"
             >
               {submitting ? "Submitting..." : "Submit Request"}
             </Button>
