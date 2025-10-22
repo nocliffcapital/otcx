@@ -70,6 +70,10 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     mapping(uint256 => Order) public orders;
     bool public paused;
     
+    // Collateral whitelist (future: support USDC + USDT)
+    mapping(address => bool) public approvedCollateral;
+    address[] public approvedCollateralList;
+    
     // Project-level TGE management (V4: no per-order tracking!)
     mapping(bytes32 => bool) public projectTgeActivated;
     mapping(bytes32 => address) public projectTokenAddress;
@@ -92,6 +96,8 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     event FeeCollected(bytes32 indexed projectId, address token, uint256 amount);
     event SettlementFeeUpdated(uint64 oldRate, uint64 newRate);
     event CancellationFeeUpdated(uint64 oldRate, uint64 newRate);
+    event CollateralApproved(address indexed token, uint8 decimals);
+    event CollateralRemoved(address indexed token);
     event Paused(address indexed account);
     event Unpaused(address indexed account);
 
@@ -112,6 +118,8 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     error TransferFailed();
     error ExceedsMaxValue();
     error FeeTooHigh();
+    error CollateralNotApproved();
+    error CollateralAlreadyApproved();
 
     // ========== MODIFIERS ==========
     
@@ -134,6 +142,10 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         stableDecimals = IERC20(stableToken).decimals();
         feeCollector = _feeCollector;
         MAX_ORDER_VALUE = 1_000_000 * (10 ** stableDecimals);  // 1M in stable decimals
+        
+        // Auto-approve the deployment stable (USDC for now)
+        approvedCollateral[stableToken] = true;
+        approvedCollateralList.push(stableToken);
         
         _initializeOwner(msg.sender);
     }
@@ -168,6 +180,42 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         uint64 oldFee = cancellationFeeBps;
         cancellationFeeBps = newFeeBps;
         emit CancellationFeeUpdated(oldFee, newFeeBps);
+    }
+
+    /// @notice Approve a new collateral token (e.g., USDT)
+    /// @param token The collateral token address
+    function approveCollateral(address token) external onlyOwner {
+        if (token == address(0)) revert InvalidAddress();
+        if (approvedCollateral[token]) revert CollateralAlreadyApproved();
+        
+        // Validate it's a real ERC20 with code
+        if (token.code.length == 0) revert InvalidAddress();
+        
+        // Get decimals for validation
+        try IERC20(token).decimals() returns (uint8 decimals) {
+            approvedCollateral[token] = true;
+            approvedCollateralList.push(token);
+            emit CollateralApproved(token, decimals);
+        } catch {
+            revert InvalidAddress();
+        }
+    }
+
+    /// @notice Remove a collateral token from whitelist
+    /// @param token The collateral token address
+    /// @dev Does not affect existing orders, only prevents new orders
+    function removeCollateral(address token) external onlyOwner {
+        if (!approvedCollateral[token]) revert CollateralNotApproved();
+        if (token == address(stable)) revert InvalidAddress();  // Can't remove primary stable
+        
+        approvedCollateral[token] = false;
+        emit CollateralRemoved(token);
+    }
+
+    /// @notice Get list of all approved collateral tokens
+    /// @return List of approved collateral addresses
+    function getApprovedCollateral() external view returns (address[] memory) {
+        return approvedCollateralList;
     }
 
     /// @notice Activate TGE for a project (V4: project-level, not per-order!)
@@ -272,6 +320,9 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (amount == 0) revert InvalidAmount();
         if (unitPrice == 0) revert InvalidPrice();
         if (projectTgeActivated[projectId]) revert TGEAlreadyActivated();
+        
+        // Validate collateral is whitelisted (currently USDC, can add USDT later)
+        if (!approvedCollateral[address(stable)]) revert CollateralNotApproved();
         
         // Calculate values
         uint256 totalValue = (amount * unitPrice) / 1e18;
