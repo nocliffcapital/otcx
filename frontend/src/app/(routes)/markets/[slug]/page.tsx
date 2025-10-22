@@ -857,6 +857,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                   <th className="text-center py-3 px-3 text-zinc-400 font-medium">Total</th>
                   <th className="text-center py-3 px-3 text-zinc-400 font-medium">Seller</th>
                   <th className="text-center py-3 px-3 text-zinc-400 font-medium">Buyer</th>
+                  <th className="text-center py-3 px-3 text-zinc-400 font-medium">Time</th>
                 </tr>
               </thead>
               <tbody>
@@ -907,6 +908,11 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                           </span>
                           <ReputationBadge address={buyerAddress} variant="compact" />
                         </div>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <span className="text-xs text-zinc-500">
+                          Recently
+                        </span>
                       </td>
                     </tr>
                   );
