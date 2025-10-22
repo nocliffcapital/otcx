@@ -55,7 +55,6 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     // Constants (gas optimization)
     uint256 public constant BPS_DENOMINATOR = 10_000;
     uint256 public constant MAX_FEE_BPS = 500;              // 5% max
-    uint256 public constant GRACE_PERIOD = 10 minutes;
     uint256 public constant DEFAULT_SETTLEMENT_WINDOW = 4 hours;
     uint256 public constant MAX_ORDER_VALUE = 1_000_000 * 10**6; // 1M USDC
     
@@ -299,22 +298,18 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         uint256 cancellationFee = 0;
         uint256 refund;
         
-        // Calculate fee based on state and time
+        // Calculate fee based on state
         if (order.status == Status.OPEN) {
-            // No counterparty yet
+            // No counterparty yet - always charge cancellation fee
             refund = order.isSell ? order.sellerCollateral : order.buyerFunds;
             
-            uint256 orderAge = block.timestamp - order.createdAt;
-            if (orderAge > GRACE_PERIOD) {
-                // 0.1% fee after grace period
-                uint256 orderValue = (order.amount * order.unitPrice) / 1e18;
-                cancellationFee = (orderValue * cancellationFeeBps) / BPS_DENOMINATOR;
-                if (cancellationFee > refund) cancellationFee = 0; // Safety check
-            }
+            uint256 orderValue = (order.amount * order.unitPrice) / 1e18;
+            cancellationFee = (orderValue * cancellationFeeBps) / BPS_DENOMINATOR;
+            if (cancellationFee > refund) cancellationFee = 0; // Safety check
         } else if (order.status == Status.FUNDED) {
             // Counterparty already locked - return their collateral, charge maker fee
             uint256 orderValue = (order.amount * order.unitPrice) / 1e18;
-            cancellationFee = (orderValue * 50) / BPS_DENOMINATOR; // 0.5% - wasted gas
+            cancellationFee = (orderValue * cancellationFeeBps) / BPS_DENOMINATOR;
             
             // Return counterparty's collateral
             if (order.isSell) {
