@@ -742,7 +742,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                           </div>
                         </td>
                         <td className="py-3 px-3 text-center">
-                          <div className="flex items-center justify-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-zinc-400 font-mono text-[10px]">
+                              {order.maker.slice(0, 6)}...{order.maker.slice(-4)}
+                            </span>
                             <ReputationBadge address={order.maker} variant="compact" />
                           </div>
                         </td>
@@ -836,7 +839,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                           </div>
                         </td>
                         <td className="py-3 px-3 text-center">
-                          <div className="flex items-center justify-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-zinc-400 font-mono text-[10px]">
+                              {order.maker.slice(0, 6)}...{order.maker.slice(-4)}
+                            </span>
                             <ReputationBadge address={order.maker} variant="compact" />
                           </div>
                         </td>
