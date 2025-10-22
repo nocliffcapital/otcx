@@ -185,7 +185,7 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
         </div>
         <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800 h-[72px] flex flex-col justify-center">
           <div className="text-xs text-zinc-400 mb-1">Volume</div>
-          <div className="text-sm font-semibold text-blue-400">
+          <div className="text-sm font-semibold text-white">
             ${stats.totalVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>

@@ -432,7 +432,7 @@ export default function ProjectsPage() {
                     </div>
                     <div className="flex justify-between items-center text-sm border-t border-zinc-800 pt-2 mt-2">
                       <span className="text-zinc-400">Total Volume:</span>
-                      <span className="font-semibold text-blue-400">
+                      <span className="font-semibold text-white">
                         ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -532,7 +532,7 @@ export default function ProjectsPage() {
                         </div>
                         <div className="text-right">
                           <div className="text-zinc-400 text-xs mb-1">Volume</div>
-                          <div className="font-semibold text-blue-400">
+                          <div className="font-semibold text-white">
                             ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </div>
                         </div>
