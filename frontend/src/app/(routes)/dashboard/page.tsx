@@ -196,8 +196,8 @@ export default function MyOrdersPage() {
                   <FileText className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-cyan-400 leading-none">{stats.total}</div>
-                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Total Orders</div>
+                  <div className="text-lg font-bold text-cyan-400 leading-none text-left">{stats.total}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Total Orders</div>
                 </div>
               </div>
             </Card>
@@ -209,10 +209,10 @@ export default function MyOrdersPage() {
                   <DollarSign className="w-4 h-4 text-violet-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-violet-400 leading-none">
+                  <div className="text-lg font-bold text-violet-400 leading-none text-left">
                     ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
-                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Total Volume</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Total Volume</div>
                 </div>
               </div>
             </Card>
@@ -224,8 +224,8 @@ export default function MyOrdersPage() {
                   <ArrowUpRight className="w-4 h-4 text-green-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-green-400 leading-none">{stats.buyOrders}</div>
-                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Buy Orders</div>
+                  <div className="text-lg font-bold text-green-400 leading-none text-left">{stats.buyOrders}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Buy Orders</div>
                 </div>
               </div>
             </Card>
@@ -237,8 +237,8 @@ export default function MyOrdersPage() {
                   <ArrowDownRight className="w-4 h-4 text-red-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-red-400 leading-none">{stats.sellOrders}</div>
-                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Sell Orders</div>
+                  <div className="text-lg font-bold text-red-400 leading-none text-left">{stats.sellOrders}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Sell Orders</div>
                 </div>
               </div>
             </Card>
@@ -250,8 +250,8 @@ export default function MyOrdersPage() {
                   <Clock className="w-4 h-4 text-orange-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-orange-400 leading-none">{stats.active}</div>
-                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Active</div>
+                  <div className="text-lg font-bold text-orange-400 leading-none text-left">{stats.active}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Active</div>
                 </div>
               </div>
             </Card>
@@ -263,8 +263,8 @@ export default function MyOrdersPage() {
                   <TrendingUp className="w-4 h-4 text-blue-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-blue-400 leading-none">{stats.inSettlement}</div>
-                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Settlement</div>
+                  <div className="text-lg font-bold text-blue-400 leading-none text-left">{stats.inSettlement}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Settlement</div>
                 </div>
               </div>
             </Card>
@@ -276,8 +276,8 @@ export default function MyOrdersPage() {
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-emerald-400 leading-none">{stats.settled}</div>
-                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5">Settled</div>
+                  <div className="text-lg font-bold text-emerald-400 leading-none text-left">{stats.settled}</div>
+                  <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Settled</div>
                 </div>
               </div>
             </Card>
