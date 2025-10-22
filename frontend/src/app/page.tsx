@@ -101,8 +101,8 @@ export default function HomePage() {
             </div>
             <div className="w-px bg-zinc-800"></div>
             <div>
-              <div className="text-3xl font-bold text-violet-400">0%</div>
-              <div className="text-sm text-zinc-500">Fees</div>
+              <div className="text-3xl font-bold text-violet-400">$0</div>
+              <div className="text-sm text-zinc-500">Volume</div>
             </div>
             <div className="w-px bg-zinc-800"></div>
             <div>

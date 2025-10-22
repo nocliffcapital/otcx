@@ -242,16 +242,25 @@ export default function HowItWorksPage() {
               <div className="space-y-1.5 text-sm ml-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-zinc-400">Buyer&apos;s payment released to seller</span>
+                  <span className="text-zinc-400">Buyer&apos;s payment released to seller (minus 0.5% settlement fee)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-zinc-400">Seller&apos;s collateral returned to them</span>
+                  <span className="text-zinc-400">Seller&apos;s collateral returned in full</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span className="text-zinc-400">Buyer receives tokens/points (minus 0.5% settlement fee from their side)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
                   <span className="text-zinc-400">Trade complete ✓</span>
                 </div>
+              </div>
+              <div className="mt-3 p-2 bg-cyan-950/20 border border-cyan-800/30 rounded-lg">
+                <p className="text-xs text-cyan-300">
+                  💡 <strong>Fee Split:</strong> The 0.5% settlement fee is applied to both sides - buyer pays 0.5% in stablecoins, seller pays 0.5% in project tokens.
+                </p>
               </div>
             </div>
           </div>
@@ -457,8 +466,25 @@ export default function HowItWorksPage() {
 
           <div className="bg-zinc-900/30 rounded-lg p-3 border border-zinc-800">
             <h3 className="text-sm font-semibold mb-1.5">Are there any fees?</h3>
-            <p className="text-xs text-zinc-400">
-              No! otcX charges 0% fees. You only pay Ethereum gas fees for transactions.
+            <p className="text-xs text-zinc-400 mb-2">
+              otcX charges minimal protocol fees to sustain development and operations:
+            </p>
+            <ul className="space-y-1 text-xs text-zinc-400 ml-4">
+              <li className="flex items-start gap-2">
+                <div className="w-1 h-1 bg-cyan-400 rounded-full mt-1.5"></div>
+                <span><strong className="text-cyan-400">Settlement Fee:</strong> 0.5% from both buyer and seller when the trade settles</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="w-1 h-1 bg-orange-400 rounded-full mt-1.5"></div>
+                <span><strong className="text-orange-400">Cancellation Fee:</strong> 0.1% if you cancel an order (discourages spam)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="w-1 h-1 bg-zinc-500 rounded-full mt-1.5"></div>
+                <span className="text-zinc-500">Plus Ethereum gas fees for transactions</span>
+              </li>
+            </ul>
+            <p className="text-xs text-green-400 mt-2">
+              💡 Fees are capped at 5% maximum and can be adjusted by protocol governance.
             </p>
           </div>
 
