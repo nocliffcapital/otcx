@@ -502,12 +502,12 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                 <div className="flex items-center gap-1.5 text-xs font-medium whitespace-nowrap">
                   {side === "SELL" ? (
                     <>
-                      <ArrowUpCircle className="w-4 h-4 text-red-400" />
+                      <ArrowDownCircle className="w-4 h-4 text-red-400" />
                       <span>You are SELLING</span>
                     </>
                   ) : (
                     <>
-                      <ArrowDownCircle className="w-4 h-4 text-green-400" />
+                      <ArrowUpCircle className="w-4 h-4 text-green-400" />
                       <span>You are BUYING</span>
                     </>
                   )}
