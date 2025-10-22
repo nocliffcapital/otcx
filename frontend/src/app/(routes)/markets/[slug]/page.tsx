@@ -743,7 +743,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                         </td>
                         <td className="py-3 px-3 text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <span className="text-zinc-400 font-mono text-[10px]">
+                            <span className="text-zinc-400 font-mono text-[10px] w-[90px] text-right">
                               {order.maker.slice(0, 6)}...{order.maker.slice(-4)}
                             </span>
                             <ReputationBadge address={order.maker} variant="compact" />
@@ -840,7 +840,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                         </td>
                         <td className="py-3 px-3 text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <span className="text-zinc-400 font-mono text-[10px]">
+                            <span className="text-zinc-400 font-mono text-[10px] w-[90px] text-right">
                               {order.maker.slice(0, 6)}...{order.maker.slice(-4)}
                             </span>
                             <ReputationBadge address={order.maker} variant="compact" />
@@ -937,7 +937,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                       </td>
                       <td className="py-3 px-3 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <span className="text-xs text-zinc-400">
+                          <span className="text-xs text-zinc-400 font-mono w-[90px] text-right">
                             {sellerAddress.slice(0, 6)}...{sellerAddress.slice(-4)}
                           </span>
                           <ReputationBadge address={sellerAddress} variant="compact" />
@@ -945,7 +945,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                       </td>
                       <td className="py-3 px-3 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <span className="text-xs text-zinc-400">
+                          <span className="text-xs text-zinc-400 font-mono w-[90px] text-right">
                             {buyerAddress.slice(0, 6)}...{buyerAddress.slice(-4)}
                           </span>
                           <ReputationBadge address={buyerAddress} variant="compact" />
