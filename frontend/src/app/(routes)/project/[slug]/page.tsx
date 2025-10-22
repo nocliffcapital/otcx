@@ -477,7 +477,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Sell/Buy Toggle + Info Banner */}
           <div className="lg:col-span-4">
-            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
               <div className="flex gap-2 flex-shrink-0">
                 <Button 
                   onClick={() => setSide("SELL")}
@@ -496,13 +496,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                   Buy
                 </Button>
               </div>
-              <div className={`flex-1 px-3 py-1.5 rounded-lg border flex items-center gap-2 ${
+              <div className={`px-4 py-2.5 rounded-lg border flex items-center gap-3 ${
                 side === "SELL" ? "bg-red-950/30 border-red-800" : "bg-green-950/30 border-green-800"
               }`}>
                 <div className="text-xs font-medium whitespace-nowrap">
                   {side === "SELL" ? "🔴 You are SELLING" : "🟢 You are BUYING"}
                 </div>
-                <div className="text-[10px] text-zinc-400 hidden sm:block">
+                <div className="text-[10px] text-zinc-400 whitespace-nowrap hidden sm:block">
                   {side === "SELL" 
                     ? "You'll receive USDC when someone buys from you" 
                     : "You'll receive tokens when someone sells to you"}
