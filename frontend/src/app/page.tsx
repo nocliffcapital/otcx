@@ -27,23 +27,21 @@ export default function HomePage() {
       
       {/* Hero Section */}
       <div className="relative mx-auto max-w-6xl px-4 py-20 md:py-32">
-        <div className="text-center space-y-8">
+        <div className="flex flex-col items-center text-center space-y-8">
           {/* Main heading */}
-          <div className="space-y-4">
-            <div className="flex justify-center mb-6">
-              <Logo variant="full" className="h-24 md:h-32 w-auto" />
-            </div>
+          <div className="flex flex-col items-center space-y-6">
+            <Logo variant="full" className="h-20 md:h-28 w-auto" />
             <p className="text-2xl md:text-3xl font-semibold text-zinc-200">
               Decentralized OTC Marketplace
             </p>
-            <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+            <p className="text-lg text-zinc-400 max-w-2xl">
               Trade pre-TGE tokens & points with secure on-chain escrow.
               No middlemen. No trust required.
             </p>
           </div>
 
           {/* Features grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
             <div className="glass rounded-2xl p-6 hover:scale-105 transform transition-transform group">
               <div className="mb-4 inline-block p-3 bg-cyan-500/10 rounded-lg border border-cyan-500/20 group-hover:border-cyan-500/40 transition-colors">
                 <Shield className="w-8 h-8 text-cyan-400" strokeWidth={1.5} />
@@ -74,7 +72,7 @@ export default function HomePage() {
           </div>
 
           {/* CTA buttons */}
-          <div className="flex gap-4 justify-center mt-12 flex-wrap">
+          <div className="flex gap-4 justify-center flex-wrap">
             <Link href="/app">
               <Button
                 variant="custom"
@@ -103,7 +101,7 @@ export default function HomePage() {
           </div>
 
           {/* Stats */}
-          <div className="flex justify-center gap-8 mt-16 text-center">
+          <div className="flex justify-center gap-8 text-center">
             <div>
               <div className="text-3xl font-bold text-cyan-400">100%</div>
               <div className="text-sm text-zinc-500">Escrow</div>
