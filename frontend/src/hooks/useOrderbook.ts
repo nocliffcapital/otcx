@@ -40,7 +40,7 @@ export function useOrderbook() {
 
   /**
    * V3: Create sell order with bytes32 projectId
-   * Automatically deposits seller collateral
+   * Then immediately locks seller collateral
    */
   const createSellOrder = useCallback(
     async ({ amount, unitPrice, projectId }: { amount: bigint; unitPrice: bigint; projectId: `0x${string}` }) => {
@@ -49,7 +49,7 @@ export function useOrderbook() {
       // Convert from 24 decimals to 6 decimals (USDC)
       const total = (amount * unitPrice) / BigInt(10 ** 18);
       
-      // Check and approve if needed
+      // Check and approve if needed (need approval for collateral)
       const allowance = await checkAllowance(address);
       if (allowance < total) {
         await approveStable(total * 2n);
@@ -62,7 +62,7 @@ export function useOrderbook() {
         functionName: "nextId",
       }) as bigint;
       
-      // V3: Create order (auto-deposits collateral)
+      // V3: Create order
       const createHash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
@@ -74,14 +74,24 @@ export function useOrderbook() {
       const orderId = nextIdBefore;
       console.log('Created sell order ID:', orderId.toString());
 
-      return { orderId, createHash };
+      // V3: Immediately lock seller collateral
+      const lockHash = await walletClient.writeContract({
+        address: ORDERBOOK_ADDRESS,
+        abi: ESCROW_ORDERBOOK_ABI,
+        functionName: "lockSellerCollateral",
+        args: [orderId],
+      });
+      await publicClient?.waitForTransactionReceipt({ hash: lockHash });
+      console.log('Locked seller collateral for order:', orderId.toString());
+
+      return { orderId, createHash, lockHash };
     },
     [walletClient, publicClient, address, checkAllowance, approveStable]
   );
 
   /**
    * V3: Create buy order with bytes32 projectId
-   * Automatically deposits buyer funds
+   * Then immediately locks buyer funds
    */
   const createBuyOrder = useCallback(
     async ({ amount, unitPrice, projectId }: { amount: bigint; unitPrice: bigint; projectId: `0x${string}` }) => {
@@ -90,7 +100,7 @@ export function useOrderbook() {
       // Convert from 24 decimals to 6 decimals (USDC)
       const total = (amount * unitPrice) / BigInt(10 ** 18);
       
-      // Check and approve if needed
+      // Check and approve if needed (need approval for funds)
       const allowance = await checkAllowance(address);
       if (allowance < total) {
         await approveStable(total * 2n);
@@ -103,7 +113,7 @@ export function useOrderbook() {
         functionName: "nextId",
       }) as bigint;
       
-      // V3: Create order (auto-deposits funds)
+      // V3: Create order
       const createHash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
@@ -115,7 +125,17 @@ export function useOrderbook() {
       const orderId = nextIdBefore;
       console.log('Created buy order ID:', orderId.toString());
 
-      return { orderId, createHash };
+      // V3: Immediately lock buyer funds
+      const lockHash = await walletClient.writeContract({
+        address: ORDERBOOK_ADDRESS,
+        abi: ESCROW_ORDERBOOK_ABI,
+        functionName: "lockBuyerFunds",
+        args: [orderId],
+      });
+      await publicClient?.waitForTransactionReceipt({ hash: lockHash });
+      console.log('Locked buyer funds for order:', orderId.toString());
+
+      return { orderId, createHash, lockHash };
     },
     [walletClient, publicClient, address, checkAllowance, approveStable]
   );
