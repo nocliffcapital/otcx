@@ -185,3 +185,12 @@ div[role="dialog"] {
 [data-rk] h3 {
   font-family: var(--font-space-grotesk), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
 }
+
+/* RainbowKit Connect Button styling - more transparent border */
+button[data-rk] {
+  border-color: rgba(63, 63, 70, 0.3) !important;
+}
+
+button[data-rk]:hover {
+  border-color: rgba(6, 182, 212, 0.4) !important;
+}
