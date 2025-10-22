@@ -33,6 +33,7 @@ export default function AdminPage() {
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "disabled">("all");
   const [collateralToRemove, setCollateralToRemove] = useState<string | null>(null);
+  const [collateralToApprove, setCollateralToApprove] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     slug: "",
@@ -514,23 +515,28 @@ export default function AdminPage() {
   // V4: Approve new collateral
   const handleApproveCollateral = () => {
     if (!isAddress(newCollateralAddress)) {
-      alert("Invalid token address");
+      toast.error("Invalid address", "Please enter a valid ERC20 token address");
       return;
     }
 
-    if (!confirm(`Approve ${newCollateralAddress} as collateral?`)) {
-      return;
-    }
+    setCollateralToApprove(newCollateralAddress);
+  };
+
+  const confirmApproveCollateral = () => {
+    if (!collateralToApprove) return;
 
     writeContract({
       address: ORDERBOOK_ADDRESS,
       abi: ESCROW_ORDERBOOK_ABI,
       functionName: "approveCollateral",
-      args: [newCollateralAddress as `0x${string}`],
+      args: [collateralToApprove as `0x${string}`],
     });
     
-    // Clear input after transaction is sent
+    toast.info("Transaction sent", "Approving collateral token...");
+    
+    // Clear input and close modal
     setNewCollateralAddress("");
+    setCollateralToApprove(null);
   };
 
   // V4: Remove collateral
@@ -1489,6 +1495,68 @@ export default function AdminPage() {
             );
           })()}
       </Card>
+
+      {/* Approve Collateral Confirmation Modal */}
+      {collateralToApprove && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <Card className="max-w-md w-full mx-4 p-6 bg-zinc-900 border-green-500/30">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                Approve Collateral
+              </h3>
+              <p className="text-sm text-zinc-400 mb-3">
+                Are you sure you want to approve this token as collateral?
+              </p>
+              <div className="p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
+                <div className="text-xs text-zinc-500 mb-1">Token Address</div>
+                <div className="text-sm font-mono text-green-400 break-all">{collateralToApprove}</div>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <div className="flex items-start gap-2 text-sm text-blue-400 bg-blue-950/20 p-3 rounded-lg border border-blue-500/30">
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Security Check</p>
+                  <p className="text-xs text-blue-300/80 mt-1">
+                    Only approve trusted ERC20 tokens. The contract will verify the token has valid code and decimals before approval.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 text-sm text-violet-400 bg-violet-950/20 p-3 rounded-lg border border-violet-500/30">
+                <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Effect</p>
+                  <p className="text-xs text-violet-300/80 mt-1">
+                    Once approved, users will be able to create new orders using this token as collateral.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setCollateralToApprove(null)}
+                variant="custom"
+                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmApproveCollateral}
+                disabled={isPending}
+                variant="custom"
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Approve Collateral
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Remove Collateral Confirmation Modal */}
       {collateralToRemove && (
