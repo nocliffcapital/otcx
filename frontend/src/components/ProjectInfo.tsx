@@ -31,9 +31,30 @@ interface GrokAnalysis {
   cacheAge?: number;
 }
 
-// Client-side cache with 12-hour TTL
-const clientCache = new Map<string, { data: GrokAnalysis; timestamp: number }>();
+// Client-side cache with localStorage persistence (12-hour TTL)
 const CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+const CACHE_KEY_PREFIX = 'grok_analysis_';
+
+// Helper functions for localStorage cache
+function getCachedAnalysis(slug: string): { data: GrokAnalysis; timestamp: number } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem(CACHE_KEY_PREFIX + slug);
+    if (!cached) return null;
+    return JSON.parse(cached);
+  } catch {
+    return null;
+  }
+}
+
+function setCachedAnalysis(slug: string, data: GrokAnalysis, timestamp: number) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(CACHE_KEY_PREFIX + slug, JSON.stringify({ data, timestamp }));
+  } catch (err) {
+    console.warn('Failed to cache analysis to localStorage:', err);
+  }
+}
 
 export function ProjectInfo({ project }: { project: Project }) {
   const [analysis, setAnalysis] = useState<GrokAnalysis | null>(null);
@@ -43,16 +64,17 @@ export function ProjectInfo({ project }: { project: Project }) {
   useEffect(() => {
     async function fetchAnalysis() {
       try {
-        // Check client-side cache first
-        const cached = clientCache.get(project.slug);
+        // Check localStorage cache first
+        const cached = getCachedAnalysis(project.slug);
         if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-          console.log(`Using client cache for ${project.slug}`);
+          console.log(`Using localStorage cache for ${project.slug} (age: ${Math.round((Date.now() - cached.timestamp) / 1000 / 60)} minutes)`);
           setAnalysis(cached.data);
           setLoading(false);
           setError(null);
           return;
         }
 
+        console.log(`Fetching fresh analysis for ${project.slug}...`);
         setLoading(true);
         const params = new URLSearchParams({
           name: project.name,
@@ -69,11 +91,9 @@ export function ProjectInfo({ project }: { project: Project }) {
 
         const data = await response.json();
         
-        // Store in client-side cache
-        clientCache.set(project.slug, {
-          data,
-          timestamp: Date.now(),
-        });
+        // Store in localStorage cache
+        const timestamp = Date.now();
+        setCachedAnalysis(project.slug, data, timestamp);
         
         setAnalysis(data);
         setError(null);
@@ -86,7 +106,7 @@ export function ProjectInfo({ project }: { project: Project }) {
     }
 
     fetchAnalysis();
-  }, [project.slug]); // Only re-fetch if slug changes
+  }, [project.slug, project.name, project.twitterUrl, project.websiteUrl, project.description]); // Re-fetch if project details change
 
   if (loading) {
     return (
