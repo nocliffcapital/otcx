@@ -646,9 +646,9 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
               )}
             </div>
             <div className="w-full rounded-md px-3 py-2 bg-zinc-800/50 border border-cyan-500/30 text-sm font-medium text-cyan-400">
-              ${total.toLocaleString()}
+              ${total === 0 ? '0.00' : total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <p className="text-[10px] text-zinc-500 mt-1">{side === "SELL" ? "Seller" : "Buyer"} locks ${total.toLocaleString()}</p>
+            <p className="text-[10px] text-zinc-500 mt-1">{side === "SELL" ? "Seller" : "Buyer"} locks ${total === 0 ? '0.00' : total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           
           <div>
