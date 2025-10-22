@@ -61,8 +61,8 @@ export default function HomePage() {
               </p>
             </div>
             <div className="glass rounded-2xl p-6 hover:scale-105 transform transition-transform group">
-              <div className="mb-4 inline-block p-2.5 bg-cyan-500/10 rounded-lg border border-cyan-500/20 group-hover:border-cyan-500/40 transition-colors">
-                <TrendingUp className="w-6 h-6 text-cyan-400" strokeWidth={1.5} />
+              <div className="mb-4 inline-block p-2.5 bg-pink-500/10 rounded-lg border border-pink-500/20 group-hover:border-pink-500/40 transition-colors">
+                <TrendingUp className="w-6 h-6 text-pink-400" strokeWidth={1.5} />
               </div>
               <h3 className="font-semibold text-lg mb-2">Live Price Data</h3>
               <p className="text-sm text-zinc-400">
@@ -106,7 +106,7 @@ export default function HomePage() {
             </div>
             <div className="w-px bg-zinc-800"></div>
             <div>
-              <div className="text-3xl font-bold text-cyan-400">24/7</div>
+              <div className="text-3xl font-bold text-pink-400">24/7</div>
               <div className="text-sm text-zinc-500">Available</div>
             </div>
           </div>
