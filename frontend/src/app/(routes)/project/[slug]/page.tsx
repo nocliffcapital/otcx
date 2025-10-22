@@ -276,7 +276,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           } text-sm px-2.5 py-1`}>
             {project?.isPoints === false ? 'Tokens' : 'Points'}
           </Badge>
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ml-auto ${
             isOrderbookPaused 
               ? 'bg-red-950/30 border-red-500/50' 
               : 'bg-green-950/30 border-green-500/50'
@@ -290,22 +290,6 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
               {isOrderbookPaused ? 'Paused' : 'Active'}
             </span>
           </div>
-          <Button 
-            onClick={handleMintUSDC} 
-            disabled={minting || !address}
-            variant="custom"
-            className="bg-green-600 hover:bg-green-700 ml-auto"
-          >
-            {minting ? "Minting..." : "Mint 10k Test USDC"}
-          </Button>
-          <Button 
-            onClick={handleMintTestTokens} 
-            disabled={minting || !address}
-            variant="custom"
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {minting ? "Minting..." : "Mint 10k Test Tokens"}
-          </Button>
         </div>
           <div className="flex items-center gap-3 flex-wrap">
             <p className="text-sm text-zinc-400">

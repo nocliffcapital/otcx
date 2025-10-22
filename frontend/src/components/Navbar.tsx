@@ -5,16 +5,20 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 import { BalanceDisplay } from "./BalanceDisplay";
-import { useAccount, useReadContract } from "wagmi";
-import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } from "@/lib/contracts";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, STABLE_ADDRESS, ERC20_ABI } from "@/lib/contracts";
 import { useState, useRef } from "react";
 import { ChevronDown, Settings } from "lucide-react";
+import { parseUnits } from "viem";
 
 export function Navbar() {
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
   const [showResourcesDropdown, setShowResourcesDropdown] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [minting, setMinting] = useState(false);
+  
+  const { writeContract } = useWriteContract();
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
@@ -27,6 +31,42 @@ export function Navbar() {
     timeoutRef.current = setTimeout(() => {
       setShowResourcesDropdown(false);
     }, 150); // 150ms delay
+  };
+  
+  const handleMintUSDC = async () => {
+    if (!address) return;
+    try {
+      setMinting(true);
+      await writeContract({
+        address: STABLE_ADDRESS,
+        abi: ERC20_ABI,
+        functionName: "mint",
+        args: [address, parseUnits("10000", 6)],
+      });
+    } catch (error) {
+      console.error("Error minting USDC:", error);
+    } finally {
+      setMinting(false);
+    }
+  };
+
+  const handleMintTestTokens = async () => {
+    if (!address) return;
+    try {
+      setMinting(true);
+      // Mock token address - you can make this dynamic if needed
+      const mockTokenAddress = "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82" as `0x${string}`;
+      await writeContract({
+        address: mockTokenAddress,
+        abi: ERC20_ABI,
+        functionName: "mint",
+        args: [address, parseUnits("10000", 18)],
+      });
+    } catch (error) {
+      console.error("Error minting tokens:", error);
+    } finally {
+      setMinting(false);
+    }
   };
   
   // Check if connected user is the owner
@@ -186,6 +226,24 @@ export function Navbar() {
                     return (
                       <div className="flex gap-2 items-center">
                         <BalanceDisplay />
+                        
+                        {/* Mint Test Tokens - Stacked tiny buttons */}
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={handleMintUSDC}
+                            disabled={minting || !address}
+                            className="px-2 py-0.5 text-[10px] bg-green-600/80 hover:bg-green-600 text-white font-medium rounded border border-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {minting ? "..." : "Mint USDC"}
+                          </button>
+                          <button
+                            onClick={handleMintTestTokens}
+                            disabled={minting || !address}
+                            className="px-2 py-0.5 text-[10px] bg-blue-600/80 hover:bg-blue-600 text-white font-medium rounded border border-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {minting ? "..." : "Mint Tokens"}
+                          </button>
+                        </div>
                         
                         <button
                           onClick={openChainModal}
