@@ -469,7 +469,7 @@ export default function ProjectsPage() {
             
             return (
               <Link key={project.slug} href={`/project/${project.slug}`}>
-                <Card className="hover:border-blue-500/50 hover:shadow-blue-500/20 cursor-pointer group transition-all">
+                <Card className="hover:border-blue-500/50 hover:shadow-blue-500/20 cursor-pointer group transition-all p-3">
                   <div className="flex items-center gap-4">
                     {/* Project Icon */}
                     <ProjectImage 
@@ -480,14 +480,11 @@ export default function ProjectsPage() {
                     />
                     
                     {/* Project Name & Type */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-base">{project.name}</h3>
-                        <Badge className={project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"}>
-                          {project.assetType}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-zinc-400">@{project.slug}</p>
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <h3 className="font-semibold text-base">{project.name}</h3>
+                      <Badge className={`${project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"} text-xs`}>
+                        {project.assetType}
+                      </Badge>
                     </div>
                     
                     {/* Stats */}
