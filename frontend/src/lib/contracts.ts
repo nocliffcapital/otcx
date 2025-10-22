@@ -1,16 +1,19 @@
 /**
- * V3 Contract Configuration
+ * V4 Contract Configuration
  * 
- * Key Changes from V2:
- * - Uses bytes32 projectId instead of address (no fake addresses before TGE)
- * - Uses Solady for Ownable/ReentrancyGuard (gas optimized, battle-tested)
- * - Combines take+deposit into single transaction for better UX
- * - Auto-settles on token deposit (no manual claim step for buyer)
- * - Off-chain metadata storage (IPFS/Arweave) via metadataURI
+ * Key Changes from V3:
+ * - Collateral whitelist system (USDC + USDT support)
+ * - SafeTransferLib for robust ERC20 handling
+ * - Configurable fees (0-5% range)
+ * - Per-project settlement windows
+ * - View helpers for UI calculations
+ * - 18-decimal token enforcement
+ * - Project-level TGE activation
+ * - All audit recommendations implemented
  */
 
 import ProjectRegistryV2ABI from './ProjectRegistryV2.abi.json';
-import EscrowOrderBookV3ABI from './EscrowOrderBookV3.abi.json';
+import EscrowOrderBookV4ABI from './abis/EscrowOrderBookV4.abi.json';
 import { keccak256, toBytes } from 'viem';
 
 export const ORDERBOOK_ADDRESS = process.env.NEXT_PUBLIC_ORDERBOOK as `0x${string}`;
@@ -27,8 +30,8 @@ export const ERC20_ABI = [
   { "type": "function", "name": "mint", "inputs": [{ "name": "to", "type": "address" }, { "name": "amount", "type": "uint256" }], "outputs": [], "stateMutability": "nonpayable" }
 ] as const;
 
-// V3 ABIs imported from JSON files
-export const ESCROW_ORDERBOOK_ABI = EscrowOrderBookV3ABI as const;
+// V4 ABIs imported from JSON files
+export const ESCROW_ORDERBOOK_ABI = EscrowOrderBookV4ABI as const;
 export const PROJECT_REGISTRY_ABI = ProjectRegistryV2ABI as const;
 
 /**

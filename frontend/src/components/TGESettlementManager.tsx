@@ -89,52 +89,28 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
       ? "0x000000000000000000000000000000000000dead" 
       : batchTokenAddress;
     
-    // Get array of funded order IDs
-    const orderIds = fundedOrders.map(o => o.id);
+    // Get projectId from first order (all orders share same projectId)
+    const projectToken = orders[0]?.projectToken;
 
-    console.log('Batch activating TGE for orders:', orderIds, 'with token:', tokenAddr, isOffChainSettlement ? '(off-chain)' : '(on-chain)');
+    console.log('🚀 V4 Project TGE activation:', { projectToken, tokenAddr, settlementWindow: 14400, isOffChain: isOffChainSettlement });
     
     toast.info("⏳ Activating TGE...", "Transaction pending");
     
+    // V4: Project-level TGE activation (no loops, gas efficient)
     writeContract({
       address: ORDERBOOK_ADDRESS,
       abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "batchActivateTGE",
-      args: [orderIds, tokenAddr as `0x${string}`],
+      functionName: "activateProjectTGE",
+      args: [projectToken as `0x${string}`, tokenAddr as `0x${string}`, 14400n], // 4 hours
     });
     
     setShowConfirmModal(false);
   };
 
   const handleActivateTGE = (orderId: bigint) => {
-    if (!tokenAddress || !tokenAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-      alert("Please enter a valid token address (0x...)");
-      return;
-    }
-
-    const order = orders.find(o => o.id === orderId);
-    if (!order) {
-      alert("Order not found");
-      return;
-    }
-
-    if (order.status !== 1) {
-      alert(`Order must be FUNDED (status 1) to activate TGE.\nCurrent status: ${STATUS_NAMES[order.status]} (${order.status})`);
-      return;
-    }
-
-    if (!confirm(`Activate TGE for order #${orderId}?\nThis will start a 4-hour settlement window.\n\nToken Address: ${tokenAddress}`)) {
-      return;
-    }
-
-    console.log('Activating TGE for order:', orderId.toString(), 'with token:', tokenAddress);
-    
-    writeContract({
-      address: ORDERBOOK_ADDRESS,
-      abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "activateTGE",
-      args: [orderId, tokenAddress as `0x${string}`],
-    });
+    // V4: Individual order activation removed - use project-level batch activation instead
+    toast.error("Feature removed", "V4 uses project-level TGE activation. Use the batch activation button above.");
+    return;
   };
 
   const handleExtendSettlement = (orderId: bigint, hours: 4 | 24) => {

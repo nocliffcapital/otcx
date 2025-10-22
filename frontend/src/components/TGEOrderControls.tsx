@@ -145,12 +145,9 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
       return;
     }
 
-    writeContract({
-      address: ORDERBOOK_ADDRESS,
-      abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "activateTGE",
-      args: [order.id, tokenAddress as `0x${string}`],
-    });
+    // V4: Individual order TGE activation removed - admin must use project-level activation
+    alert("V4 uses project-level TGE activation. Please use the admin panel to activate TGE for all orders in this project.");
+    return;
   };
 
   const handleExtendSettlement = (hours: 4 | 24) => {
