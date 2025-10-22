@@ -578,7 +578,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
               min={0} 
               value={amount} 
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="100"
+              placeholder="0.00"
               disabled={creating}
             />
           </div>
@@ -591,7 +591,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
               step="0.01"
               value={unitPrice} 
               onChange={(e) => setUnitPrice(e.target.value)}
-              placeholder="1.5"
+              placeholder="0.00"
               disabled={creating}
             />
             {/* Quick Price Buttons */}
