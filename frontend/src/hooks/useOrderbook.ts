@@ -213,7 +213,7 @@ export function useOrderbook() {
       const hash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
-        functionName: "cancel",
+        functionName: "cancelOrder",
         args: [orderId],
       });
       await publicClient?.waitForTransactionReceipt({ hash });
