@@ -13,7 +13,7 @@ import { formatUnits } from "viem";
 import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } from "@/lib/contracts";
 import { useState, useEffect, useMemo } from "react";
 import { useReadContract, usePublicClient } from "wagmi";
-import { FileText, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 const STATUS_LABELS = [
   "OPEN",            // 0
@@ -183,7 +183,7 @@ export default function MyOrdersPage() {
 
       <div className="relative mx-auto max-w-7xl px-4 py-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3">
-          <FileText className="w-8 h-8 md:w-10 md:h-10 text-violet-400" />
+          <User className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
           <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
             Dashboard
           </span>
