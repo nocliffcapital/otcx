@@ -89,9 +89,10 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
       ? "0x000000000000000000000000000000000000dead" 
       : batchTokenAddress;
     
-    const projectToken = orders[0]?.projectToken;
+    // Get array of funded order IDs
+    const orderIds = fundedOrders.map(o => o.id);
 
-    console.log('Batch activating TGE for project:', projectToken, 'with token:', tokenAddr, isOffChainSettlement ? '(off-chain)' : '(on-chain)');
+    console.log('Batch activating TGE for orders:', orderIds, 'with token:', tokenAddr, isOffChainSettlement ? '(off-chain)' : '(on-chain)');
     
     toast.info("⏳ Activating TGE...", "Transaction pending");
     
@@ -99,7 +100,7 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
       address: ORDERBOOK_ADDRESS,
       abi: ESCROW_ORDERBOOK_ABI,
       functionName: "batchActivateTGE",
-      args: [projectToken as `0x${string}`, tokenAddr as `0x${string}`],
+      args: [orderIds, tokenAddr as `0x${string}`],
     });
     
     setShowConfirmModal(false);
