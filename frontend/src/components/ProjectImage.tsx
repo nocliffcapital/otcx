@@ -27,16 +27,25 @@ export function ProjectImage({
   useEffect(() => {
     if (!metadataURI) {
       setLoading(false);
+      setError(true);
       return;
     }
+
+    // Add a timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      setError(true);
+      setLoading(false);
+    }, 10000); // 10 second timeout
 
     async function fetchMetadata() {
       try {
         const httpUrl = ipfsToHttp(metadataURI!);
-        const response = await fetch(httpUrl);
+        const response = await fetch(httpUrl, {
+          signal: AbortSignal.timeout(8000), // 8 second fetch timeout
+        });
         
         if (!response.ok) {
-          throw new Error('Failed to fetch metadata');
+          throw new Error(`Failed to fetch metadata: ${response.status}`);
         }
 
         const metadata = await response.json();
@@ -44,18 +53,23 @@ export function ProjectImage({
         
         if (imageUri) {
           setImageUrl(ipfsToHttp(imageUri));
+          setError(false);
         } else {
           setError(true);
         }
       } catch (err) {
-        console.error('Error fetching project image:', err);
+        // Silently handle errors - just show fallback
+        console.warn('Could not fetch project image from IPFS:', metadataURI, err);
         setError(true);
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     }
 
     fetchMetadata();
+    
+    return () => clearTimeout(timeoutId);
   }, [metadataURI, imageType]);
 
   // Loading state
