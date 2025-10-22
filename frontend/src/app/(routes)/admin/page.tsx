@@ -602,7 +602,7 @@ export default function AdminPage() {
           <Button
             onClick={() => setShowAddForm(true)}
             variant="custom"
-            className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600"
+            className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add New Project
@@ -612,9 +612,9 @@ export default function AdminPage() {
 
       {/* Add/Edit Project Form */}
       {showAddForm && (
-        <Card className="mb-8 border-amber-500/30">
+        <Card className="mb-8 border-cyan-500/30">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-amber-400">
+            <h2 className="text-2xl font-bold text-cyan-400">
               {editingProject ? "Edit Project" : "Add New Project"}
             </h2>
             <Button
@@ -675,7 +675,7 @@ export default function AdminPage() {
                 <select
                   value={formData.assetType}
                   onChange={(e) => setFormData({ ...formData, assetType: e.target.value })}
-                  className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                   required
                 >
                   <option value="Tokens">Tokens</option>
@@ -717,7 +717,7 @@ export default function AdminPage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
                 placeholder="Brief description of the project..."
-                className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
+                className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
               />
             </div>
 
@@ -731,7 +731,7 @@ export default function AdminPage() {
                 <div className="flex flex-col gap-3">
                   {/* Preview */}
                   {logoPreview && (
-                    <div className="relative w-full h-32 bg-zinc-900/30 rounded-lg overflow-hidden border-2 border-amber-500/30">
+                    <div className="relative w-full h-32 bg-zinc-900/30 rounded-lg overflow-hidden border-2 border-cyan-500/30">
                       <img 
                         src={logoPreview} 
                         alt="Logo preview" 
@@ -751,7 +751,7 @@ export default function AdminPage() {
                   )}
                   
                   {/* Upload Button */}
-                  <label className="flex items-center justify-center px-4 py-8 bg-zinc-900/50 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-amber-500/50 hover:bg-zinc-900/70 transition-all">
+                  <label className="flex items-center justify-center px-4 py-8 bg-zinc-900/50 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-cyan-500/50 hover:bg-zinc-900/70 transition-all">
                     <div className="text-center">
                       <Upload className="w-6 h-6 mx-auto mb-2 text-zinc-400" />
                       <p className="text-xs text-zinc-300">
@@ -843,7 +843,7 @@ export default function AdminPage() {
                 type="submit"
                 disabled={isPending || isConfirming || uploadingLogo || uploadingIcon || uploadingMetadata}
                 variant="custom"
-                className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600"
+                className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700"
               >
                 {uploadingLogo ? (
                   <>
