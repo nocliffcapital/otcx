@@ -260,23 +260,26 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-3">
-          {/* Project Logo */}
-          <ProjectImage 
-            metadataURI={project?.metadataURI}
-            imageType="logo"
-            className="h-12 max-w-[200px] object-contain"
-            fallbackText={project?.name || slug.toUpperCase()}
-          />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 flex-1">
+            {/* Project Logo */}
+            <ProjectImage 
+              metadataURI={project?.metadataURI}
+              imageType="logo"
+              className="h-10 sm:h-12 max-w-[150px] sm:max-w-[200px] object-contain"
+              fallbackText={project?.name || slug.toUpperCase()}
+            />
+            
+            <Badge className={`${
+              project?.isPoints === false
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
+                : 'bg-violet-600/20 text-violet-400 border border-violet-500/30'
+            } text-xs sm:text-sm px-2 sm:px-2.5 py-1`}>
+              {project?.isPoints === false ? 'Tokens' : 'Points'}
+            </Badge>
+          </div>
           
-          <Badge className={`${
-            project?.isPoints === false
-              ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
-              : 'bg-violet-600/20 text-violet-400 border border-violet-500/30'
-          } text-sm px-2.5 py-1`}>
-            {project?.isPoints === false ? 'Tokens' : 'Points'}
-          </Badge>
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ml-auto ${
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
             isOrderbookPaused 
               ? 'bg-red-950/30 border-red-500/50' 
               : 'bg-green-950/30 border-green-500/50'
