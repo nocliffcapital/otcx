@@ -6,9 +6,9 @@ export function Footer() {
   return (
     <footer className="fixed bottom-0 left-0 right-0 border-t border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl z-40">
       <div className="mx-auto max-w-7xl px-4 py-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="grid grid-cols-3 items-center gap-4">
           {/* Left: Live Data Indicator */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-start">
             <div className="relative flex items-center">
               <div className="absolute w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
               <div className="relative w-2 h-2 bg-green-500 rounded-full"></div>
@@ -22,7 +22,7 @@ export function Footer() {
           </div>
 
           {/* Right: Links */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 justify-end">
             {/* Docs */}
             <a
               href="https://docs.otcx.fun"
