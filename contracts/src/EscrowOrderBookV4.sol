@@ -36,7 +36,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         uint256 unitPrice;             // Price per token (stable decimals)
         uint256 buyerFunds;            // Locked stable from buyer
         uint256 sellerCollateral;      // Locked stable from seller
-        uint64 createdAt;              // For cancellation grace period
+        uint64 createdAt;              // Timestamp when order was created
         bool isSell;                   // true = maker sells, false = maker buys
         Status status;
     }
@@ -263,7 +263,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     function takeOrder(uint256 orderId) external nonReentrant whenNotPaused {
         Order storage order = orders[orderId];
         if (order.status != Status.OPEN) revert InvalidStatus();
-        if (order.maker == msg.sender) revert Unauthorized();
+        if (order.maker == msg.sender) revert NotAuthorized();
         if (projectTgeActivated[order.projectId]) revert TGEAlreadyActivated();
         
         uint256 totalValue = (order.amount * order.unitPrice) / 1e18;
@@ -297,6 +297,8 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         
         uint256 cancellationFee = 0;
         uint256 refund;
+        uint256 counterpartyRefund;
+        address counterparty;
         
         // Calculate fee based on state
         if (order.status == Status.OPEN) {
@@ -311,16 +313,27 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
             uint256 orderValue = (order.amount * order.unitPrice) / 1e18;
             cancellationFee = (orderValue * cancellationFeeBps) / BPS_DENOMINATOR;
             
-            // Return counterparty's collateral
+            // Prepare counterparty refund
             if (order.isSell) {
-                if (!stable.transfer(order.buyer, order.buyerFunds)) revert TransferFailed();
+                counterparty = order.buyer;
+                counterpartyRefund = order.buyerFunds;
                 refund = order.sellerCollateral;
             } else {
-                if (!stable.transfer(order.seller, order.sellerCollateral)) revert TransferFailed();
+                counterparty = order.seller;
+                counterpartyRefund = order.sellerCollateral;
                 refund = order.buyerFunds;
             }
             
             if (cancellationFee > refund) cancellationFee = 0;
+        }
+        
+        // EFFECTS: Update state before interactions
+        order.status = Status.CANCELED;
+        
+        // INTERACTIONS: External calls
+        // Return counterparty's collateral if FUNDED
+        if (counterpartyRefund > 0) {
+            if (!stable.transfer(counterparty, counterpartyRefund)) revert TransferFailed();
         }
         
         // Refund maker minus fee
@@ -329,12 +342,12 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
             if (!stable.transfer(msg.sender, netRefund)) revert TransferFailed();
         }
         
+        // Collect fee
         if (cancellationFee > 0) {
             if (!stable.transfer(feeCollector, cancellationFee)) revert TransferFailed();
             emit FeeCollected(order.projectId, address(stable), cancellationFee);
         }
         
-        order.status = Status.CANCELED;
         emit OrderCanceled(orderId, cancellationFee);
     }
 
@@ -354,29 +367,36 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
             revert InvalidStatus();
         }
         
-        // Seller must deposit tokens
-        if (!IERC20(tokenAddress).transferFrom(order.seller, address(this), order.amount)) revert TransferFailed();
-        
         // Calculate fees: 0.5% stable + 0.5% token
         uint256 stableFee = (order.buyerFunds * settlementFeeBps) / BPS_DENOMINATOR;
         uint256 tokenFee = (order.amount * settlementFeeBps) / BPS_DENOMINATOR;
         
+        // Cache values before state change
+        address buyer = order.buyer;
+        address seller = order.seller;
+        bytes32 projectId = order.projectId;
+        uint256 totalToSeller = order.buyerFunds + order.sellerCollateral - stableFee;
+        
+        // EFFECTS: Update state before interactions
+        order.status = Status.SETTLED;
+        
+        // INTERACTIONS: External calls
+        // Seller must deposit tokens
+        if (!IERC20(tokenAddress).transferFrom(seller, address(this), order.amount)) revert TransferFailed();
+        
         // Transfer tokens to buyer (minus fee)
-        if (!IERC20(tokenAddress).transfer(order.buyer, order.amount - tokenFee)) revert TransferFailed();
+        if (!IERC20(tokenAddress).transfer(buyer, order.amount - tokenFee)) revert TransferFailed();
         
         // Transfer stable to seller (minus fee) + return seller collateral
-        uint256 totalToSeller = order.buyerFunds + order.sellerCollateral - stableFee;
-        if (!stable.transfer(order.seller, totalToSeller)) revert TransferFailed();
+        if (!stable.transfer(seller, totalToSeller)) revert TransferFailed();
         
         // Collect fees
         if (!IERC20(tokenAddress).transfer(feeCollector, tokenFee)) revert TransferFailed();
         if (!stable.transfer(feeCollector, stableFee)) revert TransferFailed();
         
-        order.status = Status.SETTLED;
-        
-        emit OrderSettled(orderId, order.buyer, order.seller, stableFee, tokenFee);
-        emit FeeCollected(order.projectId, address(stable), stableFee);
-        emit FeeCollected(order.projectId, tokenAddress, tokenFee);
+        emit OrderSettled(orderId, buyer, seller, stableFee, tokenFee);
+        emit FeeCollected(projectId, address(stable), stableFee);
+        emit FeeCollected(projectId, tokenAddress, tokenFee);
     }
 
     /// @notice Submit proof for Points project settlement
@@ -405,19 +425,27 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         // Calculate fee: 0.5% of total collateral (no token to capture for Points)
         uint256 totalCollateral = order.buyerFunds + order.sellerCollateral;
         uint256 fee = (totalCollateral * settlementFeeBps) / BPS_DENOMINATOR;
-        
-        // Distribute collateral minus fee
         uint256 netToSeller = totalCollateral - fee;
-        if (!stable.transfer(order.seller, netToSeller)) revert TransferFailed();
+        
+        // Cache values before state change
+        address buyer = order.buyer;
+        address seller = order.seller;
+        bytes32 projectId = order.projectId;
+        
+        // EFFECTS: Update state before interactions
+        order.status = Status.SETTLED;
+        
+        // INTERACTIONS: External calls
+        // Distribute collateral minus fee
+        if (!stable.transfer(seller, netToSeller)) revert TransferFailed();
         
         // Collect fee
         if (fee > 0) {
             if (!stable.transfer(feeCollector, fee)) revert TransferFailed();
-            emit FeeCollected(order.projectId, address(stable), fee);
+            emit FeeCollected(projectId, address(stable), fee);
         }
         
-        order.status = Status.SETTLED;
-        emit OrderSettled(orderId, order.buyer, order.seller, fee, 0);
+        emit OrderSettled(orderId, buyer, seller, fee, 0);
     }
 
     /// @notice Handle defaulted order (after deadline)
@@ -428,12 +456,18 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (!projectTgeActivated[order.projectId]) revert TGENotActivated();
         if (block.timestamp <= projectSettlementDeadline[order.projectId]) revert InvalidStatus();
         
-        // Refund buyer (seller defaulted)
+        // Calculate compensation and cache values
         uint256 compensation = order.buyerFunds + order.sellerCollateral;
-        if (!stable.transfer(order.buyer, compensation)) revert TransferFailed();
+        address buyer = order.buyer;
         
+        // EFFECTS: Update state before interactions
         order.status = Status.DEFAULTED;
-        emit OrderDefaulted(orderId, order.buyer, compensation);
+        
+        // INTERACTIONS: External call
+        // Refund buyer (seller defaulted)
+        if (!stable.transfer(buyer, compensation)) revert TransferFailed();
+        
+        emit OrderDefaulted(orderId, buyer, compensation);
     }
 }
 
