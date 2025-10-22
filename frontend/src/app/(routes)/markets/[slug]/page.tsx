@@ -16,9 +16,9 @@ import { PriceChart } from "@/components/PriceChart";
 import { ProjectInfo } from "@/components/ProjectInfo";
 import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle, DollarSign, ArrowDown, ArrowUp, Percent, Activity, Clock } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import ReputationBadge from "@/components/ReputationBadge";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
+import { UsdcIcon } from "@/components/icons/UsdcIcon";
 
 export default function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -739,13 +739,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                         <td className="py-3 px-3 text-center text-zinc-300">
                           <div className="flex items-center justify-center gap-1.5">
                             <span className="text-xs">{totalCollateral.toFixed(2)}</span>
-                            <Image
-                              src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png"
-                              alt="USDC"
-                              width={14}
-                              height={14}
-                              className="rounded-full"
-                            />
+                            <UsdcIcon size={14} />
                           </div>
                         </td>
                         <td className="py-3 px-3 text-center">
@@ -842,13 +836,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                         <td className="py-3 px-3 text-center text-zinc-300">
                           <div className="flex items-center justify-center gap-1.5">
                             <span className="text-xs">{totalCollateral.toFixed(2)}</span>
-                            <Image
-                              src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png"
-                              alt="USDC"
-                              width={14}
-                              height={14}
-                              className="rounded-full"
-                            />
+                            <UsdcIcon size={14} />
                           </div>
                         </td>
                         <td className="py-3 px-3 text-center">
