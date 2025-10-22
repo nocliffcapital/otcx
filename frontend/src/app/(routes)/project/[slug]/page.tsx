@@ -14,7 +14,7 @@ import { STABLE_DECIMALS, STABLE_ADDRESS, ERC20_ABI, REGISTRY_ADDRESS, PROJECT_R
 import { useReadContract } from "wagmi";
 import { PriceChart } from "@/components/PriceChart";
 import { ProjectInfo } from "@/components/ProjectInfo";
-import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, ShoppingCart, Package, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import ReputationBadge from "@/components/ReputationBadge";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
@@ -445,7 +445,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {/* Price Chart - Left */}
         <Card className="h-full">
-          <h2 className="font-semibold mb-3 text-sm">Price History</h2>
+          <h2 className="font-semibold mb-3 text-sm flex items-center gap-2">
+            <LineChart className="w-4 h-4 text-cyan-400" />
+            Price History
+          </h2>
           <PriceChart orders={orders} allOrders={allOrders} />
         </Card>
 
@@ -473,7 +476,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       }`}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-sm">Create Order</h2>
+            <h2 className="font-semibold text-sm flex items-center gap-2">
+              <PlusCircle className="w-4 h-4 text-cyan-400" />
+              Create Order
+            </h2>
             <Link 
               href="/calculator"
               target="_blank"
@@ -627,7 +633,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         {/* Buy Orders Table */}
         <Card>
           <h2 className="font-semibold mb-3 flex items-center justify-between text-sm">
-            <span>Buy Orders (Users Buying)</span>
+            <span className="flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4 text-green-400" />
+              Buy Orders (Users Buying)
+            </span>
             <Badge className="bg-green-600 text-xs">{buyOrders.length}</Badge>
           </h2>
           
@@ -715,7 +724,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         {/* Sell Orders Table */}
         <Card>
           <h2 className="font-semibold mb-3 flex items-center justify-between text-sm">
-            <span>Sell Orders (Users Selling)</span>
+            <span className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-red-400" />
+              Sell Orders (Users Selling)
+            </span>
             <Badge className="bg-red-600 text-xs">{sellOrders.length}</Badge>
           </h2>
           
@@ -807,7 +819,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       {/* Filled Orders Section */}
       <Card className="mt-4">
         <h2 className="font-semibold mb-3 flex items-center justify-between text-sm">
-          <span>Filled Orders</span>
+          <span className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-blue-400" />
+            Filled Orders
+          </span>
           <Badge className="bg-blue-600 text-xs">{filledOrders.length}</Badge>
         </h2>
         
