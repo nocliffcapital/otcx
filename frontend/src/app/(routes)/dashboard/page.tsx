@@ -192,96 +192,96 @@ export default function MyOrdersPage() {
 
         {/* Summary Stats */}
         {address && !loading && orders.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
             {/* Total Orders */}
-            <Card className="p-3 border-cyan-500/30 bg-cyan-950/10">
+            <Card className="p-2 border-cyan-500/30 bg-cyan-950/10">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-cyan-500/20 rounded-lg">
+                <div className="p-1.5 bg-cyan-500/20 rounded-lg flex-shrink-0">
                   <FileText className="w-4 h-4 text-cyan-400" />
                 </div>
-                <div>
-                  <div className="text-xl font-bold text-cyan-400">{stats.total}</div>
-                  <div className="text-[10px] text-zinc-400">Total Orders</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-cyan-400 leading-tight">{stats.total}</div>
+                  <div className="text-[9px] text-zinc-400 leading-tight">Total Orders</div>
                 </div>
               </div>
             </Card>
             
             {/* Total Volume */}
-            <Card className="p-3 border-violet-500/30 bg-violet-950/10">
+            <Card className="p-2 border-violet-500/30 bg-violet-950/10">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-violet-500/20 rounded-lg">
+                <div className="p-1.5 bg-violet-500/20 rounded-lg flex-shrink-0">
                   <DollarSign className="w-4 h-4 text-violet-400" />
                 </div>
-                <div>
-                  <div className="text-xl font-bold text-violet-400">
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-violet-400 leading-tight">
                     ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
-                  <div className="text-[10px] text-zinc-400">Total Volume</div>
+                  <div className="text-[9px] text-zinc-400 leading-tight">Total Volume</div>
                 </div>
               </div>
             </Card>
 
             {/* Buy Orders */}
-            <Card className="p-3 border-green-500/30 bg-green-950/10">
+            <Card className="p-2 border-green-500/30 bg-green-950/10">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-green-500/20 rounded-lg">
+                <div className="p-1.5 bg-green-500/20 rounded-lg flex-shrink-0">
                   <ArrowUpRight className="w-4 h-4 text-green-400" />
                 </div>
-                <div>
-                  <div className="text-xl font-bold text-green-400">{stats.buyOrders}</div>
-                  <div className="text-[10px] text-zinc-400">Buy Orders</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-green-400 leading-tight">{stats.buyOrders}</div>
+                  <div className="text-[9px] text-zinc-400 leading-tight">Buy Orders</div>
                 </div>
               </div>
             </Card>
 
             {/* Sell Orders */}
-            <Card className="p-3 border-red-500/30 bg-red-950/10">
+            <Card className="p-2 border-red-500/30 bg-red-950/10">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-red-500/20 rounded-lg">
+                <div className="p-1.5 bg-red-500/20 rounded-lg flex-shrink-0">
                   <ArrowDownRight className="w-4 h-4 text-red-400" />
                 </div>
-                <div>
-                  <div className="text-xl font-bold text-red-400">{stats.sellOrders}</div>
-                  <div className="text-[10px] text-zinc-400">Sell Orders</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-red-400 leading-tight">{stats.sellOrders}</div>
+                  <div className="text-[9px] text-zinc-400 leading-tight">Sell Orders</div>
                 </div>
               </div>
             </Card>
             
             {/* Active Orders */}
-            <Card className="p-3 border-orange-500/30 bg-orange-950/10">
+            <Card className="p-2 border-orange-500/30 bg-orange-950/10">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-orange-500/20 rounded-lg">
+                <div className="p-1.5 bg-orange-500/20 rounded-lg flex-shrink-0">
                   <Clock className="w-4 h-4 text-orange-400" />
                 </div>
-                <div>
-                  <div className="text-xl font-bold text-orange-400">{stats.active}</div>
-                  <div className="text-[10px] text-zinc-400">Active</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-orange-400 leading-tight">{stats.active}</div>
+                  <div className="text-[9px] text-zinc-400 leading-tight">Active</div>
                 </div>
               </div>
             </Card>
             
             {/* In Settlement */}
-            <Card className="p-3 border-blue-500/30 bg-blue-950/10">
+            <Card className="p-2 border-blue-500/30 bg-blue-950/10">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-blue-500/20 rounded-lg">
+                <div className="p-1.5 bg-blue-500/20 rounded-lg flex-shrink-0">
                   <TrendingUp className="w-4 h-4 text-blue-400" />
                 </div>
-                <div>
-                  <div className="text-xl font-bold text-blue-400">{stats.inSettlement}</div>
-                  <div className="text-[10px] text-zinc-400">Settlement</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-blue-400 leading-tight">{stats.inSettlement}</div>
+                  <div className="text-[9px] text-zinc-400 leading-tight">Settlement</div>
                 </div>
               </div>
             </Card>
             
             {/* Settled */}
-            <Card className="p-3 border-emerald-500/30 bg-emerald-950/10">
+            <Card className="p-2 border-emerald-500/30 bg-emerald-950/10">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-emerald-500/20 rounded-lg">
+                <div className="p-1.5 bg-emerald-500/20 rounded-lg flex-shrink-0">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 </div>
-                <div>
-                  <div className="text-xl font-bold text-emerald-400">{stats.settled}</div>
-                  <div className="text-[10px] text-zinc-400">Settled</div>
+                <div className="flex flex-col justify-center min-h-[28px]">
+                  <div className="text-lg font-bold text-emerald-400 leading-tight">{stats.settled}</div>
+                  <div className="text-[9px] text-zinc-400 leading-tight">Settled</div>
                 </div>
               </div>
             </Card>
