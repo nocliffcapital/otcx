@@ -192,96 +192,96 @@ export default function MyOrdersPage() {
 
         {/* Summary Stats */}
         {address && !loading && orders.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
             {/* Total Orders */}
-            <Card className="p-4 border-cyan-500/30 bg-cyan-950/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-cyan-500/20 rounded-lg">
-                  <FileText className="w-5 h-5 text-cyan-400" />
+            <Card className="p-3 border-cyan-500/30 bg-cyan-950/10">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-cyan-500/20 rounded-lg">
+                  <FileText className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-cyan-400">{stats.total}</div>
-                  <div className="text-xs text-zinc-400">Total Orders</div>
+                  <div className="text-xl font-bold text-cyan-400">{stats.total}</div>
+                  <div className="text-[10px] text-zinc-400">Total Orders</div>
                 </div>
               </div>
             </Card>
             
             {/* Total Volume */}
-            <Card className="p-4 border-violet-500/30 bg-violet-950/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-violet-500/20 rounded-lg">
-                  <DollarSign className="w-5 h-5 text-violet-400" />
+            <Card className="p-3 border-violet-500/30 bg-violet-950/10">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-violet-500/20 rounded-lg">
+                  <DollarSign className="w-4 h-4 text-violet-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-violet-400">
+                  <div className="text-xl font-bold text-violet-400">
                     ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
-                  <div className="text-xs text-zinc-400">Total Volume</div>
+                  <div className="text-[10px] text-zinc-400">Total Volume</div>
                 </div>
               </div>
             </Card>
 
             {/* Buy Orders */}
-            <Card className="p-4 border-green-500/30 bg-green-950/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/20 rounded-lg">
-                  <ArrowUpRight className="w-5 h-5 text-green-400" />
+            <Card className="p-3 border-green-500/30 bg-green-950/10">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-green-500/20 rounded-lg">
+                  <ArrowUpRight className="w-4 h-4 text-green-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-green-400">{stats.buyOrders}</div>
-                  <div className="text-xs text-zinc-400">Buy Orders</div>
+                  <div className="text-xl font-bold text-green-400">{stats.buyOrders}</div>
+                  <div className="text-[10px] text-zinc-400">Buy Orders</div>
                 </div>
               </div>
             </Card>
 
             {/* Sell Orders */}
-            <Card className="p-4 border-red-500/30 bg-red-950/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-500/20 rounded-lg">
-                  <ArrowDownRight className="w-5 h-5 text-red-400" />
+            <Card className="p-3 border-red-500/30 bg-red-950/10">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-red-500/20 rounded-lg">
+                  <ArrowDownRight className="w-4 h-4 text-red-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-red-400">{stats.sellOrders}</div>
-                  <div className="text-xs text-zinc-400">Sell Orders</div>
+                  <div className="text-xl font-bold text-red-400">{stats.sellOrders}</div>
+                  <div className="text-[10px] text-zinc-400">Sell Orders</div>
                 </div>
               </div>
             </Card>
             
             {/* Active Orders */}
-            <Card className="p-4 border-orange-500/30 bg-orange-950/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-500/20 rounded-lg">
-                  <Clock className="w-5 h-5 text-orange-400" />
+            <Card className="p-3 border-orange-500/30 bg-orange-950/10">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-orange-500/20 rounded-lg">
+                  <Clock className="w-4 h-4 text-orange-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-orange-400">{stats.active}</div>
-                  <div className="text-xs text-zinc-400">Active</div>
+                  <div className="text-xl font-bold text-orange-400">{stats.active}</div>
+                  <div className="text-[10px] text-zinc-400">Active</div>
                 </div>
               </div>
             </Card>
             
             {/* In Settlement */}
-            <Card className="p-4 border-blue-500/30 bg-blue-950/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <TrendingUp className="w-5 h-5 text-blue-400" />
+            <Card className="p-3 border-blue-500/30 bg-blue-950/10">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-blue-500/20 rounded-lg">
+                  <TrendingUp className="w-4 h-4 text-blue-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-blue-400">{stats.inSettlement}</div>
-                  <div className="text-xs text-zinc-400">Settlement</div>
+                  <div className="text-xl font-bold text-blue-400">{stats.inSettlement}</div>
+                  <div className="text-[10px] text-zinc-400">Settlement</div>
                 </div>
               </div>
             </Card>
             
             {/* Settled */}
-            <Card className="p-4 border-emerald-500/30 bg-emerald-950/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-500/20 rounded-lg">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            <Card className="p-3 border-emerald-500/30 bg-emerald-950/10">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-emerald-500/20 rounded-lg">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-emerald-400">{stats.settled}</div>
-                  <div className="text-xs text-zinc-400">Settled</div>
+                  <div className="text-xl font-bold text-emerald-400">{stats.settled}</div>
+                  <div className="text-[10px] text-zinc-400">Settled</div>
                 </div>
               </div>
             </Card>
