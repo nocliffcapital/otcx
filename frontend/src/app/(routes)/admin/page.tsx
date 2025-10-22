@@ -116,17 +116,17 @@ export default function AdminPage() {
   }, [owner, address, isConnected]);
 
   // V4: Read fee configuration
-  const { data: settlementFeeBps } = useReadContract({
+  const { data: settlementFeeBps, refetch: refetchSettlementFee } = useReadContract({
     address: ORDERBOOK_ADDRESS,
     abi: ESCROW_ORDERBOOK_ABI,
     functionName: "settlementFeeBps",
-  }) as { data: bigint | undefined };
+  }) as { data: bigint | undefined; refetch: () => void };
 
-  const { data: cancellationFeeBps } = useReadContract({
+  const { data: cancellationFeeBps, refetch: refetchCancellationFee } = useReadContract({
     address: ORDERBOOK_ADDRESS,
     abi: ESCROW_ORDERBOOK_ABI,
     functionName: "cancellationFeeBps",
-  }) as { data: bigint | undefined };
+  }) as { data: bigint | undefined; refetch: () => void };
 
   const { data: maxFeeBps } = useReadContract({
     address: ORDERBOOK_ADDRESS,
@@ -525,6 +525,9 @@ export default function AdminPage() {
       functionName: "approveCollateral",
       args: [newCollateralAddress as `0x${string}`],
     });
+    
+    // Clear input after transaction is sent
+    setNewCollateralAddress("");
   };
 
   // V4: Remove collateral
@@ -661,6 +664,9 @@ export default function AdminPage() {
       setTimeout(() => {
         refetch();
         refetchPaused();
+        refetchCollateral(); // V4: Refetch collateral whitelist
+        refetchSettlementFee(); // V4: Refetch settlement fee
+        refetchCancellationFee(); // V4: Refetch cancellation fee
         fetchOrders();
         resetForm();
       }, 2000);
