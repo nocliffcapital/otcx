@@ -15,10 +15,6 @@ export default function ReputationBadge({
   variant = 'compact',
   showTooltip = true 
 }: ReputationBadgeProps) {
-  // Temporarily disabled - Ethos API integration needs fixing
-  return null;
-  
-  /* DISABLED
   const [reputation, setReputation] = useState<EthosScore | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -53,9 +49,7 @@ export default function ReputationBadge({
   if (!reputation) {
     return null; // API error or no data
   }
-  */
   
-  /* DISABLED - Ethos integration
   if (reputation.score === 0) {
     // User exists on Ethos but has 0 score
     return (
@@ -136,6 +130,5 @@ export default function ReputationBadge({
       </div>
     </div>
   );
-  */
 }
 
