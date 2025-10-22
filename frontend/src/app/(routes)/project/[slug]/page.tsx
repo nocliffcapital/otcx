@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -64,6 +64,39 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   const [creating, setCreating] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [minting, setMinting] = useState(false);
+  
+  // V3: Fetch metadata from IPFS
+  const [metadata, setMetadata] = useState<{
+    description?: string;
+    twitterUrl?: string;
+    websiteUrl?: string;
+    logoUrl?: string;
+    iconUrl?: string;
+  } | null>(null);
+  
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      if (!project?.metadataURI) return;
+      
+      try {
+        // Convert IPFS URI to HTTP gateway URL
+        const httpUrl = project.metadataURI.startsWith('ipfs://')
+          ? project.metadataURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+          : project.metadataURI;
+        
+        const response = await fetch(httpUrl);
+        if (!response.ok) throw new Error('Failed to fetch metadata');
+        
+        const data = await response.json();
+        setMetadata(data);
+      } catch (error) {
+        console.error('Error fetching project metadata:', error);
+        setMetadata(null);
+      }
+    };
+    
+    fetchMetadata();
+  }, [project?.metadataURI]);
 
   const total = Number(amount || 0) * Number(unitPrice || 0);
 
@@ -230,7 +263,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         <div className="flex items-center gap-3 mb-2">
           {/* Project Logo */}
           <ProjectImage 
-            metadataURI={project?.logoUrl}
+            metadataURI={project?.metadataURI}
             imageType="logo"
             className="h-12 max-w-[200px] object-contain"
             fallbackText={project?.name || slug.toUpperCase()}
@@ -238,11 +271,11 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           
           <h1 className="text-3xl font-semibold">{project?.name || slug.toUpperCase()}</h1>
           <Badge className={`${
-            project?.assetType === 'Tokens' 
+            project?.isPoints === false
               ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
               : 'bg-violet-600/20 text-violet-400 border border-violet-500/30'
           } text-sm px-2.5 py-1`}>
-            {project?.assetType}
+            {project?.isPoints === false ? 'Tokens' : 'Points'}
           </Badge>
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
             isOrderbookPaused 
@@ -281,9 +314,9 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             </p>
             
             {/* Project Reputation Badge */}
-            {project?.twitterUrl && (
+            {metadata?.twitterUrl && project?.name && (
               <ProjectReputationBadge 
-                twitterUrl={project.twitterUrl}
+                twitterUrl={metadata.twitterUrl}
                 projectName={project.name}
                 variant="compact"
               />
@@ -291,11 +324,11 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           </div>
           
           {/* Project Links from Registry */}
-          {project && (project.twitterUrl || project.websiteUrl) && (
+          {metadata && (metadata.twitterUrl || metadata.websiteUrl) && (
             <div className="flex gap-2 mt-2">
-              {project.twitterUrl && (
+              {metadata.twitterUrl && (
                 <a
-                  href={ensureHttps(project.twitterUrl)}
+                  href={ensureHttps(metadata.twitterUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 rounded-lg transition-colors group text-xs"
@@ -308,9 +341,9 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                   </span>
                 </a>
               )}
-              {project.websiteUrl && (
+              {metadata.websiteUrl && (
                 <a
-                  href={ensureHttps(project.websiteUrl)}
+                  href={ensureHttps(metadata.websiteUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 rounded-lg transition-colors group text-xs"
@@ -419,15 +452,15 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         </Card>
 
         {/* Project Info with Grok Analysis - Right */}
-        {project && (
+        {project && metadata && (
           <div className="h-full">
             <ProjectInfo
               project={{
                 name: project.name,
-                slug: project.slug,
-                twitterUrl: project.twitterUrl,
-                websiteUrl: project.websiteUrl,
-                description: project.description,
+                slug: slug,
+                twitterUrl: metadata.twitterUrl || '',
+                websiteUrl: metadata.websiteUrl || '',
+                description: metadata.description || '',
               }}
             />
           </div>
