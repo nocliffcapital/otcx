@@ -14,7 +14,7 @@ import { STABLE_DECIMALS, STABLE_ADDRESS, ERC20_ABI, REGISTRY_ADDRESS, PROJECT_R
 import { useReadContract } from "wagmi";
 import { PriceChart } from "@/components/PriceChart";
 import { ProjectInfo } from "@/components/ProjectInfo";
-import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle } from "lucide-react";
+import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle, DollarSign, ArrowDown, ArrowUp, Percent, Activity, Clock } from "lucide-react";
 import Link from "next/link";
 import ReputationBadge from "@/components/ReputationBadge";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
@@ -389,25 +389,37 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       {/* Market Info Bar */}
       <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 mb-6 p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-lg">
         <div>
-          <p className="text-[10px] text-zinc-500 uppercase mb-1">Last Price</p>
+          <p className="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
+            <DollarSign className="w-3 h-3" />
+            Last Price
+          </p>
           <p className="text-sm font-semibold text-blue-400">
             {lastPrice ? `$${lastPrice.toFixed(2)}` : "—"}
           </p>
         </div>
         <div>
-          <p className="text-[10px] text-zinc-500 uppercase mb-1">Current Ask</p>
+          <p className="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
+            <ArrowDown className="w-3 h-3" />
+            Current Ask
+          </p>
           <p className="text-sm font-semibold text-red-400">
             {lowestAsk ? `$${lowestAsk.toFixed(2)}` : "—"}
           </p>
         </div>
         <div>
-          <p className="text-[10px] text-zinc-500 uppercase mb-1">Current Bid</p>
+          <p className="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
+            <ArrowUp className="w-3 h-3" />
+            Current Bid
+          </p>
           <p className="text-sm font-semibold text-green-400">
             {highestBid ? `$${highestBid.toFixed(2)}` : "—"}
           </p>
         </div>
         <div>
-          <p className="text-[10px] text-zinc-500 uppercase mb-1">Spread</p>
+          <p className="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
+            <Percent className="w-3 h-3" />
+            Spread
+          </p>
           <p className={`text-sm font-semibold ${
             spread === null ? 'text-zinc-400' : 
             spread < 5 ? 'text-green-400' : 
@@ -422,13 +434,17 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           )}
         </div>
         <div>
-          <p className="text-[10px] text-zinc-500 uppercase mb-1">Mid Market</p>
+          <p className="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
+            <Activity className="w-3 h-3" />
+            Mid Market
+          </p>
           <p className="text-sm font-semibold text-cyan-400">
             {midMarket ? `$${midMarket.toFixed(2)}` : "—"}
           </p>
         </div>
         <div>
-          <p className="text-[10px] text-zinc-500 uppercase mb-1">
+          <p className="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
             {tgeActivatedOrders.length > 0 ? "Settlement Status" : "Settle Starts"}
           </p>
           {tgeActivatedOrders.length > 0 ? (
@@ -449,7 +465,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           )}
         </div>
         <div>
-          <p className="text-[10px] text-zinc-500 uppercase mb-1">Settle Ends</p>
+          <p className="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            Settle Ends
+          </p>
           <p className="text-sm font-medium text-zinc-300">
             {settlementEndTime 
               ? settlementEndTime.toLocaleString("en-US", { 
