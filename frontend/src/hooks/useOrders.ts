@@ -118,14 +118,20 @@ export function useOrders(projectId?: `0x${string}`) {
         // Wait for all orders to be fetched
         await Promise.all(orderPromises);
         
+        console.log('Fetched all orders:', allOrdersList);
+        console.log('Filtering by projectId:', projectId);
+        
         // Filter by projectToken for display (OPEN orders with collateral OR any orders with status >= 1)
         // V3: Filter by projectId (bytes32) instead of projectToken (address)
         const filtered = allOrdersList.filter(o => {
+          console.log('Order projectToken:', o.projectToken, 'Comparing to projectId:', projectId);
           const matchesProject = !projectId || (typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === projectId.toLowerCase());
           
           // Show if: status is OPEN and has collateral, OR status >= FUNDED (includes TGE_ACTIVATED, TOKENS_DEPOSITED, SETTLED, DEFAULTED)
           const hasCollateral = o.isSell ? o.sellerCollateral > 0n : o.buyerFunds > 0n;
           const isAvailable = (o.status === 0 && hasCollateral) || o.status >= 1;
+          
+          console.log(`Order ${o.id}: matchesProject=${matchesProject}, hasCollateral=${hasCollateral}, status=${o.status}, isAvailable=${isAvailable}`);
           
           return isAvailable && matchesProject;
         });
@@ -134,6 +140,8 @@ export function useOrders(projectId?: `0x${string}`) {
         const allFiltered = allOrdersList.filter(o => {
           return !projectId || (typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === projectId.toLowerCase());
         });
+        
+        console.log('Filtered orders:', filtered);
         
         setOrders(filtered);
         setAllOrders(allFiltered);
