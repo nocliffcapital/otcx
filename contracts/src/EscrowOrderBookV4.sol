@@ -54,7 +54,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     
     // Constants (gas optimization)
     uint256 public constant BPS_DENOMINATOR = 10_000;
-    uint256 public constant MAX_FEE_BPS = 200;              // 2% max
+    uint256 public constant MAX_FEE_BPS = 500;              // 5% max
     uint256 public constant GRACE_PERIOD = 10 minutes;
     uint256 public constant DEFAULT_SETTLEMENT_WINDOW = 4 hours;
     uint256 public constant MAX_ORDER_VALUE = 1_000_000 * 10**6; // 1M USDC
