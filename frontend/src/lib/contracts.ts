@@ -35,10 +35,10 @@ export function getContractAddresses(chainId?: number) {
 }
 
 // Legacy exports for backward compatibility (uses env vars or defaults to Sepolia)
-export const ORDERBOOK_ADDRESS = (process.env.NEXT_PUBLIC_ORDERBOOK || '0xe1aFcaDD4D10368e9C8939240581A00fba14E494') as `0x${string}`;
+export const ORDERBOOK_ADDRESS = (process.env.NEXT_PUBLIC_ORDERBOOK || '0x1560B643159F2184B9b416D822fAc1A05769af2F') as `0x${string}`;
 export const STABLE_ADDRESS = (process.env.NEXT_PUBLIC_STABLE || '0xd5d56a9Cd59550c6D95569620F7eb89C1E4c9101') as `0x${string}`;
 export const STABLE_DECIMALS = Number(process.env.NEXT_PUBLIC_STABLE_DECIMALS || 6);
-export const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY || '0xa58F04C440CdE1E98Eb758DaeD01a285BA463E3d') as `0x${string}`;
+export const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY || '0x7fdBE0DEA92E1e246276DCb50c6d7Dc910563D22') as `0x${string}`;
 
 // Mock Token for testing Token settlements (has public mint function)
 export const MOCK_TOKEN_ADDRESS = "0xfd61aE399C5F9A2e90292395A37F9C87b5f08084" as `0x${string}`;

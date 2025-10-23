@@ -27,6 +27,7 @@ export default function PrivateOrderPage() {
   const [loading, setLoading] = useState(true);
   const [taking, setTaking] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [hasEnoughBalance, setHasEnoughBalance] = useState(true);
 
   useEffect(() => {
     async function loadOrder() {

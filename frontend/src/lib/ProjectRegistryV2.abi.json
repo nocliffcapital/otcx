@@ -1,611 +1,67 @@
-[
-  {
-    "type": "constructor",
-    "inputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "addProject",
-    "inputs": [
-      {
-        "name": "slug",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "tokenAddress",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "isPoints",
-        "type": "bool",
-        "internalType": "bool"
-      },
-      {
-        "name": "metadataURI",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "cancelOwnershipHandover",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "completeOwnershipHandover",
-    "inputs": [
-      {
-        "name": "pendingOwner",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "getActiveProjects",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct ProjectRegistryV2.Project[]",
-        "components": [
-          {
-            "name": "id",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "name",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "tokenAddress",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "isPoints",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "active",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "addedAt",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "metadataURI",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getAllProjectIds",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getProject",
-    "inputs": [
-      {
-        "name": "id",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct ProjectRegistryV2.Project",
-        "components": [
-          {
-            "name": "id",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "name",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "tokenAddress",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "isPoints",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "active",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "addedAt",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "metadataURI",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getProjectBySlug",
-    "inputs": [
-      {
-        "name": "slug",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct ProjectRegistryV2.Project",
-        "components": [
-          {
-            "name": "id",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "name",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "tokenAddress",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "isPoints",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "active",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "addedAt",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "metadataURI",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getProjectCount",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getProjectId",
-    "inputs": [
-      {
-        "name": "slug",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
-    "name": "owner",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "result",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "ownershipHandoverExpiresAt",
-    "inputs": [
-      {
-        "name": "pendingOwner",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "result",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "projectIds",
-    "inputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "projects",
-    "inputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "id",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "tokenAddress",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "isPoints",
-        "type": "bool",
-        "internalType": "bool"
-      },
-      {
-        "name": "active",
-        "type": "bool",
-        "internalType": "bool"
-      },
-      {
-        "name": "addedAt",
-        "type": "uint64",
-        "internalType": "uint64"
-      },
-      {
-        "name": "metadataURI",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "renounceOwnership",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "requestOwnershipHandover",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "setProjectStatus",
-    "inputs": [
-      {
-        "name": "id",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "active",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "transferOwnership",
-    "inputs": [
-      {
-        "name": "newOwner",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "updateMetadata",
-    "inputs": [
-      {
-        "name": "id",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "metadataURI",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "updateProject",
-    "inputs": [
-      {
-        "name": "id",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "tokenAddress",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "active",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "event",
-    "name": "MetadataUpdated",
-    "inputs": [
-      {
-        "name": "id",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "metadataURI",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "OwnershipHandoverCanceled",
-    "inputs": [
-      {
-        "name": "pendingOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "OwnershipHandoverRequested",
-    "inputs": [
-      {
-        "name": "pendingOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "OwnershipTransferred",
-    "inputs": [
-      {
-        "name": "oldOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "newOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ProjectAdded",
-    "inputs": [
-      {
-        "name": "id",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      },
-      {
-        "name": "metadataURI",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ProjectStatusChanged",
-    "inputs": [
-      {
-        "name": "id",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "active",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ProjectUpdated",
-    "inputs": [
-      {
-        "name": "id",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      },
-      {
-        "name": "tokenAddress",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "error",
-    "name": "AlreadyInitialized",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NewOwnerIsZeroAddress",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NoHandoverRequest",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "Unauthorized",
-    "inputs": []
-  }
-]
+
+╭-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------╮
+| Type        | Signature                                                                       | Selector                                                           |
++====================================================================================================================================================================+
+| event       | MetadataUpdated(bytes32,string)                                                 | 0xe36c73fd13989812054eaa73a813bdd65752bda9044a9bdac079e4143c6ab7bd |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| event       | OwnershipHandoverCanceled(address)                                              | 0xfa7b8eab7da67f412cc9575ed43464468f9bfbae89d1675917346ca6d8fe3c92 |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| event       | OwnershipHandoverRequested(address)                                             | 0xdbf36a107da19e49527a7176a1babf963b4b0ff8cde35ee35d6cd8f1f9ac7e1d |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| event       | OwnershipTransferred(address,address)                                           | 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0 |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| event       | ProjectAdded(bytes32,string,string)                                             | 0xbdbc6d2da446cba955f9a07ead42dc8c26f325cbd2128b3df48dc14bda52954e |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| event       | ProjectStatusChanged(bytes32,bool)                                              | 0x7d70b30895b1e2cf32838b3137f40b5fa05fa3f46bc1be0073021c561ddddc87 |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| event       | ProjectUpdated(bytes32,string,address)                                          | 0xe9072f9e07999c275752efb4fb267ffe1c8b87a5eea1d2e21b3c243d9585d9ae |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| error       | AlreadyInitialized()                                                            | 0x0dc149f0                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| error       | NewOwnerIsZeroAddress()                                                         | 0x7448fbae                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| error       | NoHandoverRequest()                                                             | 0x6f5e8818                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| error       | Unauthorized()                                                                  | 0x82b42900                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | addProject(string,string,address,bool,string) nonpayable                        | 0x29ba4e87                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | cancelOwnershipHandover() payable                                               | 0x54d1f13d                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | completeOwnershipHandover(address) payable                                      | 0xf04e283e                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | getActiveProjects() view returns (ProjectRegistryV2.Project[])                  | 0x29cfce41                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | getAllProjectIds() view returns (bytes32[])                                     | 0x4ac64766                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | getProject(bytes32) view returns (ProjectRegistryV2.Project)                    | 0x4b5f748a                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | getProjectBySlug(string) view returns (ProjectRegistryV2.Project)               | 0xb393434d                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | getProjectCount() view returns (uint256)                                        | 0x3bcff3b0                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | getProjectId(string) pure returns (bytes32)                                     | 0x5076a3a5                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | owner() view returns (address)                                                  | 0x8da5cb5b                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | ownershipHandoverExpiresAt(address) view returns (uint256)                      | 0xfee81cf4                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | projectIds(uint256) view returns (bytes32)                                      | 0x48c35ad4                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | projects(bytes32) view returns (bytes32,string,address,bool,bool,uint64,string) | 0xb96ea12d                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | renounceOwnership() payable                                                     | 0x715018a6                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | requestOwnershipHandover() payable                                              | 0x25692962                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | setProjectStatus(bytes32,bool) nonpayable                                       | 0x7e6a2025                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | transferOwnership(address) payable                                              | 0xf2fde38b                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | updateMetadata(bytes32,string) nonpayable                                       | 0xa375765e                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| function    | updateProject(bytes32,string,address,bool) nonpayable                           | 0x03ad0923                                                         |
+|-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------|
+| constructor | constructor() nonpayable                                                        |                                                                    |
+╰-------------+---------------------------------------------------------------------------------+--------------------------------------------------------------------╯
+
