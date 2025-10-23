@@ -349,11 +349,11 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         return (amount * unitPrice) / 1e18;
     }
     
-    /// @notice Calculate seller collateral requirement (110% of value)
+    /// @notice Calculate seller collateral requirement (100% of value)
     /// @param totalValue Order value in stable
     /// @return collateral Required seller collateral
     function quoteSellerCollateral(uint256 totalValue) public pure returns (uint256) {
-        return (totalValue * 110) / 100;
+        return totalValue;
     }
     
     /// @notice Get order value for an existing order
@@ -435,9 +435,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         }
         
         uint256 totalValue = (order.amount * order.unitPrice) / 1e18;
-        uint256 collateral = order.isSell 
-            ? totalValue                 // Buyer pays purchase price
-            : (totalValue * 110) / 100;  // Seller posts 110% collateral
+        uint256 collateral = totalValue;  // Both sides post 100% collateral
         
         // Transfer collateral from taker
         address(stable).safeTransferFrom(msg.sender, address(this), collateral);

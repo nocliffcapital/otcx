@@ -369,15 +369,11 @@ export function useOrderbook() {
       
       const total = (amount * unitPrice) / 10n**18n;
       
-      // Calculate required collateral based on order type
-      // If maker is selling (isSell=true), taker is buyer and needs to pay 100% (total)
-      // If maker is buying (isSell=false), taker is seller and needs to post 110% collateral
-      const requiredCollateral = isSell ? total : (total * 110n) / 100n;
-      
-      // Check and approve if needed (approve 2x for safety)
+      // Both sides post 100% collateral
+      // Check and approve if needed (approve 2x = 200% for safety)
       const allowance = await checkAllowance(address);
-      if (allowance < requiredCollateral) {
-        await approveStable(requiredCollateral * 2n);
+      if (allowance < total) {
+        await approveStable(total * 2n);
       }
 
       const hash = await walletClient.writeContract({
