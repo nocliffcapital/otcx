@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Lock, ExternalLink, ArrowRight } from 'lucide-react';
+import { Lock, ExternalLink, ArrowRight, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useOrderbook } from '@/hooks/useOrderbook';
 import { formatUnits } from 'viem';
@@ -235,16 +235,10 @@ export default function PrivateOrderPage() {
             <p className="text-zinc-500">This order has already been taken or cancelled.</p>
           </Card>
         ) : (
-          <Card className="p-6 border-green-500/30 bg-green-950/10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                <ArrowRight className="w-5 h-5 text-green-400" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">You're Authorized!</h3>
-                <p className="text-sm text-zinc-400">You can take this order</p>
-              </div>
-            </div>
+          <Card className="p-6 border-green-500/30 bg-green-950/10 text-center">
+            <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">You're Authorized!</h3>
+            <p className="text-zinc-400 mb-6">You can take this order</p>
             
             <Button 
               onClick={handleTakeOrder}
