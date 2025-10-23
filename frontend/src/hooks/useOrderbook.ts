@@ -309,16 +309,95 @@ export function useOrderbook() {
     [walletClient, publicClient, address]
   );
 
+  /**
+   * Get order details by ID
+   */
+  const getOrder = useCallback(
+    async (orderId: bigint) => {
+      if (!publicClient) return null;
+      try {
+        const order = await publicClient.readContract({
+          address: ORDERBOOK_ADDRESS,
+          abi: ESCROW_ORDERBOOK_ABI,
+          functionName: "getOrder",
+          args: [orderId],
+        }) as any;
+        return order;
+      } catch (error) {
+        console.error('Error fetching order:', error);
+        return null;
+      }
+    },
+    [publicClient]
+  );
+
+  /**
+   * Get project details by ID
+   */
+  const getProjectById = useCallback(
+    async (projectId: `0x${string}`) => {
+      if (!publicClient) return null;
+      try {
+        const project = await publicClient.readContract({
+          address: ORDERBOOK_ADDRESS,
+          abi: ESCROW_ORDERBOOK_ABI,
+          functionName: "getProjectById",
+          args: [projectId],
+        }) as any;
+        return project;
+      } catch (error) {
+        console.error('Error fetching project:', error);
+        return null;
+      }
+    },
+    [publicClient]
+  );
+
+  /**
+   * Generic takeOrder function (works for both buy and sell orders)
+   */
+  const takeOrder = useCallback(
+    async (orderId: bigint) => {
+      if (!walletClient || !address) throw new Error("Wallet not connected");
+      
+      // Get order details to determine collateral needed
+      const order = await getOrder(orderId);
+      if (!order) throw new Error("Order not found");
+      
+      const total = (order.amount * order.unitPrice) / BigInt(10 ** 18);
+      
+      // Check and approve if needed
+      const allowance = await checkAllowance(address);
+      if (allowance < total) {
+        await approveStable(total * 2n);
+      }
+
+      const hash = await walletClient.writeContract({
+        address: ORDERBOOK_ADDRESS,
+        abi: ESCROW_ORDERBOOK_ABI,
+        functionName: "takeOrder",
+        args: [orderId],
+      });
+      await publicClient?.waitForTransactionReceipt({ hash });
+      
+      return hash;
+    },
+    [walletClient, publicClient, address, checkAllowance, approveStable, getOrder]
+  );
+
   return { 
     address, 
     createSellOrder, 
     createBuyOrder,
     createPrivateOrder, 
     takeSellOrder, 
-    takeBuyOrder, 
+    takeBuyOrder,
+    takeOrder,
     cancel,
     mintTestUSDC,
     mintTestTokens,
     approveStable,
+    getOrder,
+    getProjectById,
   };
 }

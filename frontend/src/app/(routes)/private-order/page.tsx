@@ -45,7 +45,8 @@ export default function PrivateOrderPage() {
   }) => {
     try {
       setIsCreating(true);
-      await createPrivateOrder(params);
+      const result = await createPrivateOrder(params);
+      return result;
     } catch (error) {
       throw error;
     } finally {

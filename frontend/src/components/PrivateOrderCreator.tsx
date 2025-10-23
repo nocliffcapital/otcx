@@ -20,7 +20,7 @@ interface PrivateOrderCreatorProps {
     projectId: `0x${string}`;
     isSell: boolean;
     allowedTaker: `0x${string}`;
-  }) => Promise<void>;
+  }) => Promise<{ orderId: bigint }>;
   isCreating: boolean;
 }
 
@@ -54,7 +54,7 @@ export function PrivateOrderCreator({
       const amountBigInt = parseUnits(amount, 18);
       const priceBigInt = parseUnits(unitPrice, STABLE_DECIMALS);
 
-      await onCreateOrder({
+      const result = await onCreateOrder({
         amount: amountBigInt,
         unitPrice: priceBigInt,
         projectId,
@@ -62,9 +62,8 @@ export function PrivateOrderCreator({
         allowedTaker: allowedTaker as `0x${string}`,
       });
 
-      // Show success with shareable link
-      // Note: orderId would come from transaction receipt
-      setCreatedOrderId("123"); // TODO: Get from tx receipt
+      // Set the actual order ID from the transaction
+      setCreatedOrderId(result.orderId.toString());
       
       toast.success(
         "🔒 Private order created!",
