@@ -43,13 +43,52 @@ export default function PrivateOrderPage() {
           return;
         }
         
-        setOrder(orderData);
+        // Parse order tuple into object
+        const [id, maker, buyer, seller, projectId, amount, unitPrice, buyerFunds, sellerCollateral, createdAt, isSell, allowedTakerAddr, status] = orderData as any[];
+        
+        const parsedOrder = {
+          id,
+          maker,
+          buyer,
+          seller,
+          projectId,
+          amount,
+          unitPrice,
+          buyerFunds,
+          sellerCollateral,
+          createdAt,
+          isSell,
+          allowedTaker: allowedTakerAddr,
+          status
+        };
+        
+        console.log('Parsed order:', parsedOrder);
+        setOrder(parsedOrder);
         
         // Load project data
-        console.log('Fetching project with ID:', orderData.projectId);
-        const projectData = await getProjectById(orderData.projectId);
+        console.log('Fetching project with ID:', projectId);
+        const projectData = await getProjectById(projectId);
         console.log('Project data:', projectData);
-        setProject(projectData);
+        
+        // Parse project tuple if needed
+        if (projectData && Array.isArray(projectData)) {
+          const [projId, name, metadataURI, isPoints, active, tokenAddress, twitterUrl, websiteUrl, description, addedAt] = projectData as any[];
+          const parsedProject = {
+            id: projId,
+            name,
+            metadataURI,
+            isPoints,
+            active,
+            tokenAddress,
+            twitterUrl,
+            websiteUrl,
+            description,
+            addedAt
+          };
+          setProject(parsedProject);
+        } else {
+          setProject(projectData);
+        }
         
         // Check if user is authorized
         if (address && allowedTaker) {
