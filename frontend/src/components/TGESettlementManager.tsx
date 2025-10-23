@@ -85,9 +85,11 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
   };
 
   const confirmBatchActivate = () => {
+    // POINTS_SENTINEL = address(uint160(uint256(keccak256("otcX.POINTS_SENTINEL.v4"))))
+    const POINTS_SENTINEL = "0x602EE57D45A64a39E996Fa8c78B3BC88B4D107E2";
     const isOffChainSettlement = isPointsProject && !batchTokenAddress;
     const tokenAddr = isOffChainSettlement 
-      ? "0x000000000000000000000000000000000000dead" 
+      ? POINTS_SENTINEL 
       : batchTokenAddress;
     
     // Parse and validate conversion ratio
