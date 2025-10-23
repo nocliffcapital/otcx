@@ -369,7 +369,7 @@ export function useOrderbook() {
       const order = await getOrder(orderId);
       if (!order) throw new Error("Order not found");
       
-      const total = (order.amount * order.unitPrice) / BigInt(10 ** 18);
+      const total = (order.amount * order.unitPrice) / 10n**18n;
       
       // Check and approve if needed
       const allowance = await checkAllowance(address);
