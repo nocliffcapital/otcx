@@ -5,7 +5,7 @@ import { http, createStorage, cookieStorage } from "wagmi";
 import { sepolia, arbitrum, base, optimism, polygon, mainnet } from "wagmi/chains";
 
 // RPC URLs (customize for production)
-const sepoliaRpc = process.env.NEXT_PUBLIC_SEPOLIA_RPC || "https://rpc.ankr.com/eth_sepolia";
+const sepoliaRpc = process.env.NEXT_PUBLIC_SEPOLIA_RPC || "https://ethereum-sepolia-rpc.publicnode.com";
 const arbitrumRpc = process.env.NEXT_PUBLIC_ARBITRUM_RPC || "https://arb1.arbitrum.io/rpc";
 const baseRpc = process.env.NEXT_PUBLIC_BASE_RPC || "https://mainnet.base.org";
 const optimismRpc = process.env.NEXT_PUBLIC_OPTIMISM_RPC || "https://mainnet.optimism.io";
