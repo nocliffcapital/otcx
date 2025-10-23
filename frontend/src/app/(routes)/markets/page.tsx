@@ -904,11 +904,11 @@ export default function ProjectsPage() {
                     {/* Chart */}
                     <td className="py-4 px-4">
                       {!loadingStats && stats ? (
-                        <div className="w-[120px] h-12 mx-auto overflow-visible">
+                        <div className="w-[120px] h-12 mx-auto">
                           {stats.tradeCount > 0 || (stats.lowestAsk !== null && stats.highestBid !== null) ? (
                             <svg 
                               viewBox="0 0 120 48" 
-                              className="w-full h-full overflow-visible"
+                              className="w-full h-full"
                               preserveAspectRatio="xMidYMid meet"
                             >
                               <defs>
@@ -926,8 +926,8 @@ export default function ProjectsPage() {
                                   const minVal = basePrice * 0.95;
                                   const maxVal = basePrice * 1.05;
                                   const normalizedY = maxVal > minVal ? ((value - minVal) / (maxVal - minVal)) : 0.5;
-                                  const x = (i / 19) * 120;
-                                  const y = 48 - (normalizedY * 36 + 6);
+                                  const x = (i / 19) * 116 + 2; // Add 2px padding on each side
+                                  const y = 46 - (normalizedY * 40 + 2); // Adjusted for 2px padding top/bottom
                                   return { x, y };
                                 });
 
@@ -938,12 +938,12 @@ export default function ProjectsPage() {
                                   pathData += ` Q ${points[i].x} ${points[i].y}, ${xMid} ${yMid}`;
                                 }
                                 pathData += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
-                                const areaPath = pathData + ` L 120 48 L 0 48 Z`;
+                                const areaPath = pathData + ` L 118 48 L 2 48 Z`; // Adjusted for padding
 
                                 return (
                                   <>
                                     <path d={areaPath} fill={`url(#gradient-${project.slug})`} />
-                                    <path d={pathData} fill="none" stroke="rgb(6, 182, 212)" strokeWidth="2" className="group-hover:stroke-cyan-400" />
+                                    <path d={pathData} fill="none" stroke="rgb(6, 182, 212)" strokeWidth="1.5" className="group-hover:stroke-cyan-400" />
                                   </>
                                 );
                               })()}
