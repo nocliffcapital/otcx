@@ -24,7 +24,7 @@ export default function PrivateOrderPage() {
 
   const projects = (projectsData || []).map((p: any) => ({
     id: p.id,
-    slug: p.slug,
+    slug: p.slug || p.name?.toLowerCase().replace(/\s+/g, '-') || 'unknown',
     name: p.name,
     metadataURI: p.metadataURI,
     isPoints: p.isPoints,
@@ -35,9 +35,6 @@ export default function PrivateOrderPage() {
     description: p.description || "",
     tokenAddress: p.tokenAddress,
   }));
-
-  // Debug: Log projects data
-  console.log('Private Order - Projects:', projects);
 
   const handleCreateOrder = async (params: {
     amount: bigint;
@@ -85,7 +82,10 @@ export default function PrivateOrderPage() {
                 projects.map((project, index) => (
                   <button
                     key={project.slug || `project-${index}`}
-                    onClick={() => setSelectedProject(project.slug)}
+                    onClick={() => {
+                      console.log('Clicked project:', project.slug);
+                      setSelectedProject(project.slug);
+                    }}
                     className="w-full p-4 bg-zinc-900/50 hover:bg-zinc-800/50 border border-zinc-800 hover:border-purple-500/50 rounded-lg transition-all text-left group"
                   >
                     <div className="flex items-center gap-3">
@@ -93,11 +93,11 @@ export default function PrivateOrderPage() {
                         metadataURI={project.metadataURI}
                         imageType="icon"
                         className="w-10 h-10 rounded-full object-cover border-2 border-zinc-700 group-hover:border-purple-500/50 transition-all"
-                        fallbackText={project.name.charAt(0).toUpperCase()}
+                        fallbackText={project.name ? project.name.charAt(0).toUpperCase() : "?"}
                       />
                       <div className="flex-1">
-                        <h3 className="font-semibold text-white">{project.name}</h3>
-                        <p className="text-xs text-zinc-500">{project.slug}</p>
+                        <h3 className="font-semibold text-white">{project.name || "Unknown"}</h3>
+                        <p className="text-xs text-zinc-500">{project.slug || "unknown"}</p>
                       </div>
                       <Badge className={project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"}>
                         {project.assetType}
@@ -141,6 +141,7 @@ export default function PrivateOrderPage() {
             <PrivateOrderCreator
               projectId={slugToProjectId(selectedProject)}
               projectName={selectedProjectData?.name || selectedProject}
+              assetType={selectedProjectData?.assetType || "Tokens"}
               onCreateOrder={handleCreateOrder}
               isCreating={isCreating}
             />

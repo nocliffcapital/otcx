@@ -13,6 +13,7 @@ import { STABLE_DECIMALS } from "@/lib/contracts";
 interface PrivateOrderCreatorProps {
   projectId: `0x${string}`;
   projectName: string;
+  assetType: string;
   onCreateOrder: (params: {
     amount: bigint;
     unitPrice: bigint;
@@ -25,7 +26,8 @@ interface PrivateOrderCreatorProps {
 
 export function PrivateOrderCreator({ 
   projectId, 
-  projectName, 
+  projectName,
+  assetType, 
   onCreateOrder,
   isCreating 
 }: PrivateOrderCreatorProps) {
@@ -169,7 +171,7 @@ export function PrivateOrderCreator({
           {/* Amount */}
           <div>
             <label className="text-sm font-medium text-zinc-300 mb-2 block">
-              Amount ({projectName})
+              Amount ({assetType})
             </label>
             <Input
               type="number"
