@@ -35,7 +35,7 @@ export function getContractAddresses(chainId?: number) {
 }
 
 // Legacy exports for backward compatibility (uses env vars or defaults to Sepolia)
-export const ORDERBOOK_ADDRESS = (process.env.NEXT_PUBLIC_ORDERBOOK || '0x95E1217Edc4cCCC02cAC949739e91Bdd12828502') as `0x${string}`;
+export const ORDERBOOK_ADDRESS = (process.env.NEXT_PUBLIC_ORDERBOOK || '0x517cD6ceaDA5Ed2d4380B1Aac0AB3453EC816c57') as `0x${string}`;
 export const STABLE_ADDRESS = (process.env.NEXT_PUBLIC_STABLE || '0xd5d56a9Cd59550c6D95569620F7eb89C1E4c9101') as `0x${string}`;
 export const STABLE_DECIMALS = Number(process.env.NEXT_PUBLIC_STABLE_DECIMALS || 6);
 export const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY || '0x138c5ff78c85a0D01FaC617bcf3361bA677B3255') as `0x${string}`;
