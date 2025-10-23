@@ -319,7 +319,7 @@ export function useOrderbook() {
         const order = await publicClient.readContract({
           address: ORDERBOOK_ADDRESS,
           abi: ESCROW_ORDERBOOK_ABI,
-          functionName: "getOrder",
+          functionName: "orders",
           args: [orderId],
         }) as any;
         return order;
@@ -332,16 +332,19 @@ export function useOrderbook() {
   );
 
   /**
-   * Get project details by ID
+   * Get project details by ID from the registry
    */
   const getProjectById = useCallback(
     async (projectId: `0x${string}`) => {
       if (!publicClient) return null;
       try {
+        // Import registry ABI and address
+        const { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } = await import('@/lib/contracts');
+        
         const project = await publicClient.readContract({
-          address: ORDERBOOK_ADDRESS,
-          abi: ESCROW_ORDERBOOK_ABI,
-          functionName: "getProjectById",
+          address: REGISTRY_ADDRESS,
+          abi: PROJECT_REGISTRY_ABI,
+          functionName: "projects",
           args: [projectId],
         }) as any;
         return project;
