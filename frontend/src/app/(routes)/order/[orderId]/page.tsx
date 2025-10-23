@@ -36,8 +36,6 @@ export default function PrivateOrderPage() {
         setLoading(true);
         const orderData = await getOrder(BigInt(orderId));
         
-        console.log('Order data:', orderData);
-        
         if (!orderData) {
           toast.error('Order not found', 'This order does not exist or has been removed');
           return;
@@ -62,13 +60,10 @@ export default function PrivateOrderPage() {
           status
         };
         
-        console.log('Parsed order:', parsedOrder);
         setOrder(parsedOrder);
         
         // Load project data
-        console.log('Fetching project with ID:', projectId);
         const projectData = await getProjectById(projectId);
-        console.log('Project data:', projectData);
         
         // Parse project tuple if needed
         if (projectData && Array.isArray(projectData)) {
