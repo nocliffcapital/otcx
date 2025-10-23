@@ -161,7 +161,7 @@ export default function PrivateOrderPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-3">
             <Lock className="w-8 h-8 text-purple-400" />
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-4xl font-bold text-white">
               Private Order
             </h1>
           </div>
