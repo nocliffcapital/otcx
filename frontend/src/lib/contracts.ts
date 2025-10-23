@@ -38,7 +38,7 @@ export function getContractAddresses(chainId?: number) {
 export const ORDERBOOK_ADDRESS = (process.env.NEXT_PUBLIC_ORDERBOOK || '0x517cD6ceaDA5Ed2d4380B1Aac0AB3453EC816c57') as `0x${string}`;
 export const STABLE_ADDRESS = (process.env.NEXT_PUBLIC_STABLE || '0xd5d56a9Cd59550c6D95569620F7eb89C1E4c9101') as `0x${string}`;
 export const STABLE_DECIMALS = Number(process.env.NEXT_PUBLIC_STABLE_DECIMALS || 6);
-export const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY || '0x138c5ff78c85a0D01FaC617bcf3361bA677B3255') as `0x${string}`;
+export const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY || '0xEcFe9Cf7c3426144fee4510cCb5e1E85Ba3ef24D') as `0x${string}`;
 
 // Mock Token for testing Token settlements (has public mint function)
 export const MOCK_TOKEN_ADDRESS = "0xfd61aE399C5F9A2e90292395A37F9C87b5f08084" as `0x${string}`;

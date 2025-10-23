@@ -32,7 +32,7 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     shortName: 'Sepolia',
     rpcUrl: process.env.NEXT_PUBLIC_SEPOLIA_RPC || 'https://sepolia.infura.io/v3/',
     orderbook: '0x517cD6ceaDA5Ed2d4380B1Aac0AB3453EC816c57', // Fresh V4 orderbook (unlimited conversion ratio)
-    registry: '0x138c5ff78c85a0D01FaC617bcf3361bA677B3255', // Fresh empty registry
+    registry: '0xEcFe9Cf7c3426144fee4510cCb5e1E85Ba3ef24D', // Brand new empty registry (just deployed)
     stable: '0xd5d56a9Cd59550c6D95569620F7eb89C1E4c9101',
     stableSymbol: 'USDC',
     stableDecimals: 6,
