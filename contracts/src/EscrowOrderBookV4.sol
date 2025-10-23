@@ -5,6 +5,7 @@ import {IERC20} from "./interfaces/IERC20.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {ReentrancyGuard} from "solady/utils/ReentrancyGuard.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title EscrowOrderBookV4
@@ -29,6 +30,8 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
  */
 contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     using SafeTransferLib for address;
+    using EnumerableSet for EnumerableSet.AddressSet;
+    
     // ========== TYPES ==========
     
     enum Status { 
@@ -80,8 +83,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     bool public paused;
     
     // Collateral whitelist (future: support USDC + USDT)
-    mapping(address => bool) public approvedCollateral;
-    address[] public approvedCollateralList;
+    EnumerableSet.AddressSet private _approvedCollateral;
     
     // Project-level TGE management (V4: no per-order tracking!)
     mapping(bytes32 => bool) public projectTgeActivated;
@@ -157,8 +159,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         MAX_ORDER_VALUE = 1_000_000 * (10 ** stableDecimals);  // 1M in stable decimals
         
         // Auto-approve the deployment stable (USDC for now)
-        approvedCollateral[stableToken] = true;
-        approvedCollateralList.push(stableToken);
+        _approvedCollateral.add(stableToken);
         
         _initializeOwner(msg.sender);
     }
@@ -199,15 +200,14 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     /// @param token The collateral token address
     function approveCollateral(address token) external onlyOwner {
         if (token == address(0)) revert InvalidAddress();
-        if (approvedCollateral[token]) revert CollateralAlreadyApproved();
+        if (_approvedCollateral.contains(token)) revert CollateralAlreadyApproved();
         
         // Validate it's a real ERC20 with code
         if (token.code.length == 0) revert InvalidAddress();
         
         // Get decimals for validation
         try IERC20(token).decimals() returns (uint8 decimals) {
-            approvedCollateral[token] = true;
-            approvedCollateralList.push(token);
+            _approvedCollateral.add(token);
             emit CollateralApproved(token, decimals);
         } catch {
             revert InvalidAddress();
@@ -218,27 +218,24 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     /// @param token The collateral token address
     /// @dev Does not affect existing orders, only prevents new orders
     function removeCollateral(address token) external onlyOwner {
-        if (!approvedCollateral[token]) revert CollateralNotApproved();
+        if (!_approvedCollateral.contains(token)) revert CollateralNotApproved();
         if (token == address(stable)) revert InvalidAddress();  // Can't remove primary stable
         
-        approvedCollateral[token] = false;
-        
-        // Remove from array (find and swap with last element, then pop)
-        for (uint256 i = 0; i < approvedCollateralList.length; i++) {
-            if (approvedCollateralList[i] == token) {
-                approvedCollateralList[i] = approvedCollateralList[approvedCollateralList.length - 1];
-                approvedCollateralList.pop();
-                break;
-            }
-        }
-        
+        _approvedCollateral.remove(token);
         emit CollateralRemoved(token);
     }
 
     /// @notice Get list of all approved collateral tokens
     /// @return List of approved collateral addresses
     function getApprovedCollateral() external view returns (address[] memory) {
-        return approvedCollateralList;
+        return _approvedCollateral.values();
+    }
+    
+    /// @notice Check if a collateral token is approved
+    /// @param token The collateral token address
+    /// @return True if approved, false otherwise
+    function isCollateralApproved(address token) external view returns (bool) {
+        return _approvedCollateral.contains(token);
     }
 
     /// @notice Activate TGE for a project (V4: project-level activation)
@@ -386,7 +383,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (projectTgeActivated[projectId]) revert TGEAlreadyActivated();
         
         // Validate collateral is whitelisted (currently USDC, can add USDT later)
-        if (!approvedCollateral[address(stable)]) revert CollateralNotApproved();
+        if (!_approvedCollateral.contains(address(stable))) revert CollateralNotApproved();
         
         // Calculate values
         uint256 totalValue = (amount * unitPrice) / 1e18;
