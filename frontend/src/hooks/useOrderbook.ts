@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { Address, parseUnits } from "viem";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
-import { ESCROW_ORDERBOOK_ABI, ORDERBOOK_ADDRESS, ERC20_ABI, STABLE_ADDRESS } from "@/lib/contracts";
+import { ESCROW_ORDERBOOK_ABI, ORDERBOOK_ADDRESS, ERC20_ABI, STABLE_ADDRESS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } from "@/lib/contracts";
 
 export function useOrderbook() {
   const { address } = useAccount();
@@ -338,9 +338,6 @@ export function useOrderbook() {
     async (projectId: `0x${string}`) => {
       if (!publicClient) return null;
       try {
-        // Import registry ABI and address
-        const { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } = await import('@/lib/contracts');
-        
         const project = await publicClient.readContract({
           address: REGISTRY_ADDRESS,
           abi: PROJECT_REGISTRY_ABI,
