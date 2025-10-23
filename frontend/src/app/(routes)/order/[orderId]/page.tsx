@@ -3,20 +3,21 @@
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Lock, ExternalLink, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useOrderbook } from '@/hooks/useOrderbook';
 import { formatUnits } from 'viem';
 import { STABLE_DECIMALS } from '@/lib/contracts';
-import { toast } from 'sonner';
+import { useToast } from '@/components/Toast';
 
 export default function PrivateOrderPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const { address } = useAccount();
   const { getOrder, takeOrder, getProjectById } = useOrderbook();
+  const toast = useToast();
   
   const orderId = params.orderId as string;
   const allowedTaker = searchParams.get('taker') as `0x${string}` | null;
@@ -36,7 +37,7 @@ export default function PrivateOrderPage() {
         const orderData = await getOrder(BigInt(orderId));
         
         if (!orderData) {
-          toast.error('Order not found');
+          toast.error('Order not found', 'This order does not exist or has been removed');
           return;
         }
         
@@ -52,14 +53,14 @@ export default function PrivateOrderPage() {
         }
       } catch (error) {
         console.error('Error loading order:', error);
-        toast.error('Failed to load order');
+        toast.error('Failed to load order', 'Please try again later');
       } finally {
         setLoading(false);
       }
     }
     
     loadOrder();
-  }, [orderId, address, allowedTaker, getOrder, getProjectById]);
+  }, [orderId, address, allowedTaker, getOrder, getProjectById, toast]);
 
   const handleTakeOrder = async () => {
     if (!order || !address || !isAuthorized) return;
@@ -67,14 +68,14 @@ export default function PrivateOrderPage() {
     try {
       setTaking(true);
       await takeOrder(BigInt(orderId));
-      toast.success('Order taken successfully!');
+      toast.success('Order taken successfully!', 'The order has been filled');
       
       // Reload order data
       const updatedOrder = await getOrder(BigInt(orderId));
       setOrder(updatedOrder);
     } catch (error: any) {
       console.error('Error taking order:', error);
-      toast.error(error?.message || 'Failed to take order');
+      toast.error('Failed to take order', error?.message || 'Please try again');
     } finally {
       setTaking(false);
     }
