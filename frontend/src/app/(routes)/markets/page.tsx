@@ -873,19 +873,16 @@ export default function ProjectsPage() {
                         />
                       </div>
                     </td>
-                    
                     {/* Token Name */}
                     <td className="py-4 px-4">
                       <span className="font-semibold text-base text-white">{project.name}</span>
                     </td>
-                    
                     {/* Type */}
                     <td className="py-4 px-4">
                       <Badge className={`${project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"} text-xs`}>
                         {project.assetType}
                       </Badge>
                     </td>
-                    
                     {/* Status */}
                     <td className="py-4 px-4">
                       {(() => {
@@ -900,7 +897,6 @@ export default function ProjectsPage() {
                         }
                       })()}
                     </td>
-                    
                     {/* Chart */}
                     <td className="py-4 px-4">
                       {!loadingStats && stats ? (
@@ -956,7 +952,6 @@ export default function ProjectsPage() {
                         <div className="h-12 w-[120px] bg-zinc-800/50 rounded animate-pulse mx-auto"></div>
                       )}
                     </td>
-                    
                     {/* Last Price */}
                     <td className="py-4 px-4 text-right">
                       {!loadingStats && stats ? (
@@ -967,7 +962,6 @@ export default function ProjectsPage() {
                         <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
-                    
                     {/* Best Ask */}
                     <td className="py-4 px-4 text-right">
                       {!loadingStats && stats ? (
@@ -978,7 +972,6 @@ export default function ProjectsPage() {
                         <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
-                    
                     {/* Best Bid */}
                     <td className="py-4 px-4 text-right">
                       {!loadingStats && stats ? (
@@ -989,7 +982,6 @@ export default function ProjectsPage() {
                         <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
-                    
                     {/* Volume */}
                     <td className="py-4 px-4 text-right">
                       {!loadingStats && stats ? (
@@ -1000,7 +992,6 @@ export default function ProjectsPage() {
                         <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
-                    
                     {/* Orders */}
                     <td className="py-4 px-4 text-right">
                       {!loadingStats && stats ? (
@@ -1009,7 +1000,6 @@ export default function ProjectsPage() {
                         <div className="h-6 w-16 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
-                    
                     {/* Arrow */}
                     <td className="py-4 px-4 text-right">
                       <span className="text-zinc-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all inline-block">
