@@ -338,6 +338,11 @@ export function useOrderbook() {
     async (projectId: `0x${string}`) => {
       if (!publicClient) return null;
       try {
+        console.log('Registry Address:', REGISTRY_ADDRESS);
+        console.log('Project ID:', projectId);
+        console.log('ABI exists:', !!PROJECT_REGISTRY_ABI);
+        console.log('ABI length:', PROJECT_REGISTRY_ABI?.length);
+        
         const project = await publicClient.readContract({
           address: REGISTRY_ADDRESS,
           abi: PROJECT_REGISTRY_ABI,
