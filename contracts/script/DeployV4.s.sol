@@ -15,7 +15,7 @@ contract DeployV4 is Script {
         
         // Existing contracts on Sepolia
         address mockUSDC = 0xd5d56a9Cd59550c6D95569620F7eb89C1E4c9101;
-        address registry = 0x76E06a3b4e1E42eB9D1f6dC6BcA46E4C227AA7CA;
+        address registry = 0x138c5ff78c85a0D01FaC617bcf3361bA677B3255; // Fresh empty registry
         address feeCollector = 0x61fEDd6BC4ef1ab11cf8b6CC8F9b4Faeb41B6f55; // Your address
         
         vm.startBroadcast(deployerPrivateKey);
