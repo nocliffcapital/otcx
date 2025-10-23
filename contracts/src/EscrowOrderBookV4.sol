@@ -54,6 +54,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         uint256 sellerCollateral;      // Locked stable from seller
         uint64 createdAt;              // Timestamp when order was created
         bool isSell;                   // true = maker sells, false = maker buys
+        address allowedTaker;          // address(0) = public, specific address = private
         Status status;
     }
 
@@ -372,11 +373,13 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     /// @param amount Token amount to trade
     /// @param unitPrice Price per token in stable
     /// @param isSell True if selling, false if buying
+    /// @param allowedTaker Address allowed to take order (address(0) = public order, anyone can take)
     function createOrder(
         bytes32 projectId,
         uint256 amount,
         uint256 unitPrice,
-        bool isSell
+        bool isSell,
+        address allowedTaker
     ) external nonReentrant whenNotPaused returns (uint256) {
         if (amount == 0) revert InvalidAmount();
         if (unitPrice == 0) revert InvalidPrice();
@@ -409,6 +412,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
             sellerCollateral: isSell ? collateral : 0,
             createdAt: uint64(block.timestamp),
             isSell: isSell,
+            allowedTaker: allowedTaker,
             status: Status.OPEN
         });
         
@@ -424,6 +428,11 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (order.status != Status.OPEN) revert InvalidStatus();
         if (order.maker == msg.sender) revert NotAuthorized();
         if (projectTgeActivated[order.projectId]) revert TGEAlreadyActivated();
+        
+        // Check if order is private (only specific address can take)
+        if (order.allowedTaker != address(0) && order.allowedTaker != msg.sender) {
+            revert NotAuthorized();
+        }
         
         uint256 totalValue = (order.amount * order.unitPrice) / 1e18;
         uint256 collateral = order.isSell 
