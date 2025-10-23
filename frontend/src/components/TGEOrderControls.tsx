@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ERC20_ABI } from "@/lib/contracts";
 import { Button } from "./ui/Button";
@@ -106,6 +106,22 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
   const hasApproval = tokenAllowance && actualTokenAmountBigInt ? 
     (tokenAllowance as bigint) >= (actualTokenAmountBigInt as bigint) : false;
 
+  // Show success/error toasts based on transaction status
+  useEffect(() => {
+    if (isSuccess && hash) {
+      toast.success("✅ Transaction Confirmed", "Your action was completed successfully");
+    }
+  }, [isSuccess, hash, toast]);
+
+  useEffect(() => {
+    if (isError && error) {
+      const errorMessage = error.message.length > 100 
+        ? error.message.substring(0, 100) + "..." 
+        : error.message;
+      toast.error("❌ Transaction Failed", errorMessage);
+    }
+  }, [isError, error, toast]);
+
   // V4: Determine project type from token address read from contract
   // POINTS_SENTINEL = address(uint160(uint256(keccak256("otcX.POINTS_SENTINEL.v4"))))
   const POINTS_SENTINEL = "0x602EE57D45A64a39E996Fa8c78B3BC88B4D107E2";
@@ -153,9 +169,11 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
 
   const handleApproveTokens = () => {
     if (!actualTokenAddress) {
-      alert("Token address not found. Please wait for TGE activation.");
+      toast.error("Token Not Ready", "Token address not found. Please wait for TGE activation.");
       return;
     }
+
+    toast.info("🔐 Approving Tokens", "Please confirm the transaction in your wallet");
 
     writeContract({
       address: actualTokenAddress as `0x${string}`,
@@ -166,9 +184,7 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
   };
 
   const handleSettleOrder = () => {
-    if (!confirm(`Settle order #${order.id}?\nThis will transfer tokens and complete the settlement.`)) {
-      return;
-    }
+    toast.info("🚀 Settling Order", "Please confirm the transaction in your wallet");
 
     writeContract({
       address: ORDERBOOK_ADDRESS,
@@ -179,9 +195,7 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
   };
 
   const handleDefaultSeller = () => {
-    if (!confirm(`Default seller for order #${order.id}?\nYou will receive your payment back + seller's collateral.`)) {
-      return;
-    }
+    toast.info("⚠️ Defaulting Seller", "Please confirm the transaction in your wallet");
 
     writeContract({
       address: ORDERBOOK_ADDRESS,
@@ -211,9 +225,7 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
   };
 
   const handleManualSettle = () => {
-    if (!confirm(`Manually settle order #${order.id}?\nMake sure you've verified the proof first!`)) {
-      return;
-    }
+    toast.info("✅ Manually Settling", "Please confirm the transaction in your wallet");
 
     writeContract({
       address: ORDERBOOK_ADDRESS,
