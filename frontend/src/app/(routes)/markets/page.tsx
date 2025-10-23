@@ -904,12 +904,12 @@ export default function ProjectsPage() {
                     {/* Chart */}
                     <td className="py-4 px-4">
                       {!loadingStats && stats ? (
-                        <div className="w-[120px] h-12 mx-auto">
+                        <div className="w-[120px] h-12 mx-auto overflow-visible">
                           {stats.tradeCount > 0 || (stats.lowestAsk !== null && stats.highestBid !== null) ? (
                             <svg 
                               viewBox="0 0 120 48" 
-                              className="w-full h-full"
-                              preserveAspectRatio="none"
+                              className="w-full h-full overflow-visible"
+                              preserveAspectRatio="xMidYMid meet"
                             >
                               <defs>
                                 <linearGradient id={`gradient-${project.slug}`} x1="0%" y1="0%" x2="0%" y2="100%">
