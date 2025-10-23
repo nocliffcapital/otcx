@@ -84,12 +84,12 @@ export function useOrderbook() {
         functionName: "nextId",
       }) as bigint;
       
-      // V4: Create order (collateral locked in same tx)
+      // V4: Create PUBLIC order (allowedTaker = address(0))
       const createHash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
         functionName: "createOrder",
-        args: [projectId, amount, unitPrice, true], // isSell = true
+        args: [projectId, amount, unitPrice, true, "0x0000000000000000000000000000000000000000"], // isSell = true, public order
       });
       await publicClient?.waitForTransactionReceipt({ hash: createHash });
       
@@ -131,17 +131,77 @@ export function useOrderbook() {
         functionName: "nextId",
       }) as bigint;
       
-      // V4: Create order (funds locked in same tx)
+      // V4: Create PUBLIC order (allowedTaker = address(0))
       const createHash = await walletClient.writeContract({
         address: ORDERBOOK_ADDRESS,
         abi: ESCROW_ORDERBOOK_ABI,
         functionName: "createOrder",
-        args: [projectId, amount, unitPrice, false], // isSell = false
+        args: [projectId, amount, unitPrice, false, "0x0000000000000000000000000000000000000000"], // isSell = false, public order
       });
       await publicClient?.waitForTransactionReceipt({ hash: createHash });
       
       const orderId = nextIdBefore;
       console.log('Created buy order ID:', orderId.toString());
+
+      return { orderId, createHash };
+    },
+    [walletClient, publicClient, address, checkAllowance, checkBalance, approveStable]
+  );
+
+  /**
+   * V4: Create private order (with allowedTaker)
+   * Collateral/funds locked in same transaction
+   */
+  const createPrivateOrder = useCallback(
+    async ({ 
+      amount, 
+      unitPrice, 
+      projectId, 
+      isSell,
+      allowedTaker 
+    }: { 
+      amount: bigint; 
+      unitPrice: bigint; 
+      projectId: `0x${string}`; 
+      isSell: boolean;
+      allowedTaker: `0x${string}`;
+    }) => {
+      if (!walletClient || !address) throw new Error("Wallet not connected");
+      
+      // Convert from 24 decimals to 6 decimals (USDC)
+      const total = (amount * unitPrice) / BigInt(10 ** 18);
+      const collateral = isSell ? total : (total * 110n) / 100n; // Sell: 100%, Buy: 110%
+      
+      // Check balance first
+      const balance = await checkBalance(address);
+      if (balance < collateral) {
+        throw new Error(`Insufficient USDC balance. You need ${(Number(collateral) / 1e6).toFixed(2)} USDC but only have ${(Number(balance) / 1e6).toFixed(2)} USDC.`);
+      }
+      
+      // Check and approve if needed
+      const allowance = await checkAllowance(address);
+      if (allowance < collateral) {
+        await approveStable(collateral * 2n);
+      }
+
+      // Get current nextId before creating order
+      const nextIdBefore = await publicClient?.readContract({
+        address: ORDERBOOK_ADDRESS,
+        abi: ESCROW_ORDERBOOK_ABI,
+        functionName: "nextId",
+      }) as bigint;
+      
+      // V4: Create private order
+      const createHash = await walletClient.writeContract({
+        address: ORDERBOOK_ADDRESS,
+        abi: ESCROW_ORDERBOOK_ABI,
+        functionName: "createOrder",
+        args: [projectId, amount, unitPrice, isSell, allowedTaker],
+      });
+      await publicClient?.waitForTransactionReceipt({ hash: createHash });
+      
+      const orderId = nextIdBefore;
+      console.log('Created private order ID:', orderId.toString());
 
       return { orderId, createHash };
     },
@@ -252,7 +312,8 @@ export function useOrderbook() {
   return { 
     address, 
     createSellOrder, 
-    createBuyOrder, 
+    createBuyOrder,
+    createPrivateOrder, 
     takeSellOrder, 
     takeBuyOrder, 
     cancel,

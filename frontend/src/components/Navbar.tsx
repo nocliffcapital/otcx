@@ -107,6 +107,16 @@ export function Navbar() {
                 Dashboard
               </Link>
               <Link 
+                href="/private-order" 
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  pathname === '/private-order' 
+                    ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30' 
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                }`}
+              >
+                🔒 Private
+              </Link>
+              <Link 
                 href="/calculator" 
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   pathname === '/calculator' 
@@ -349,6 +359,17 @@ export function Navbar() {
                 }`}
               >
                 Dashboard
+              </Link>
+              <Link 
+                href="/private-order" 
+                onClick={() => setShowMobileMenu(false)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  pathname === '/private-order' 
+                    ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30' 
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                }`}
+              >
+                🔒 Private Order
               </Link>
               <Link 
                 href="/calculator" 
