@@ -13,7 +13,7 @@ import { parseUnits, formatUnits } from "viem";
 import { STABLE_DECIMALS, STABLE_ADDRESS, ERC20_ABI, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
 import { useReadContract } from "wagmi";
 import { PriceChart } from "@/components/PriceChart";
-import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle, DollarSign, ArrowDown, ArrowUp, Percent, Activity, Clock } from "lucide-react";
+import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle, DollarSign, ArrowDown, ArrowUp, Percent, Activity, Clock, User } from "lucide-react";
 import Link from "next/link";
 import ReputationBadge from "@/components/ReputationBadge";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
@@ -810,7 +810,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                           </div>
                         </td>
                         <td className="py-3 px-3 text-center">
-                          {canTake && (
+                          {canTake ? (
                             <Button 
                               size="sm"
                               variant="custom"
@@ -818,9 +818,19 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               disabled={!!actionLoading}
                               className="bg-red-600 hover:bg-red-700 text-xs h-7 px-3"
                             >
-                              {actionLoading === order.id.toString() ? "..." : "Sell"}
+                              {actionLoading === order.id.toString() ? (
+                                <span className="flex items-center gap-1">
+                                  <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
+                                  <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
+                                  <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
+                                </span>
+                              ) : "Sell"}
                             </Button>
-                          )}
+                          ) : address && address.toLowerCase() === order.maker.toLowerCase() ? (
+                            <div className="flex items-center justify-center">
+                              <User className="w-4 h-4 text-zinc-500" title="Your order" />
+                            </div>
+                          ) : null}
                         </td>
                       </tr>
                     );
@@ -907,7 +917,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                           </div>
                         </td>
                         <td className="py-3 px-3 text-center">
-                          {canTake && (
+                          {canTake ? (
                             <Button 
                               size="sm"
                               variant="custom"
@@ -915,9 +925,19 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               disabled={!!actionLoading}
                               className="bg-green-600 hover:bg-green-700 text-xs h-7 px-3"
                             >
-                              {actionLoading === order.id.toString() ? "..." : "Buy"}
+                              {actionLoading === order.id.toString() ? (
+                                <span className="flex items-center gap-1">
+                                  <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
+                                  <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
+                                  <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
+                                </span>
+                              ) : "Buy"}
                             </Button>
-                          )}
+                          ) : address && address.toLowerCase() === order.maker.toLowerCase() ? (
+                            <div className="flex items-center justify-center">
+                              <User className="w-4 h-4 text-zinc-500" title="Your order" />
+                            </div>
+                          ) : null}
                         </td>
                       </tr>
                     );
