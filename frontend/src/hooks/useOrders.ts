@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { usePublicClient } from "wagmi";
 import { ESCROW_ORDERBOOK_ABI, ORDERBOOK_ADDRESS } from "@/lib/contracts";
 
-// Type for raw order data from contract (V3 structure)
-// V3: removed tokensDeposited field, projectId is now bytes32
-type OrderDataTuple = readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, number];
+// Type for raw order data from contract (V4 structure)
+// V4: added allowedTaker field for private orders
+type OrderDataTuple = readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, `0x${string}`, number];
 
 export interface Order {
   id: bigint;
@@ -20,7 +20,7 @@ export interface Order {
   sellerCollateral: bigint;
   settlementDeadline: bigint;
   isSell: boolean;
-  tokensDeposited: boolean;
+  allowedTaker: string; // V4: address(0) = public, specific address = private
   status: number;
   proof?: string; // For Points projects: seller submits proof of token transfer
   // Note: expiry removed - all orders are Good-Til-Cancel (GTC)
@@ -75,7 +75,7 @@ export function useOrders(projectId?: `0x${string}`) {
               // Only fetch proof if order is in TGE_ACTIVATED or later status
               // This reduces API calls significantly
               let proof: string | undefined = undefined;
-              const status = orderData[11]; // V3: status is now at index 11
+              const status = orderData[12]; // V4: status is now at index 12
               if (status >= 2) { // TGE_ACTIVATED = 2
                 try {
                   const proofData = await publicClient.readContract({
@@ -97,15 +97,15 @@ export function useOrders(projectId?: `0x${string}`) {
                 maker: orderData[1],
                 buyer: orderData[2],
                 seller: orderData[3],
-                projectToken: orderData[4], // V3: this is actually projectId (bytes32)
+                projectToken: orderData[4], // V4: this is actually projectId (bytes32)
                 amount: orderData[5],
                 unitPrice: orderData[6],
                 buyerFunds: orderData[7],
                 sellerCollateral: orderData[8],
                 settlementDeadline: orderData[9],
                 isSell: orderData[10],
-                tokensDeposited: false, // V3: removed from contract, always false
-                status: orderData[11], // V3: status is now at index 11
+                allowedTaker: orderData[11], // V4: address(0) = public, specific address = private
+                status: orderData[12], // V4: status is now at index 12
                 proof,
               });
             } catch (err) {
@@ -232,15 +232,15 @@ export function useMyOrders(address?: string) {
                 maker: orderData[1],
                 buyer: orderData[2],
                 seller: orderData[3],
-                projectToken: orderData[4], // V3: this is actually projectId (bytes32)
+                projectToken: orderData[4], // V4: this is actually projectId (bytes32)
                 amount: orderData[5],
                 unitPrice: orderData[6],
                 buyerFunds: orderData[7],
                 sellerCollateral: orderData[8],
                 settlementDeadline: orderData[9],
                 isSell: orderData[10],
-                tokensDeposited: false, // V3: removed from contract, always false
-                status: orderData[11], // V3: status is now at index 11
+                allowedTaker: orderData[11], // V4: address(0) = public, specific address = private
+                status: orderData[12], // V4: status is now at index 12
                 proof,
               };
               

@@ -558,6 +558,7 @@ export default function MyOrdersPage() {
               <thead>
                 <tr className="border-b border-zinc-800">
                   <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Project</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Type</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Side</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
                   <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Amount</th>
@@ -604,6 +605,20 @@ export default function MyOrdersPage() {
                       {projectNames[order.projectToken.toLowerCase()] || "Unknown"}
                     </span>
                   </div>
+                </td>
+
+                {/* Type */}
+                <td className="py-4 px-4">
+                  {order.allowedTaker && order.allowedTaker !== "0x0000000000000000000000000000000000000000" ? (
+                    <Badge className="bg-purple-600 text-xs flex items-center gap-1 w-fit">
+                      <Lock className="w-3 h-3" />
+                      Private
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-zinc-700 text-xs w-fit">
+                      Public
+                    </Badge>
+                  )}
                 </td>
 
                 {/* Side */}
