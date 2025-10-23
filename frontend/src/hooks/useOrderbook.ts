@@ -366,10 +366,13 @@ export function useOrderbook() {
       if (!walletClient || !address) throw new Error("Wallet not connected");
       
       // Get order details to determine collateral needed
-      const order = await getOrder(orderId);
-      if (!order) throw new Error("Order not found");
+      const orderData = await getOrder(orderId);
+      if (!orderData) throw new Error("Order not found");
       
-      const total = (order.amount * order.unitPrice) / 10n**18n;
+      // Parse order tuple
+      const [id, maker, buyer, seller, projectId, amount, unitPrice, buyerFunds, sellerCollateral, createdAt, isSell, allowedTaker, status] = orderData as any[];
+      
+      const total = (amount * unitPrice) / 10n**18n;
       
       // Check and approve if needed
       const allowance = await checkAllowance(address);
