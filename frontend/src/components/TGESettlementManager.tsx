@@ -31,7 +31,7 @@ interface Order {
 // V3 Status Names
 const STATUS_NAMES = ["OPEN", "FUNDED", "TGE_ACTIVATED", "SETTLED", "DEFAULTED", "CANCELED"];
 
-export function TGESettlementManager({ orders, assetType }: { orders: Order[]; assetType: string }) {
+export function TGESettlementManager({ orders, assetType, projectName }: { orders: Order[]; assetType: string; projectName?: string }) {
   const [selectedOrder, setSelectedOrder] = useState<bigint | null>(null);
   const [batchTokenAddress, setBatchTokenAddress] = useState("");
   const [tokenAddress, setTokenAddress] = useState("");
@@ -179,7 +179,9 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
       <div className="flex items-center gap-3 mb-6">
         <Clock className="w-6 h-6 text-violet-400" />
         <div>
-          <h3 className="text-lg font-bold text-violet-400">TGE Settlement Management</h3>
+          <h3 className="text-lg font-bold text-violet-400">
+            TGE Settlement Management {projectName && `- ${projectName}`}
+          </h3>
           <p className="text-sm text-zinc-400">Activate TGE when the token launches</p>
         </div>
       </div>
@@ -223,7 +225,7 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-end gap-3">
+            <div className="flex items-start gap-3">
               <div className="flex-1">
                 <label className="text-sm text-zinc-300 mb-2 block font-medium">
                   Actual Token Address {isPointsProject && <span className="text-zinc-500 font-normal">(optional for off-chain settlement)</span>}
@@ -235,9 +237,9 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
                   className="text-sm"
                 />
               </div>
-              <div className="w-56">
+              <div className="w-64">
                 <label className="text-sm text-zinc-300 mb-2 block font-medium">
-                  Conversion Ratio {!isPointsProject && <span className="text-zinc-500 font-normal">(must be 1.0)</span>}
+                  Conversion Ratio {isPointsProject && <span className="text-zinc-500 font-normal">(1 point = ? tokens)</span>}
                 </label>
                 <Input
                   type="text"
@@ -247,15 +249,12 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
                   className="text-sm font-mono"
                   disabled={!isPointsProject}
                 />
-                {isPointsProject && (
-                  <p className="text-xs text-zinc-500 mt-1">1 point = ? tokens (any positive number)</p>
-                )}
               </div>
               <Button
                 onClick={handleBatchActivateTGE}
                 disabled={isPending || isConfirming}
                 variant="custom"
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border-2 border-green-500/50 shadow-lg shadow-green-500/20 px-6 h-[42px]"
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border-2 border-green-500/50 shadow-lg shadow-green-500/20 px-6 h-[42px] mt-7"
               >
                 <PlayCircle className="w-5 h-5 mr-2" />
                 Activate Project TGE

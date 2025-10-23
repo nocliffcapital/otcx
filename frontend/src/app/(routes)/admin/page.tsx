@@ -1407,10 +1407,7 @@ export default function AdminPage() {
       {showTGEManager && tgeProjectSlug && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
           <Card className="w-full max-w-5xl my-8 border-violet-500/30 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-violet-400">
-                TGE Management - {projects.find(p => p.slug === tgeProjectSlug)?.name}
-              </h2>
+            <div className="flex items-center justify-end mb-3">
               <Button
                 onClick={closeTGEManager}
                 variant="custom"
@@ -1431,6 +1428,7 @@ export default function AdminPage() {
                   return o.projectToken && typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === project.id.toLowerCase();
                 })}
                 assetType={projects.find(p => p.slug === tgeProjectSlug)?.isPoints ? "Points" : "Tokens"}
+                projectName={projects.find(p => p.slug === tgeProjectSlug)?.name}
               />
             )}
           </Card>
