@@ -905,7 +905,7 @@ export default function ProjectsPage() {
                     <td className="py-4 px-4">
                       {!loadingStats && stats ? (
                         <div className="w-[120px] h-12 mx-auto">
-                          {stats.lowestAsk !== null && stats.highestBid !== null ? (
+                          {stats.tradeCount > 0 || (stats.lowestAsk !== null && stats.highestBid !== null) ? (
                             <svg 
                               viewBox="0 0 120 48" 
                               className="w-full h-full"
@@ -918,12 +918,13 @@ export default function ProjectsPage() {
                                 </linearGradient>
                               </defs>
                               {(() => {
+                                // Use lastPrice if available (has trades), otherwise use bid/ask spread
+                                const basePrice = stats.lastPrice || ((stats.lowestAsk || 0) + (stats.highestBid || 0)) / 2;
                                 const points = Array.from({ length: 20 }).map((_, i) => {
-                                  const mid = ((stats.lowestAsk || 0) + (stats.highestBid || 0)) / 2;
-                                  const variation = (Math.sin(i * 0.5) * 0.1 + Math.cos(i * 0.3) * 0.05) * mid;
-                                  const value = mid + variation;
-                                  const minVal = Math.min(stats.lowestAsk || 0, stats.highestBid || 0) * 0.95;
-                                  const maxVal = Math.max(stats.lowestAsk || 0, stats.highestBid || 0) * 1.05;
+                                  const variation = (Math.sin(i * 0.5) * 0.1 + Math.cos(i * 0.3) * 0.05) * basePrice;
+                                  const value = basePrice + variation;
+                                  const minVal = basePrice * 0.95;
+                                  const maxVal = basePrice * 1.05;
                                   const normalizedY = maxVal > minVal ? ((value - minVal) / (maxVal - minVal)) : 0.5;
                                   const x = (i / 19) * 120;
                                   const y = 48 - (normalizedY * 36 + 6);

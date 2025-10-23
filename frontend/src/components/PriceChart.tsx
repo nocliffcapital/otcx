@@ -42,31 +42,26 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
 
   const chartData = useMemo(() => {
-    // V3: Filter for FUNDED (1) and SETTLED (3) orders to show in chart
-    const filledOrders = allOrders.filter(order => order.status === 1 || order.status === 3);
+    // V4: Filter for FUNDED (1) and SETTLED (2) orders to show in chart
+    // These are orders that have been matched and have real price data
+    const filledOrders = allOrders.filter(order => order.status === 1 || order.status === 2);
     
-    // Sort by order ID (chronological)
+    // Sort by order ID (chronological - lower ID = earlier in time)
     filledOrders.sort((a, b) => Number(a.id) - Number(b.id));
     
-    // Calculate time-based filtering
-    // Since we don't have exact timestamps, we'll use order position as a proxy
-    // Assuming roughly even distribution of orders over time
+    // Time-based filtering: use order count as a time proxy
+    // Since we don't have block timestamps, order ID sequence is our best time indicator
     let filteredOrders = filledOrders;
     
     if (timeRange !== "all" && filledOrders.length > 0) {
-      // Estimate which orders fall within the time range
-      // For simplicity, we'll take a percentage of the most recent orders
-      const percentages = {
-        "24h": 0.1,  // Last 10% of orders
-        "7d": 0.3,   // Last 30% of orders
-        "1m": 0.6,   // Last 60% of orders
+      // More aggressive filtering for realistic time windows
+      const filterStrategies = {
+        "24h": Math.max(Math.ceil(filledOrders.length * 0.15), 1),  // Recent 15%
+        "7d": Math.max(Math.ceil(filledOrders.length * 0.4), 1),    // Recent 40%
+        "1m": Math.max(Math.ceil(filledOrders.length * 0.7), 1),    // Recent 70%
       };
       
-      const keepCount = Math.max(
-        Math.ceil(filledOrders.length * percentages[timeRange]),
-        1
-      );
-      
+      const keepCount = filterStrategies[timeRange];
       filteredOrders = filledOrders.slice(-keepCount);
     }
     
@@ -77,7 +72,8 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
       const volume = price * amount; // Volume in USD
       
       return {
-        index: index + 1,
+        // Use sequential index for smooth X-axis (represents relative time)
+        time: index + 1,
         orderId: Number(order.id),
         price: price,
         type: order.isSell ? "Sell" : "Buy",
@@ -89,7 +85,7 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
     // If no orders, show a placeholder
     if (dataPoints.length === 0) {
       return [
-        { index: 1, price: 0, orderId: 0, volume: 0, amount: 0 }
+        { time: 1, price: 0, orderId: 0, volume: 0, amount: 0 }
       ];
     }
     
@@ -212,11 +208,12 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
             <LineChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
               <XAxis 
-                dataKey="index" 
+                dataKey="time" 
                 stroke="#71717a"
                 tick={{ fill: '#71717a', fontSize: 10 }}
-                label={{ value: 'Order #', position: 'insideBottom', offset: 0, fill: '#52525b', fontSize: 10 }}
+                label={{ value: 'Time →', position: 'insideBottom', offset: 0, fill: '#52525b', fontSize: 10 }}
                 height={40}
+                tickFormatter={() => ''} // Hide tick labels for cleaner look
               />
               <YAxis 
                 stroke="#71717a"

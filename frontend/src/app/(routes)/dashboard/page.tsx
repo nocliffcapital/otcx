@@ -253,17 +253,33 @@ export default function MyOrdersPage() {
         {address && !loading && orders.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {/* Current Settlements (In Settlement - TGE Activated) */}
-            <Card className="p-4 border-blue-500/30 bg-blue-950/20">
+            <Card className={`p-4 transition-all ${
+              stats.inSettlement > 0
+                ? "border-yellow-500/50 bg-yellow-950/30 shadow-lg shadow-yellow-500/20 ring-2 ring-yellow-500/30 animate-pulse"
+                : "border-blue-500/30 bg-blue-950/20"
+            }`}>
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <Clock className="w-6 h-6 text-blue-400" />
+                <div className={`p-2 rounded-lg ${
+                  stats.inSettlement > 0
+                    ? "bg-yellow-500/30"
+                    : "bg-blue-500/20"
+                }`}>
+                  <Clock className={`w-6 h-6 ${
+                    stats.inSettlement > 0
+                      ? "text-yellow-400"
+                      : "text-blue-400"
+                  }`} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-blue-400 mb-1">Current Settlements</h3>
+                  <h3 className={`text-sm font-semibold mb-1 ${
+                    stats.inSettlement > 0
+                      ? "text-yellow-400"
+                      : "text-blue-400"
+                  }`}>Current Settlements</h3>
                   {stats.inSettlement > 0 ? (
-                    <p className="text-xs text-zinc-300">
-                      <AlertCircle className="w-3 h-3 inline mr-1" />
-                      You have <span className="font-bold text-blue-400">{stats.inSettlement}</span> order(s) in settlement
+                    <p className="text-xs text-zinc-200 font-medium">
+                      <AlertCircle className="w-3 h-3 inline mr-1 text-yellow-400" />
+                      You have <span className="font-bold text-yellow-300 text-sm">{stats.inSettlement}</span> order(s) requiring action!
                     </p>
                   ) : (
                     <p className="text-xs text-zinc-400">No orders in settlement</p>

@@ -149,8 +149,17 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   console.log('All orders for project:', orders);
   console.log('Orders filtered by projectId:', projectId);
   
-  const sellOrders = orders.filter(o => o.isSell && o.status === 0);
-  const buyOrders = orders.filter(o => !o.isSell && o.status === 0);
+  // Sort orders by best price first
+  // Sell orders: lowest price first (best for buyers)
+  const sellOrders = orders
+    .filter(o => o.isSell && o.status === 0)
+    .sort((a, b) => Number(a.unitPrice) - Number(b.unitPrice));
+  
+  // Buy orders: highest price first (best for sellers)
+  const buyOrders = orders
+    .filter(o => !o.isSell && o.status === 0)
+    .sort((a, b) => Number(b.unitPrice) - Number(a.unitPrice));
+  
   // V3: Filled orders = FUNDED (1), TGE_ACTIVATED (2), and SETTLED (3)
   // Use allOrders (not filtered by status) for filled orders section
   const filledOrders = allOrders.filter(o => o.status === 1 || o.status === 2 || o.status === 3).sort((a, b) => Number(b.id) - Number(a.id));
