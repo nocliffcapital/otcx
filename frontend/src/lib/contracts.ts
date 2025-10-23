@@ -1,5 +1,5 @@
 /**
- * V4 Contract Configuration
+ * V4 Contract Configuration (Multi-chain Support)
  * 
  * Key Changes from V3:
  * - Collateral whitelist system (USDC + USDT support)
@@ -10,16 +10,35 @@
  * - 18-decimal token enforcement
  * - Project-level TGE activation
  * - All audit recommendations implemented
+ * - Multi-chain deployment support
  */
 
 import ProjectRegistryV2ABI from './ProjectRegistryV2.abi.json';
 import EscrowOrderBookV4ABI from './abis/EscrowOrderBookV4.abi.json';
 import { keccak256, toBytes } from 'viem';
+import { getChainConfig } from './chains';
 
-export const ORDERBOOK_ADDRESS = process.env.NEXT_PUBLIC_ORDERBOOK as `0x${string}`;
-export const STABLE_ADDRESS = process.env.NEXT_PUBLIC_STABLE as `0x${string}`;
+/**
+ * Get contract addresses for current chain
+ * Falls back to Sepolia if chain not configured
+ */
+export function getContractAddresses(chainId?: number) {
+  const config = getChainConfig(chainId || 11155111);
+  
+  return {
+    ORDERBOOK_ADDRESS: config.orderbook,
+    REGISTRY_ADDRESS: config.registry,
+    STABLE_ADDRESS: config.stable,
+    STABLE_DECIMALS: config.stableDecimals,
+    STABLE_SYMBOL: config.stableSymbol,
+  };
+}
+
+// Legacy exports for backward compatibility (uses env vars or defaults to Sepolia)
+export const ORDERBOOK_ADDRESS = (process.env.NEXT_PUBLIC_ORDERBOOK || '0x95a7cB49A83cd4b889bF9Be36E24e65b92B51eb7') as `0x${string}`;
+export const STABLE_ADDRESS = (process.env.NEXT_PUBLIC_STABLE || '0xd5d56a9Cd59550c6D95569620F7eb89C1E4c9101') as `0x${string}`;
 export const STABLE_DECIMALS = Number(process.env.NEXT_PUBLIC_STABLE_DECIMALS || 6);
-export const REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`;
+export const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY || '0x138c5ff78c85a0D01FaC617bcf3361bA677B3255') as `0x${string}`;
 
 // Mock Token for testing Token settlements (has public mint function)
 export const MOCK_TOKEN_ADDRESS = "0xfd61aE399C5F9A2e90292395A37F9C87b5f08084" as `0x${string}`;
