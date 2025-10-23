@@ -13,7 +13,7 @@ import { formatUnits } from "viem";
 import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { useState, useEffect, useMemo } from "react";
 import { useReadContract, usePublicClient } from "wagmi";
-import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight, FileText, Search, AlertCircle } from "lucide-react";
+import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight, FileText, Search, AlertCircle, Link as LinkIcon, Copy } from "lucide-react";
 
 // V4: Simplified status enum (no TGE_ACTIVATED status)
 const STATUS_LABELS = [
@@ -199,6 +199,13 @@ export default function MyOrdersPage() {
     } finally {
       setCanceling(null);
     }
+  };
+
+  const handleCopyPrivateLink = (orderId: bigint, allowedTaker: string) => {
+    const baseUrl = window.location.origin;
+    const link = `${baseUrl}/order/${orderId}?taker=${allowedTaker}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Link copied!", "Share this link with the intended recipient");
   };
 
   const handleLockCollateral = async (order: { id: bigint; isSell: boolean; amount: bigint; unitPrice: bigint }) => {
@@ -728,6 +735,23 @@ export default function MyOrdersPage() {
                         isOwner={false} 
                         projectTgeActivated={projectTgeStatus[order.projectToken.toLowerCase()]}
                       />
+                    )}
+                    
+                    {/* Copy Private Link button for private orders */}
+                    {order.allowedTaker && order.allowedTaker !== "0x0000000000000000000000000000000000000000" && order.status === 0 && (
+                      <Button
+                        size="sm"
+                        variant="custom"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyPrivateLink(order.id, order.allowedTaker);
+                        }}
+                        className="bg-purple-600 hover:bg-purple-700 text-xs px-2 py-1 whitespace-nowrap h-7"
+                        title="Copy shareable link"
+                      >
+                        <Copy className="w-3 h-3 mr-1 inline" />
+                        Copy Link
+                      </Button>
                     )}
                     
                     {order.status === 0 && (
