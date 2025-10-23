@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/Logo";
-import { Shield, Zap, TrendingUp, BookOpen, Search } from "lucide-react";
+import { Shield, Zap, TrendingUp, Lock, Search } from "lucide-react";
 import { usePublicClient } from "wagmi";
 import { useEffect, useState } from "react";
 import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, STABLE_DECIMALS } from "@/lib/contracts";
@@ -151,13 +151,13 @@ export default function HomePage() {
                 Browse Markets
               </Button>
             </Link>
-            <Link href="/how-it-works">
+            <Link href="/private-order">
               <Button
                 variant="custom"
                 className="bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-700 text-base px-8 py-3 flex items-center gap-2"
               >
-                <BookOpen className="w-4 h-4" />
-                How It Works
+                <Lock className="w-4 h-4" />
+                Private Orders
               </Button>
             </Link>
           </div>

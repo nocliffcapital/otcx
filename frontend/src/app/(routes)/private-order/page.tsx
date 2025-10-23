@@ -47,7 +47,7 @@ export default function PrivateOrderPage() {
   return (
     <div className="relative min-h-screen">
       {/* Header */}
-      <div className="relative mx-auto max-w-4xl px-4 py-8">
+      <div className="relative mx-auto max-w-7xl px-4 py-8">
         <Link 
           href="/markets"
           className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-cyan-400 transition-colors mb-6"
@@ -57,16 +57,9 @@ export default function PrivateOrderPage() {
         </Link>
 
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center">
-              <Lock className="w-6 h-6 text-purple-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                Create Private Order
-              </h1>
-            </div>
-          </div>
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-3">
+            Create Private Order
+          </h1>
           <p className="text-lg text-zinc-400">
             Create an order that only a specific address can fill. Perfect for negotiated trades.
           </p>
