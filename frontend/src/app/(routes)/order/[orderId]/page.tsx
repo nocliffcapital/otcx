@@ -36,6 +36,8 @@ export default function PrivateOrderPage() {
         setLoading(true);
         const orderData = await getOrder(BigInt(orderId));
         
+        console.log('Order data:', orderData);
+        
         if (!orderData) {
           toast.error('Order not found', 'This order does not exist or has been removed');
           return;
@@ -44,7 +46,9 @@ export default function PrivateOrderPage() {
         setOrder(orderData);
         
         // Load project data
+        console.log('Fetching project with ID:', orderData.projectId);
         const projectData = await getProjectById(orderData.projectId);
+        console.log('Project data:', projectData);
         setProject(projectData);
         
         // Check if user is authorized
@@ -94,7 +98,7 @@ export default function PrivateOrderPage() {
     );
   }
 
-  if (!order) {
+  if (!order || !order.amount || !order.unitPrice) {
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto">
