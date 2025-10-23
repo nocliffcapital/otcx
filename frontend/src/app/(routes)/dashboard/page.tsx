@@ -10,23 +10,22 @@ import { useToast } from "@/components/Toast";
 import ReputationBadge from "@/components/ReputationBadge";
 import { TGEOrderControls } from "@/components/TGEOrderControls";
 import { formatUnits } from "viem";
-import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI } from "@/lib/contracts";
+import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { useState, useEffect, useMemo } from "react";
 import { useReadContract, usePublicClient } from "wagmi";
-import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight, FileText } from "lucide-react";
+import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight, FileText, Search, AlertCircle } from "lucide-react";
 
+// V4: Simplified status enum (no TGE_ACTIVATED status)
 const STATUS_LABELS = [
   "OPEN",            // 0
   "FUNDED",          // 1
-  "TGE ACTIVATED",   // 2
-  "SETTLED",         // 3 (V3: auto-settled when tokens deposited)
-  "DEFAULTED",       // 4
-  "CANCELED"         // 5 (V3: no EXPIRED status)
+  "SETTLED",         // 2
+  "DEFAULTED",       // 3
+  "CANCELED"         // 4
 ];
 const STATUS_COLORS = [
   "bg-orange-500",   // OPEN
   "bg-blue-500",     // FUNDED
-  "bg-violet-600",   // TGE_ACTIVATED
   "bg-emerald-600",  // SETTLED
   "bg-red-700",      // DEFAULTED
   "bg-gray-600"      // CANCELED
@@ -40,7 +39,11 @@ export default function MyOrdersPage() {
   const [locking, setLocking] = useState<string | null>(null);
   const [projectNames, setProjectNames] = useState<Record<string, string>>({});
   const [projectMetadata, setProjectMetadata] = useState<Record<string, string>>({}); // token address -> metadataURI
+  const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({}); // projectId -> TGE activated
   const [showCanceled, setShowCanceled] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sideFilter, setSideFilter] = useState<"all" | "buy" | "sell">("all");
+  const [activeTab, setActiveTab] = useState<"open" | "filled" | "settlement" | "ended">("open");
 
   const publicClient = usePublicClient();
 
@@ -51,44 +54,104 @@ export default function MyOrdersPage() {
     functionName: "getActiveProjects",
   });
 
-  // V3: Map projectId (bytes32) -> name and metadataURI
-  // Orders store projectId in the projectToken field (confusing naming from V2)
+  // V4: Map projectId (bytes32) -> name, metadataURI, and TGE status
+  // Orders store projectId in the projectToken field
   useEffect(() => {
-    if (!projects) return;
+    if (!projects || !publicClient) return;
     
     const nameMap: Record<string, string> = {};
     const metadataMap: Record<string, string> = {};
     
-    // V3: getActiveProjects returns full structs with metadataURI
-    for (const proj of projects as Array<{ id: string; name: string; metadataURI: string }>) {
-      try {
-        // V3: projectId (bytes32) is stored in proj.id
-        nameMap[proj.id.toLowerCase()] = proj.name;
-        metadataMap[proj.id.toLowerCase()] = proj.metadataURI || '';
-      } catch (error) {
-        console.error(`Failed to process project ${proj.name}:`, error);
+    // Fetch TGE status for all projects
+    const fetchTgeStatuses = async () => {
+      const tgeStatusMap: Record<string, boolean> = {};
+      
+      for (const proj of projects as Array<{ id: string; name: string; metadataURI: string }>) {
+        try {
+          // V4: projectId (bytes32) is stored in proj.id
+          nameMap[proj.id.toLowerCase()] = proj.name;
+          metadataMap[proj.id.toLowerCase()] = proj.metadataURI || '';
+          
+          // Fetch TGE status from contract
+          const tgeActivated = await publicClient.readContract({
+            address: ORDERBOOK_ADDRESS,
+            abi: ESCROW_ORDERBOOK_ABI,
+            functionName: "projectTgeActivated",
+            args: [proj.id as `0x${string}`],
+          }) as boolean;
+          
+          tgeStatusMap[proj.id.toLowerCase()] = tgeActivated;
+        } catch (error) {
+          console.error(`Failed to process project ${proj.name}:`, error);
+          tgeStatusMap[proj.id.toLowerCase()] = false;
+        }
       }
-    }
+      
+      setProjectTgeStatus(tgeStatusMap);
+    };
     
     setProjectNames(nameMap);
     setProjectMetadata(metadataMap);
-  }, [projects]);
+    fetchTgeStatuses();
+  }, [projects, publicClient]);
 
-  // Filter orders based on showCanceled toggle
+  // Filter orders based on tab, search, side filter, and showCanceled toggle
   const filteredOrders = useMemo(() => {
-    if (showCanceled) return orders;
-    return orders.filter(o => o.status !== 5); // Exclude CANCELED (status 5 in V3)
-  }, [orders, showCanceled]);
+    let filtered = orders;
+
+    // V4: Tab filtering (adjusted for new status enum)
+    if (activeTab === "open") {
+      // Only OPEN orders (not yet filled)
+      filtered = filtered.filter(o => o.status === 0);
+    } else if (activeTab === "filled") {
+      // FUNDED orders (filled but not yet settled)
+      filtered = filtered.filter(o => o.status === 1);
+    } else if (activeTab === "settlement") {
+      // V4: In Settlement = FUNDED (1) AND project TGE activated
+      filtered = filtered.filter(o => 
+        o.status === 1 && projectTgeStatus[o.projectToken.toLowerCase()]
+      );
+    } else if (activeTab === "ended") {
+      // V4: SETTLED (2), DEFAULTED (3), CANCELED (4)
+      filtered = filtered.filter(o => o.status === 2 || o.status === 3 || o.status === 4);
+    }
+
+    // Side filter
+    if (sideFilter === "buy") {
+      filtered = filtered.filter(o => !o.isSell);
+    } else if (sideFilter === "sell") {
+      filtered = filtered.filter(o => o.isSell);
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(o => {
+        const projectName = projectNames[o.projectToken.toLowerCase()] || "";
+        const orderId = o.id.toString();
+        return projectName.toLowerCase().includes(query) || orderId.includes(query);
+      });
+    }
+
+    // Canceled filter (only for "ended" tab)
+    if (activeTab === "ended" && !showCanceled) {
+      filtered = filtered.filter(o => o.status !== 4); // V4: CANCELED is status 4
+    }
+
+    return filtered;
+  }, [orders, activeTab, sideFilter, searchQuery, showCanceled, projectNames, projectTgeStatus]);
 
   // Calculate summary stats (always based on all orders)
   const stats = useMemo(() => {
-    // In Settlement: only TGE_ACTIVATED (2) in V3 (no TOKENS_DEPOSITED state anymore)
-    const inSettlement = orders.filter(o => o.status === 2).length;
+    // V4: In Settlement = FUNDED (1) AND project TGE activated
+    const inSettlement = orders.filter(o => 
+      o.status === 1 && projectTgeStatus[o.projectToken.toLowerCase()]
+    ).length;
 
     const active = orders.filter(o => o.status === 0).length; // OPEN
     const funded = orders.filter(o => o.status === 1).length; // FUNDED
-    const settled = orders.filter(o => o.status === 3).length; // SETTLED (V3: status 3)
-    const canceled = orders.filter(o => o.status === 5).length; // CANCELED (V3: status 5)
+    const settled = orders.filter(o => o.status === 2).length; // SETTLED (V4: status 2)
+    const canceled = orders.filter(o => o.status === 4).length; // CANCELED (V4: status 4)
 
     // Calculate total volume (sum of all order values in USDC)
     const totalVolume = orders.reduce((sum, order) => {
@@ -115,7 +178,7 @@ export default function MyOrdersPage() {
       sellOrders,
       avgOrderSize
     };
-  }, [orders]);
+  }, [orders, projectTgeStatus]);
 
   const handleCancel = async (orderId: bigint) => {
     try {
@@ -184,7 +247,52 @@ export default function MyOrdersPage() {
             Dashboard
           </span>
         </h1>
-        <p className="text-zinc-400 mb-8">Track and manage all your OTC orders</p>
+        <p className="text-zinc-400 mb-6">Track and manage all your OTC orders</p>
+
+        {/* Settlement Alerts */}
+        {address && !loading && orders.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {/* Current Settlements (In Settlement - TGE Activated) */}
+            <Card className="p-4 border-blue-500/30 bg-blue-950/20">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <Clock className="w-6 h-6 text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-blue-400 mb-1">Current Settlements</h3>
+                  {stats.inSettlement > 0 ? (
+                    <p className="text-xs text-zinc-300">
+                      <AlertCircle className="w-3 h-3 inline mr-1" />
+                      You have <span className="font-bold text-blue-400">{stats.inSettlement}</span> order(s) in settlement
+                    </p>
+                  ) : (
+                    <p className="text-xs text-zinc-400">No orders in settlement</p>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            {/* Completed Settlements (Settled) */}
+            <Card className="p-4 border-emerald-500/30 bg-emerald-950/20">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-emerald-500/20 rounded-lg">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-emerald-400 mb-1">Completed Settlements</h3>
+                  {stats.settled > 0 ? (
+                    <p className="text-xs text-zinc-300">
+                      <CheckCircle2 className="w-3 h-3 inline mr-1" />
+                      You have <span className="font-bold text-emerald-400">{stats.settled}</span> completed settlement(s)
+                    </p>
+                  ) : (
+                    <p className="text-xs text-zinc-400">No completed settlements</p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* Summary Stats */}
         {address && !loading && orders.length > 0 && (
@@ -303,39 +411,149 @@ export default function MyOrdersPage() {
           </Card>
         )}
 
-        {/* Filter Controls */}
+        {/* Tabs */}
         {address && !loading && orders.length > 0 && (
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-zinc-400">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 border-b border-zinc-800 mb-4">
+              <button
+                onClick={() => setActiveTab("open")}
+                className={`px-4 py-2 text-sm font-medium transition-all relative ${
+                  activeTab === "open"
+                    ? "text-cyan-400"
+                    : "text-zinc-400 hover:text-zinc-300"
+                }`}
+              >
+                Open Orders
+                {activeTab === "open" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+                )}
+                <Badge className="ml-2 bg-orange-600 text-xs">
+                  {stats.active}
+                </Badge>
+              </button>
+              <button
+                onClick={() => setActiveTab("filled")}
+                className={`px-4 py-2 text-sm font-medium transition-all relative ${
+                  activeTab === "filled"
+                    ? "text-cyan-400"
+                    : "text-zinc-400 hover:text-zinc-300"
+                }`}
+              >
+                Filled Orders
+                {activeTab === "filled" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+                )}
+                <Badge className="ml-2 bg-blue-600 text-xs">
+                  {stats.funded}
+                </Badge>
+              </button>
+              <button
+                onClick={() => setActiveTab("settlement")}
+                className={`px-4 py-2 text-sm font-medium transition-all relative ${
+                  activeTab === "settlement"
+                    ? "text-violet-400"
+                    : "text-zinc-400 hover:text-zinc-300"
+                }`}
+              >
+                In Settlement
+                {activeTab === "settlement" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-400"></div>
+                )}
+                <Badge className="ml-2 bg-violet-600 text-xs">
+                  {stats.inSettlement}
+                </Badge>
+              </button>
+              <button
+                onClick={() => setActiveTab("ended")}
+                className={`px-4 py-2 text-sm font-medium transition-all relative ${
+                  activeTab === "ended"
+                    ? "text-cyan-400"
+                    : "text-zinc-400 hover:text-zinc-300"
+                }`}
+              >
+                Ended Settlements
+                {activeTab === "ended" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+                )}
+                <Badge className="ml-2 bg-emerald-600 text-xs">
+                  {orders.filter(o => o.status === 2 || o.status === 3 || o.status === 4).length}
+                </Badge>
+              </button>
+            </div>
+
+            {/* Search and Filters */}
+            <div className="flex flex-col md:flex-row gap-3 mb-4">
+              {/* Search */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Search by project name or order ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-all"
+                />
+              </div>
+
+              {/* Side Filter */}
+              <select
+                value={sideFilter}
+                onChange={(e) => setSideFilter(e.target.value as "all" | "buy" | "sell")}
+                className="px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-cyan-500 transition-all cursor-pointer"
+              >
+                <option value="all">All Sides</option>
+                <option value="buy">Buy Only</option>
+                <option value="sell">Sell Only</option>
+              </select>
+
+              {/* Include Canceled (only for "ended" tab) */}
+              {activeTab === "ended" && (
+                <button
+                  onClick={() => setShowCanceled(!showCanceled)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 transition-all text-sm whitespace-nowrap"
+                >
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                    showCanceled 
+                      ? 'bg-cyan-600 border-cyan-600' 
+                      : 'border-zinc-600'
+                  }`}>
+                    {showCanceled && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-zinc-300">Include canceled</span>
+                </button>
+              )}
+            </div>
+
+            {/* Results count */}
+            <div className="text-sm text-zinc-400 mb-4">
               Showing {filteredOrders.length} of {orders.length} orders
             </div>
-            <button
-              onClick={() => setShowCanceled(!showCanceled)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 transition-all text-sm"
-            >
-              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                showCanceled 
-                  ? 'bg-cyan-600 border-cyan-600' 
-                  : 'border-zinc-600'
-              }`}>
-                {showCanceled && (
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-zinc-300">Include canceled orders</span>
-              {stats.canceled > 0 && (
-                <Badge className="bg-zinc-700 text-zinc-300 text-xs">
-                  {stats.canceled}
-                </Badge>
-              )}
-            </button>
           </div>
         )}
 
-        <div className="space-y-3">
-          {filteredOrders.map((order) => {
+        {/* Orders Table */}
+        {address && !loading && filteredOrders.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-800">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Project</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Side</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Amount</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Price</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total</th>
+                  <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Progress</th>
+                  <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Escrow</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+        {filteredOrders.map((order) => {
             // Calculate total in stable decimals (USD value)
             // amount is 18 decimals, unitPrice is 6 decimals, so divide by 10^18
             const total = (order.amount * order.unitPrice) / BigInt(10 ** 18);
@@ -345,209 +563,183 @@ export default function MyOrdersPage() {
               (order.isSell && !hasBuyerLock) || 
               (!order.isSell && !hasSellerLock)
             );
-            // Note: GTC orders don't expire
-            const isInSettlement = order.status === 2; // TGE_ACTIVATED (V3: no TOKENS_DEPOSITED state)
+            // V4: In Settlement = FUNDED (1) AND project TGE activated
+            const isInSettlement = order.status === 1 && projectTgeStatus[order.projectToken.toLowerCase()];
             
             // Determine user's role in this order
             const iAmSeller = order.seller.toLowerCase() === address?.toLowerCase();
             const iAmBuyer = order.buyer.toLowerCase() === address?.toLowerCase();
 
             return (
-              <Card key={order.id.toString()} className="p-3 hover:border-amber-500/30 transition-all">
-                <div className="flex gap-3">
-                  {/* Project Icon */}
-                  <ProjectImage 
-                    metadataURI={projectMetadata[order.projectToken.toLowerCase()]}
-                    imageType="icon"
-                    className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-zinc-700"
-                    fallbackText={(projectNames[order.projectToken.toLowerCase()] || "?").charAt(0).toUpperCase()}
-                  />
-                  
-                  <div className="flex-1 min-w-0 flex flex-col md:flex-row justify-between gap-3">
-                    {/* Left: Main info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <Badge className={order.isSell ? "bg-red-600 text-xs" : "bg-green-600 text-xs"}>
-                          {order.isSell ? "SELL" : "BUY"}
-                        </Badge>
-                      {isInSettlement && (
-                        <>
-                          <Badge className="bg-orange-600 text-xs">TGE ACTIVATED</Badge>
-                          {order.settlementDeadline > 0n && (() => {
-                            const deadline = Number(order.settlementDeadline) * 1000;
-                            const now = Date.now();
-                            const remaining = deadline - now;
-                            if (remaining > 0) {
-                              const hours = Math.floor(remaining / (1000 * 60 * 60));
-                              const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                              return (
-                                <Badge className="bg-red-600 text-xs">
-                                  ⏰ {hours}h {minutes}m left
-                                </Badge>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </>
-                      )}
-                      {!isInSettlement && (
-                        <Badge className={`${STATUS_COLORS[order.status]} text-xs`}>
-                          {STATUS_LABELS[order.status]}
-                        </Badge>
-                      )}
-                      <span className="text-xs text-zinc-400 ml-2">
-                        {projectNames[order.projectToken.toLowerCase()] || "Unknown Project"}
-                      </span>
-                      {/* Show counterparty reputation if order is funded */}
-                      {(hasBuyerLock || hasSellerLock) && (
-                        <>
-                          <span className="text-xs text-zinc-500 ml-2">•</span>
-                          <span className="text-xs text-zinc-500">
-                            {order.isSell ? "Buyer:" : "Seller:"}
+              <tr 
+                key={order.id.toString()}
+                className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-all group"
+              >
+                {/* Project */}
+                <td className="py-4 px-4">
+                  <div className="flex items-center gap-2">
+                    <ProjectImage 
+                      metadataURI={projectMetadata[order.projectToken.toLowerCase()]}
+                      imageType="icon"
+                      className="w-8 h-8 rounded-full object-cover border-2 border-zinc-700"
+                      fallbackText={(projectNames[order.projectToken.toLowerCase()] || "?").charAt(0).toUpperCase()}
+                    />
+                    <span className="text-sm font-medium text-white">
+                      {projectNames[order.projectToken.toLowerCase()] || "Unknown"}
+                    </span>
+                  </div>
+                </td>
+
+                {/* Side */}
+                <td className="py-4 px-4">
+                  <Badge className={order.isSell ? "bg-red-600 text-xs" : "bg-green-600 text-xs"}>
+                    {order.isSell ? "SELL" : "BUY"}
+                  </Badge>
+                </td>
+
+                {/* Status */}
+                <td className="py-4 px-4">
+                  <div className="flex flex-col gap-1">
+                    <Badge className={`${STATUS_COLORS[order.status]} text-xs w-fit`}>
+                      {STATUS_LABELS[order.status]}
+                    </Badge>
+                    {isInSettlement && order.settlementDeadline > 0n && (() => {
+                      const deadline = Number(order.settlementDeadline) * 1000;
+                      const now = Date.now();
+                      const remaining = deadline - now;
+                      if (remaining > 0) {
+                        const hours = Math.floor(remaining / (1000 * 60 * 60));
+                        const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                        return (
+                          <span className="text-[10px] text-red-400">
+                            ⏰ {hours}h {minutes}m left
                           </span>
-                          <ReputationBadge 
-                            address={order.isSell ? order.buyer : order.seller} 
-                            variant="compact" 
-                          />
-                        </>
-                      )}
-                    </div>
-
-                    <div className="flex items-baseline gap-3 flex-wrap text-xs mb-2">
-                      <div>
-                        <span className="text-zinc-500">Amount: </span>
-                        <span className="font-medium text-white">{formatUnits(order.amount, 18)}</span>
-                      </div>
-                      <div>
-                        <span className="text-zinc-500">@ </span>
-                        <span className="font-medium text-cyan-400">${formatUnits(order.unitPrice, STABLE_DECIMALS)}</span>
-                      </div>
-                      <div>
-                        <span className="text-zinc-500">Total: </span>
-                        <span className="font-semibold text-white">${formatUnits(total, STABLE_DECIMALS)}</span>
-                      </div>
-                    </div>
-
-                    {/* Visual Timeline - Compact */}
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
-                        order.status >= 0 ? 'bg-orange-500 text-white' : 'bg-zinc-800 text-zinc-600'
-                      }`}>
-                        1
-                      </div>
-                      <div className={`h-0.5 w-6 ${order.status >= 1 ? 'bg-blue-500' : 'bg-zinc-800'}`}></div>
-                      
-                      <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
-                        order.status >= 1 ? 'bg-blue-500 text-white' : 'bg-zinc-800 text-zinc-600'
-                      }`}>
-                        2
-                      </div>
-                      <div className={`h-0.5 w-6 ${order.status >= 2 ? 'bg-violet-600' : 'bg-zinc-800'}`}></div>
-                      
-                      <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
-                        order.status >= 2 ? 'bg-violet-600 text-white' : 'bg-zinc-800 text-zinc-600'
-                      }`}>
-                        3
-                      </div>
-                      <div className={`h-0.5 w-6 ${order.status === 3 ? 'bg-emerald-600' : order.status >= 4 ? 'bg-red-700' : 'bg-zinc-800'}`}></div>
-                      
-                      <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
-                        order.status === 3 ? 'bg-emerald-600 text-white' : 
-                        order.status === 4 ? 'bg-orange-600 text-white' : 
-                        order.status === 5 ? 'bg-red-700 text-white' : 
-                        'bg-zinc-800 text-zinc-600'
-                      }`}>
-                        {order.status === 3 ? '✓' : order.status === 4 ? 'D' : order.status === 5 ? '✗' : '4'}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-1 text-[9px] text-zinc-500">
-                      <span className="w-5 text-center">Open</span>
-                      <span className="w-6"></span>
-                      <span className="w-5 text-center">Lock</span>
-                      <span className="w-6"></span>
-                      <span className="w-5 text-center">TGE</span>
-                      <span className="w-6"></span>
-                      <span className="w-5 text-center">Done</span>
-                    </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
+                </td>
 
-                  {/* Right: Escrow status + Action buttons */}
-                  <div className="flex flex-col justify-between gap-2">
-                    {/* Escrow status badges - top right */}
-                    <div className="flex items-center gap-2 text-xs justify-end">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-zinc-500 text-[10px]">
-                          {iAmSeller ? "You (Seller):" : "Seller:"}
-                        </span>
-                        {hasSellerLock ? (
-                          <Badge className="bg-green-600/20 text-green-400 border border-green-500/30 text-xs px-2 py-0.5">
-                            ✓ Locked
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-zinc-800 text-zinc-400 text-xs px-2 py-0.5">
-                            ○ Pending
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-zinc-500 text-[10px]">
-                          {iAmBuyer ? "You (Buyer):" : "Buyer:"}
-                        </span>
-                        {hasBuyerLock ? (
-                          <Badge className="bg-green-600/20 text-green-400 border border-green-500/30 text-xs px-2 py-0.5">
-                            ✓ Locked
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-zinc-800 text-zinc-400 text-xs px-2 py-0.5">
-                            ○ Pending
-                          </Badge>
-                        )}
-                      </div>
+                {/* Amount */}
+                <td className="py-4 px-4 text-right">
+                  <span className="font-medium text-white text-sm">
+                    {formatUnits(order.amount, 18)}
+                  </span>
+                </td>
+
+                {/* Price */}
+                <td className="py-4 px-4 text-right">
+                  <span className="font-medium text-cyan-400 text-sm">
+                    ${formatUnits(order.unitPrice, STABLE_DECIMALS)}
+                  </span>
+                </td>
+
+                {/* Total */}
+                <td className="py-4 px-4 text-right">
+                  <span className="font-semibold text-white text-sm">
+                    ${formatUnits(total, STABLE_DECIMALS)}
+                  </span>
+                </td>
+
+                {/* Progress */}
+                <td className="py-4 px-4">
+                  <div className="flex items-center gap-1 justify-center">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                      order.status >= 0 ? 'bg-orange-500 text-white' : 'bg-zinc-800 text-zinc-600'
+                    }`}>1</div>
+                    <div className={`h-0.5 w-3 ${order.status >= 1 ? 'bg-blue-500' : 'bg-zinc-800'}`}></div>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                      order.status >= 1 ? 'bg-blue-500 text-white' : 'bg-zinc-800 text-zinc-600'
+                    }`}>2</div>
+                    <div className={`h-0.5 w-3 ${order.status >= 2 ? 'bg-violet-600' : 'bg-zinc-800'}`}></div>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                      order.status >= 2 ? 'bg-violet-600 text-white' : 'bg-zinc-800 text-zinc-600'
+                    }`}>3</div>
+                    <div className={`h-0.5 w-3 ${order.status === 3 ? 'bg-emerald-600' : order.status >= 4 ? 'bg-red-700' : 'bg-zinc-800'}`}></div>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                      order.status === 3 ? 'bg-emerald-600 text-white' : 
+                      order.status === 4 ? 'bg-orange-600 text-white' : 
+                      order.status === 5 ? 'bg-red-700 text-white' : 
+                      'bg-zinc-800 text-zinc-600'
+                    }`}>{order.status === 3 ? '✓' : order.status === 4 ? 'D' : order.status === 5 ? '✗' : '4'}</div>
+                  </div>
+                </td>
+
+                {/* Escrow Status */}
+                <td className="py-4 px-4">
+                  <div className="flex flex-col gap-1 items-center">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-zinc-500">S:</span>
+                      {hasSellerLock ? (
+                        <span className="text-[10px] text-green-400">✓</span>
+                      ) : (
+                        <span className="text-[10px] text-zinc-600">○</span>
+                      )}
                     </div>
-
-                    {/* Action buttons - bottom right */}
-                    <div className="flex flex-row gap-2 justify-end items-end">
-                      {/* Settlement Controls for TGE_ACTIVATED orders - INLINE RIGHT */}
-                      {isInSettlement && (
-                        <TGEOrderControls order={order} isOwner={false} />
-                      )}
-                      
-                      {/* Show "Lock Collateral" for unfunded OPEN orders */}
-                      {order.status === 0 && (
-                        (order.isSell && !hasSellerLock) || (!order.isSell && !hasBuyerLock)
-                      ) && (
-                        <Button
-                          size="sm"
-                          variant="custom"
-                          onClick={() => handleLockCollateral(order)}
-                          disabled={!!locking}
-                          className="bg-cyan-600 hover:bg-cyan-700 text-xs px-3 py-1 whitespace-nowrap h-7"
-                        >
-                          <Lock className="w-3 h-3 mr-1 inline" />
-                          {locking === order.id.toString() ? "Locking..." : "Lock Collateral"}
-                        </Button>
-                      )}
-                      
-                      {/* Show "Cancel" for unfunded OPEN orders */}
-                      {canCancel && (
-                        <Button
-                          size="sm"
-                          variant="custom"
-                          onClick={() => handleCancel(order.id)}
-                          disabled={!!canceling}
-                          className="bg-red-600 hover:bg-red-700 text-xs px-3 py-1 h-7"
-                        >
-                          {canceling === order.id.toString() ? "Canceling..." : "Cancel"}
-                        </Button>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-zinc-500">B:</span>
+                      {hasBuyerLock ? (
+                        <span className="text-[10px] text-green-400">✓</span>
+                      ) : (
+                        <span className="text-[10px] text-zinc-600">○</span>
                       )}
                     </div>
                   </div>
-                </div>
-                </div>
-              </Card>
+                </td>
+
+                {/* Actions */}
+                <td className="py-4 px-4 text-right">
+                  <div className="flex gap-2 justify-end">
+                    {isInSettlement && (
+                      <TGEOrderControls 
+                        order={order} 
+                        isOwner={false} 
+                        projectTgeActivated={projectTgeStatus[order.projectToken.toLowerCase()]}
+                      />
+                    )}
+                    
+                    {order.status === 0 && (
+                      (order.isSell && !hasSellerLock) || (!order.isSell && !hasBuyerLock)
+                    ) && (
+                      <Button
+                        size="sm"
+                        variant="custom"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLockCollateral(order);
+                        }}
+                        disabled={!!locking}
+                        className="bg-cyan-600 hover:bg-cyan-700 text-xs px-2 py-1 whitespace-nowrap h-7"
+                      >
+                        <Lock className="w-3 h-3 mr-1 inline" />
+                        {locking === order.id.toString() ? "..." : "Lock"}
+                      </Button>
+                    )}
+                    
+                    {canCancel && (
+                      <Button
+                        size="sm"
+                        variant="custom"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCancel(order.id);
+                        }}
+                        disabled={!!canceling}
+                        className="bg-red-600 hover:bg-red-700 text-xs px-2 py-1 h-7"
+                      >
+                        {canceling === order.id.toString() ? "..." : "Cancel"}
+                      </Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
             );
           })}
-        </div>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

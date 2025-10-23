@@ -6,7 +6,7 @@ import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, REGISTRY_ADDRESS, PROJECT_REGI
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Badge } from "./ui/Badge";
-import { Clock, PlayCircle, Plus, CheckCircle, AlertCircle } from "lucide-react";
+import { Clock, PlayCircle, Plus, CheckCircle, AlertCircle, DollarSign } from "lucide-react";
 import { useToast } from "./Toast";
 
 interface TGEOrderControlsProps {
@@ -20,14 +20,15 @@ interface TGEOrderControlsProps {
     maker: string;
     status: number;
     tokensDeposited: boolean;
-    settlementDeadline: bigint;
+    settlementDeadline?: bigint; // V2/V3 only - not used in V4
     proof?: string;
   };
   isOwner: boolean;
   projectSlug?: string; // Optional: if we know the project slug
+  projectTgeActivated?: boolean; // V4: Whether TGE is activated for this project
 }
 
-export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
+export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }: TGEOrderControlsProps) {
   const { address } = useAccount();
   const [tokenAddress, setTokenAddress] = useState("");
   const [showTGEInput, setShowTGEInput] = useState(false);
@@ -54,15 +55,32 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
     args: [order.id],
   });
 
-  // Get the actual token address from the contract
-  // Fetch actual token address (for Token projects post-TGE)
-  // The mapping is actualTokenAddress[orderId], NOT actualTokenAddress[projectToken]
-  const { data: actualTokenAddress } = useReadContract({
+  // V4: Read project-level settlement deadline
+  const { data: projectDeadline } = useReadContract({
     address: ORDERBOOK_ADDRESS,
     abi: ESCROW_ORDERBOOK_ABI,
-    functionName: "actualTokenAddress",
-    args: [order.id],
+    functionName: "projectSettlementDeadline",
+    args: [order.projectToken as `0x${string}`],
   });
+
+  // V4: Read project token address (POINTS_SENTINEL for points, actual token for tokens)
+  const { data: projectTokenAddress } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "projectTokenAddress",
+    args: [order.projectToken as `0x${string}`],
+  });
+
+  // V4: Read conversion ratio (e.g., 1.2e18 = 1 point = 1.2 tokens)
+  const { data: conversionRatio } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "projectConversionRatio",
+    args: [order.projectToken as `0x${string}`],
+  });
+
+  // For backward compatibility with V2/V3
+  const actualTokenAddress = projectTokenAddress;
 
   // Check token allowance for deposit - poll every 2 seconds
   const { data: tokenAllowance } = useReadContract({
@@ -76,63 +94,33 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
     },
   });
 
-  const hasApproval = tokenAllowance && order.amount ? (tokenAllowance as bigint) >= (order.amount as bigint) : false;
+  // Calculate actual token amount based on conversion ratio
+  // For Points: amount * conversionRatio (e.g., 100 points * 1.2 = 120 tokens)
+  // For Tokens: amount * 1.0 (1:1 ratio)
+  const ratio = conversionRatio ? Number(conversionRatio) / 1e18 : 1.0;
+  const actualTokenAmount = (Number(order.amount) / 1e18) * ratio;
+  const actualTokenAmountBigInt = order.amount && conversionRatio ? 
+    (BigInt(order.amount) * BigInt(conversionRatio)) / BigInt(1e18) : 
+    order.amount;
 
-  // Get project's assetType from the order's projectToken
-  // We'll use a simple mapping approach - check against known project addresses
-  // In a real implementation, you'd query the registry or pass this info down
-  const [projectAssetType, setProjectAssetType] = useState<string | null>(null);
+  const hasApproval = tokenAllowance && actualTokenAmountBigInt ? 
+    (tokenAllowance as bigint) >= (actualTokenAmountBigInt as bigint) : false;
 
-  // Fetch all slugs and find matching project
-  const { data: allSlugs } = useReadContract({
-    address: REGISTRY_ADDRESS,
-    abi: PROJECT_REGISTRY_ABI,
-    functionName: "getAllSlugs",
-  });
-
-  // Use the first slug to read a project and check if it matches
-  React.useEffect(() => {
-    const findProjectType = async () => {
-      if (!allSlugs || (allSlugs as string[]).length === 0) return;
-      
-      // Try each slug to find the matching project
-      for (const slug of allSlugs as string[]) {
-        try {
-          // Use a simple approach: check via publicClient if we had it, or just use known addresses
-          // For now, we'll use a hardcoded mapping based on deployment
-          // You can improve this by reading from contract
-          const knownProjects: Record<string, string> = {
-            "0x000000000000000000000000006C696768746572": "Points",
-            "0x0000000000000000000000657874656e64656400": "Points", 
-            "0x0000000000000000000000007061636966696361": "Tokens",
-            "0x0000000076617269617469006f6E616c00000000": "Tokens",
-            "0x7465737400000000000000000000000000000000": "Tokens", // test project
-            "0x706f696e74737465737400000000000000000000": "Points", // pointstest project
-          };
-          
-          const assetType = knownProjects[order.projectToken?.toLowerCase()];
-          if (assetType) {
-            setProjectAssetType(assetType);
-            return;
-          }
-        } catch (error) {
-          console.error("Error finding project:", error);
-        }
-      }
-    };
-
-    findProjectType();
-  }, [allSlugs, order.projectToken]);
-
-  const isTokenProject = projectAssetType === "Tokens";
-  const isPointsProject = projectAssetType === "Points";
+  // V4: Determine project type from token address read from contract
+  // POINTS_SENTINEL = address(uint160(uint256(keccak256("otcX.POINTS_SENTINEL.v4"))))
+  const POINTS_SENTINEL = "0x602EE57D45A64a39E996Fa8c78B3BC88B4D107E2";
+  const isPointsProject = projectTokenAddress && 
+    (projectTokenAddress as string).toLowerCase() === POINTS_SENTINEL.toLowerCase();
+  const isTokenProject = projectTokenAddress && !isPointsProject;
 
   const isSeller = address && order.seller && address.toLowerCase() === order.seller.toLowerCase();
   const isBuyer = address && order.buyer && address.toLowerCase() === order.buyer.toLowerCase();
 
-  // V3 Status: 0=OPEN, 1=FUNDED, 2=TGE_ACTIVATED, 3=SETTLED, 4=DEFAULTED, 5=CANCELED
+  // V4 Status: 0=OPEN, 1=FUNDED, 2=SETTLED, 3=DEFAULTED, 4=CANCELED
+  // In V4, orders stay as FUNDED (1) during settlement - there's no TGE_ACTIVATED status
   const status = Number(order.status);
-  const deadline = order.settlementDeadline ? Number(order.settlementDeadline) * 1000 : 0;
+  // V4: Use project-level deadline, not order-level
+  const deadline = projectDeadline ? Number(projectDeadline) * 1000 : 0;
   const isOverdue = deadline > 0 && Date.now() > deadline;
 
   const handleActivateTGE = () => {
@@ -173,7 +161,7 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
       address: actualTokenAddress as `0x${string}`,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [ORDERBOOK_ADDRESS, order.amount],
+      args: [ORDERBOOK_ADDRESS, actualTokenAmountBigInt],
     });
   };
 
@@ -216,17 +204,12 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
     });
   };
 
-  const handleSubmitProof = () => {
+  const confirmSubmitProof = () => {
     if (!proof || proof.trim().length === 0) {
-      toast.error("Invalid proof", "Please enter proof (transaction hash, screenshot link, etc.)");
+      toast.error("Invalid proof", "Please enter proof (transaction link or hash)");
       return;
     }
 
-    // Show confirmation modal
-    setShowProofConfirmModal(true);
-  };
-
-  const confirmSubmitProof = () => {
     toast.info("⏳ Submitting proof...", "Transaction pending");
 
     writeContract({
@@ -237,7 +220,6 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
     });
     
     setShowProofConfirmModal(false);
-    setShowProofInput(false);
     setProof("");
   };
 
@@ -272,8 +254,14 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
     );
   };
 
-  // Don't show anything for completed/canceled/expired orders
-  if (status >= 4) return null;
+  // V4: Determine if order is in settlement (FUNDED + TGE activated)
+  const isInSettlement = status === 1 && projectTgeActivated;
+  
+  // Don't show anything for completed/canceled orders (SETTLED=2, DEFAULTED=3, CANCELED=4)
+  if (status >= 2) return null;
+  
+  // Only show settlement controls if TGE is activated for this project
+  if (!projectTgeActivated) return null;
 
   return (
     <div className="space-y-2">
@@ -283,8 +271,8 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
       {isSuccess && <p className="text-xs text-green-400">✅ Transaction confirmed!</p>}
       {isError && <p className="text-xs text-red-400">❌ Error: {error?.message}</p>}
 
-      {/* Admin Controls - Activate TGE (TOKENS ONLY) */}
-      {isOwner && isTokenProject && (status === 0 || status === 1) && (
+      {/* Admin Controls - Activate TGE (TOKENS ONLY) - V4: This is now project-level */}
+      {isOwner && isTokenProject && !projectTgeActivated && (
         <div className="space-y-2">
           <Badge className="bg-blue-600 text-xs mb-1">Token Project - On-Chain Settlement</Badge>
           {!showTGEInput ? (
@@ -329,7 +317,7 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
       )}
 
       {/* Admin Controls - Extend Settlement */}
-      {isOwner && status === 2 && !order.tokensDeposited && (
+      {isOwner && isInSettlement && !order.tokensDeposited && (
         <div className="flex gap-2">
           <Button
             onClick={() => handleExtendSettlement(4)}
@@ -353,7 +341,7 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
       )}
 
       {/* Proof Display - Show to Admin */}
-      {isOwner && submittedProof && (submittedProof as string).length > 0 && status === 2 && (
+      {isOwner && submittedProof && (submittedProof as string).length > 0 && isInSettlement && (
         <div className="bg-purple-950/30 border border-purple-800/30 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-4 h-4 text-purple-400" />
@@ -380,51 +368,20 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
       )}
 
       {/* Seller Controls - Submit Proof (POINTS ONLY) */}
-      {isSeller && isPointsProject && status === 2 && !submittedProof && (
-        <>
-          {!showProofInput ? (
-            <Button
-              onClick={() => setShowProofInput(true)}
-              variant="custom"
-              className="bg-purple-600 hover:bg-purple-700 border border-purple-500/30 text-xs h-8 w-auto"
-              disabled={isPending || isConfirming}
-            >
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Submit Proof
-            </Button>
-          ) : (
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <label className="text-xs text-zinc-400 mb-1 block">Proof (tx hash, link, etc.)</label>
-                <Input
-                  placeholder="0x... or screenshot link"
-                  value={proof}
-                  onChange={(e) => setProof(e.target.value)}
-                  className="text-xs h-8"
-                />
-              </div>
-              <Button
-                onClick={handleSubmitProof}
-                disabled={isPending || isConfirming || !proof}
-                variant="custom"
-                className="bg-purple-600 hover:bg-purple-700 border border-purple-500/30 text-xs h-8"
-              >
-                Submit
-              </Button>
-              <Button
-                onClick={() => setShowProofInput(false)}
-                variant="custom"
-                className="bg-zinc-700 hover:bg-zinc-600 text-xs h-8"
-              >
-                Cancel
-              </Button>
-            </div>
-          )}
-        </>
+      {isSeller && isPointsProject && isInSettlement && !submittedProof && (
+        <Button
+          onClick={() => setShowProofConfirmModal(true)}
+          variant="custom"
+          className="bg-purple-600 hover:bg-purple-700 border border-purple-500/30 text-xs h-8 w-auto"
+          disabled={isPending || isConfirming}
+        >
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Submit Proof
+        </Button>
       )}
 
       {/* Proof Submitted - Show to Seller (POINTS ONLY) */}
-      {isSeller && isPointsProject && submittedProof && (submittedProof as string).length > 0 && status === 2 && (
+      {isSeller && isPointsProject && submittedProof && (submittedProof as string).length > 0 && isInSettlement && (
         <div className="bg-green-950/30 border border-green-800/30 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-4 h-4 text-green-400" />
@@ -437,7 +394,7 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
       )}
 
       {/* Seller Controls - Approve & Deposit Tokens (TOKENS ONLY) */}
-      {isSeller && isTokenProject && status === 2 && !order.tokensDeposited && !isOverdue && (
+      {isSeller && isTokenProject && isInSettlement && !order.tokensDeposited && !isOverdue && (
         <div className="space-y-2">
           {!hasApproval ? (
             <div>
@@ -471,8 +428,8 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
         </div>
       )}
 
-      {/* Buyer Controls - Claim or Default */}
-      {isBuyer && status === 3 && (
+      {/* Buyer Controls - Claim Tokens (SETTLED) */}
+      {isBuyer && status === 2 && (
         <Button
           onClick={handleClaimTokens}
           disabled={isPending || isConfirming}
@@ -483,7 +440,7 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
           Claim Tokens
         </Button>
       )}
-      {isBuyer && status === 2 && isOverdue && !order.tokensDeposited && (
+      {isBuyer && isInSettlement && isOverdue && !order.tokensDeposited && (
         <Button
           onClick={handleDefaultSeller}
           disabled={isPending || isConfirming}
@@ -496,7 +453,7 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
       )}
 
       {/* Buyer Views Proof (POINTS ONLY) */}
-      {isBuyer && isPointsProject && status === 2 && submittedProof && (submittedProof as string).length > 0 && (
+      {isBuyer && isPointsProject && isInSettlement && submittedProof && (submittedProof as string).length > 0 && (
         <div className="bg-blue-950/30 border border-blue-800/30 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-4 h-4 text-blue-400" />
@@ -511,66 +468,95 @@ export function TGEOrderControls({ order, isOwner }: TGEOrderControlsProps) {
         </div>
       )}
 
-      {/* Proof Submission Confirmation Modal */}
+      {/* Proof Submission Modal */}
       {showProofConfirmModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="max-w-md w-full mx-4 p-6 bg-zinc-900 border border-red-500/30 rounded-lg">
+          <div className="max-w-md w-full mx-4 p-6 bg-zinc-900 border border-purple-500/30 rounded-lg">
             <div className="mb-4">
               <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-6 h-6 text-red-400" />
-                <h3 className="text-xl font-bold text-red-400">⚠️ WARNING</h3>
+                <CheckCircle className="w-6 h-6 text-purple-400" />
+                <h3 className="text-xl font-bold text-purple-400">Submit Settlement Proof</h3>
               </div>
-              <p className="text-sm text-zinc-300 mb-3">
-                You are about to submit proof of token transfer. Please verify the following:
+              <p className="text-sm text-zinc-400 mb-3">
+                Confirm you have transferred the tokens off-chain to the buyer
               </p>
             </div>
 
-            <div className="space-y-3 mb-6 bg-red-950/20 border border-red-500/30 rounded p-3">
+            {/* Transfer Details */}
+            <div className="space-y-3 mb-4 bg-purple-950/20 border border-purple-500/30 rounded p-3">
               <div className="flex items-start gap-2 text-sm">
-                <CheckCircle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-                <div>
+                <DollarSign className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium text-cyan-400">Amount to Transfer</p>
+                  <p className="text-white text-lg font-bold">
+                    {actualTokenAmount.toLocaleString()} tokens
+                  </p>
+                  {ratio !== 1.0 && (
+                    <p className="text-xs text-purple-400 mt-1">
+                      {(Number(order.amount) / 1e18).toLocaleString()} points × {ratio} ratio
+                    </p>
+                  )}
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Off-chain transfer to buyer's address
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 text-sm border-t border-purple-500/20 pt-3">
+                <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
                   <p className="font-medium text-yellow-400">Buyer Address (Recipient)</p>
-                  <p className="text-zinc-400 font-mono text-xs break-all">{order.buyer}</p>
+                  <p className="text-zinc-300 font-mono text-xs break-all bg-zinc-950/50 p-2 rounded mt-1">
+                    {order.buyer}
+                  </p>
                 </div>
               </div>
+            </div>
 
-              <div className="flex items-start gap-2 text-sm">
-                <CheckCircle className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-cyan-400">Your Proof</p>
-                  <p className="text-zinc-300 text-xs break-all">{proof}</p>
-                </div>
-              </div>
+            {/* Proof Input */}
+            <div className="mb-4">
+              <label className="text-sm font-medium text-zinc-300 mb-2 block">
+                Proof of Transfer (Transaction Link or Hash)
+              </label>
+              <Input
+                placeholder="0x... or block explorer link"
+                value={proof}
+                onChange={(e) => setProof(e.target.value)}
+                className="text-sm"
+              />
+            </div>
 
-              <div className="border-t border-red-500/30 pt-3 mt-3">
-                <p className="text-xs text-red-300 font-semibold">
-                  ⚠️ If this proof is incorrect or fraudulent:
-                </p>
-                <ul className="text-xs text-red-200 mt-2 space-y-1 pl-4">
-                  <li>• The buyer can report it to the admin</li>
-                  <li>• The admin will verify the proof</li>
-                  <li>• <span className="font-bold text-red-400">You will LOSE your collateral + buyer gets their payment back</span></li>
-                </ul>
-              </div>
+            {/* Warning */}
+            <div className="bg-red-950/20 border border-red-500/30 rounded p-3 mb-4">
+              <p className="text-xs text-red-300 font-semibold mb-2">
+                ⚠️ Important Warning
+              </p>
+              <ul className="text-xs text-red-200 space-y-1 pl-4">
+                <li>• Ensure you've transferred the exact amount to the correct address</li>
+                <li>• The admin will verify your proof before releasing funds</li>
+                <li>• <span className="font-bold text-red-400">Fraudulent proof = You LOSE your collateral</span></li>
+              </ul>
             </div>
 
             <div className="flex gap-3">
               <Button
                 onClick={() => {
                   setShowProofConfirmModal(false);
+                  setProof("");
                 }}
                 variant="custom"
-                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 h-8 text-sm"
+                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 h-9 text-sm"
               >
                 Cancel
               </Button>
               <Button
                 onClick={confirmSubmitProof}
+                disabled={!proof || proof.trim().length === 0}
                 variant="custom"
-                className="flex-1 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 font-semibold h-8 text-sm"
+                className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-semibold h-9 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
-                Confirm and Submit
+                <CheckCircle className="w-4 h-4 mr-1.5" />
+                Submit Proof
               </Button>
             </div>
           </div>

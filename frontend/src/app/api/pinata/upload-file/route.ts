@@ -37,14 +37,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for Pinata credentials
+    // Check for Pinata credentials (JWT or API Key)
+    const pinataJwt = process.env.PINATA_JWT;
     const pinataApiKey = process.env.PINATA_API_KEY;
     const pinataSecretKey = process.env.PINATA_SECRET_KEY;
 
-    if (!pinataApiKey || !pinataSecretKey) {
+    if (!pinataJwt && (!pinataApiKey || !pinataSecretKey)) {
       console.error('Pinata credentials not configured');
       return NextResponse.json(
-        { error: 'IPFS upload not configured' },
+        { error: 'IPFS upload not configured. Please add PINATA_JWT to .env.local' },
         { status: 500 }
       );
     }
@@ -64,13 +65,17 @@ export async function POST(request: NextRequest) {
     });
     pinataFormData.append('pinataMetadata', metadata);
 
-    // Upload to Pinata
+    // Upload to Pinata (use JWT if available, otherwise API key)
+    const headers: Record<string, string> = pinataJwt
+      ? { 'Authorization': `Bearer ${pinataJwt}` }
+      : {
+          'pinata_api_key': pinataApiKey!,
+          'pinata_secret_api_key': pinataSecretKey!
+        };
+
     const response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
       method: 'POST',
-      headers: {
-        'pinata_api_key': pinataApiKey,
-        'pinata_secret_api_key': pinataSecretKey
-      },
+      headers,
       body: pinataFormData
     });
 

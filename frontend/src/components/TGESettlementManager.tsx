@@ -35,6 +35,7 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
   const [selectedOrder, setSelectedOrder] = useState<bigint | null>(null);
   const [batchTokenAddress, setBatchTokenAddress] = useState("");
   const [tokenAddress, setTokenAddress] = useState("");
+  const [conversionRatio, setConversionRatio] = useState("1.0"); // Points to tokens ratio
   const [extensionHours, setExtensionHours] = useState<4 | 24>(4);
   const [showIndividualOrders, setShowIndividualOrders] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -89,19 +90,35 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
       ? "0x000000000000000000000000000000000000dead" 
       : batchTokenAddress;
     
+    // Parse and validate conversion ratio
+    const ratio = parseFloat(conversionRatio);
+    if (isNaN(ratio) || ratio <= 0) {
+      toast.error("Invalid conversion ratio", "Conversion ratio must be a positive number");
+      return;
+    }
+    
+    // Convert to 18 decimals (e.g., 1.2 -> 1.2e18)
+    const ratioBigInt = BigInt(Math.floor(ratio * 1e18));
+    
+    // For token projects, ratio must be 1.0 (1:1)
+    if (!isPointsProject && ratio !== 1.0) {
+      toast.error("Invalid ratio for token project", "Token projects must use 1:1 conversion ratio");
+      return;
+    }
+    
     // Get projectId from first order (all orders share same projectId)
     const projectToken = orders[0]?.projectToken;
 
-    console.log('🚀 V4 Project TGE activation:', { projectToken, tokenAddr, settlementWindow: 14400, isOffChain: isOffChainSettlement });
+    console.log('🚀 V4 Project TGE activation:', { projectToken, tokenAddr, settlementWindow: 14400, conversionRatio: ratioBigInt.toString(), isOffChain: isOffChainSettlement });
     
     toast.info("⏳ Activating TGE...", "Transaction pending");
     
-    // V4: Project-level TGE activation (no loops, gas efficient)
+    // V4: Project-level TGE activation with conversion ratio
     writeContract({
       address: ORDERBOOK_ADDRESS,
       abi: ESCROW_ORDERBOOK_ABI,
       functionName: "activateProjectTGE",
-      args: [projectToken as `0x${string}`, tokenAddr as `0x${string}`, 14400n], // 4 hours
+      args: [projectToken as `0x${string}`, tokenAddr as `0x${string}`, 14400n, ratioBigInt], // 4 hours + conversion ratio
     });
     
     setShowConfirmModal(false);
@@ -212,6 +229,21 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
                   value={batchTokenAddress}
                   onChange={(e) => setBatchTokenAddress(e.target.value)}
                   className="text-sm"
+                />
+              </div>
+              <div className="w-48">
+                <label className="text-sm text-zinc-300 mb-2 block font-medium">
+                  Conversion Ratio {!isPointsProject && <span className="text-zinc-500 font-normal">(must be 1.0)</span>}
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder={isPointsProject ? "e.g., 1.2" : "1.0"}
+                  value={conversionRatio}
+                  onChange={(e) => setConversionRatio(e.target.value)}
+                  className="text-sm"
+                  disabled={!isPointsProject}
                 />
               </div>
               <Button
@@ -455,6 +487,20 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
                       <p className="text-xs text-cyan-400 font-mono mt-1">{batchTokenAddress}</p>
                     </div>
                   )}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 text-sm">
+                <CheckCircle className="w-4 h-4 text-purple-400 mt-0.5" />
+                <div>
+                  <p className="font-medium text-purple-400">Conversion Ratio</p>
+                  <p className="text-zinc-400">
+                    {isPointsProject ? (
+                      <>1 Point = <span className="text-purple-300 font-semibold">{conversionRatio}</span> Tokens</>
+                    ) : (
+                      <>1 Token = 1 Token (1:1)</>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>

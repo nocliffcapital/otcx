@@ -4,8 +4,77 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/Logo";
 import { Shield, Zap, TrendingUp, BookOpen, Search } from "lucide-react";
+import { usePublicClient } from "wagmi";
+import { useEffect, useState } from "react";
+import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, STABLE_DECIMALS } from "@/lib/contracts";
+import { formatUnits } from "viem";
 
 export default function HomePage() {
+  const publicClient = usePublicClient();
+  const [totalVolume, setTotalVolume] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!publicClient) return;
+
+    const fetchVolume = async () => {
+      try {
+        // Get next order ID
+        const nextId = await publicClient.readContract({
+          address: ORDERBOOK_ADDRESS,
+          abi: ESCROW_ORDERBOOK_ABI,
+          functionName: "nextId",
+        }) as bigint;
+
+        // Fetch all orders and calculate total volume
+        let volume = 0;
+        const orderPromises: Promise<void>[] = [];
+        
+        for (let i = 1n; i < nextId; i++) {
+          const orderPromise = (async (orderId: bigint) => {
+            try {
+              const orderData = await publicClient.readContract({
+                address: ORDERBOOK_ADDRESS,
+                abi: ESCROW_ORDERBOOK_ABI,
+                functionName: "orders",
+                args: [orderId],
+              }) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, number];
+
+              const amount = orderData[5];
+              const unitPrice = orderData[6];
+              const status = orderData[11];
+
+              // Only count filled orders (FUNDED=1, SETTLED=2, DEFAULTED=3, CANCELED=4)
+              // Actually for volume we want FUNDED(1) and SETTLED(2)
+              if (status === 1 || status === 2) {
+                const amountFloat = parseFloat(formatUnits(amount, 18));
+                const priceFloat = parseFloat(formatUnits(unitPrice, STABLE_DECIMALS));
+                volume += amountFloat * priceFloat;
+              }
+            } catch (err) {
+              // Silent fail for individual orders
+            }
+          })(i);
+          
+          orderPromises.push(orderPromise);
+        }
+        
+        await Promise.all(orderPromises);
+        setTotalVolume(volume);
+      } catch (error) {
+        console.error("Error fetching volume:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVolume();
+    
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchVolume, 60000);
+    return () => clearInterval(interval);
+  }, [publicClient]);
+
   return (
     <main className="relative min-h-[calc(100vh-80px)] overflow-hidden">
       {/* Tech grid background */}
@@ -101,7 +170,13 @@ export default function HomePage() {
             </div>
             <div className="w-px bg-zinc-800"></div>
             <div>
-              <div className="text-3xl font-bold text-violet-400">$0</div>
+              <div className="text-3xl font-bold text-violet-400">
+                {loading ? (
+                  <span className="animate-pulse">...</span>
+                ) : (
+                  `$${totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                )}
+              </div>
               <div className="text-sm text-zinc-500">Volume</div>
             </div>
             <div className="w-px bg-zinc-800"></div>

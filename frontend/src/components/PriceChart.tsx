@@ -138,66 +138,69 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
 
   return (
     <div className="w-full">
-      {/* Time Range Selector */}
-      <div className="flex gap-2 mb-4">
-        <Button
-          size="sm"
-          variant="custom"
-          onClick={() => setTimeRange("24h")}
-          className={timeRange === "24h" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
-        >
-          24H
-        </Button>
-        <Button
-          size="sm"
-          variant="custom"
-          onClick={() => setTimeRange("7d")}
-          className={timeRange === "7d" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
-        >
-          7D
-        </Button>
-        <Button
-          size="sm"
-          variant="custom"
-          onClick={() => setTimeRange("1m")}
-          className={timeRange === "1m" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
-        >
-          1M
-        </Button>
-        <Button
-          size="sm"
-          variant="custom"
-          onClick={() => setTimeRange("all")}
-          className={timeRange === "all" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
-        >
-          All
-        </Button>
-      </div>
+      {/* Compact Header: Time Range + Stats in one row */}
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        {/* Time Range Selector */}
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="custom"
+            onClick={() => setTimeRange("24h")}
+            className={timeRange === "24h" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
+          >
+            24H
+          </Button>
+          <Button
+            size="sm"
+            variant="custom"
+            onClick={() => setTimeRange("7d")}
+            className={timeRange === "7d" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
+          >
+            7D
+          </Button>
+          <Button
+            size="sm"
+            variant="custom"
+            onClick={() => setTimeRange("1m")}
+            className={timeRange === "1m" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
+          >
+            1M
+          </Button>
+          <Button
+            size="sm"
+            variant="custom"
+            onClick={() => setTimeRange("all")}
+            className={timeRange === "all" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
+          >
+            All
+          </Button>
+        </div>
 
-      {/* Stats Bar */}
-      <div className="grid grid-cols-4 gap-3 mb-4">
-        <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800 h-[72px] flex flex-col justify-center">
-          <div className="text-xs text-zinc-400 mb-1">Latest</div>
-          <div className="text-sm font-semibold text-white">
-            ${formatPrice(stats.latest)}
+        {/* Compact Stats */}
+        <div className="flex gap-3">
+          <div className="bg-zinc-900/50 rounded-md px-2.5 py-1.5 border border-zinc-800">
+            <div className="text-[10px] text-zinc-400 mb-0.5">Latest</div>
+            <div className="text-xs font-semibold text-white">
+              ${formatPrice(stats.latest)}
+            </div>
           </div>
-        </div>
-        <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800 h-[72px] flex flex-col justify-center">
-          <div className="text-xs text-zinc-400 mb-1">Volume</div>
-          <div className="text-sm font-semibold text-white">
-            ${stats.totalVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <div className="bg-zinc-900/50 rounded-md px-2.5 py-1.5 border border-zinc-800">
+            <div className="text-[10px] text-zinc-400 mb-0.5">Volume</div>
+            <div className="text-xs font-semibold text-white">
+              ${stats.totalVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
           </div>
-        </div>
-        <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800 h-[72px] flex flex-col justify-center">
-          <div className="text-xs text-zinc-400 mb-1">Low</div>
-          <div className="text-sm font-semibold text-red-400">
-            ${formatPrice(stats.min)}
+          <div className="bg-zinc-900/50 rounded-md px-2.5 py-1.5 border border-zinc-800">
+            <div className="text-[10px] text-zinc-400 mb-0.5">Low</div>
+            <div className="text-xs font-semibold text-red-400">
+              ${formatPrice(stats.min)}
+            </div>
           </div>
-        </div>
-        <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800 h-[72px] flex flex-col justify-center">
-          <div className="text-xs text-zinc-400 mb-1">High</div>
-          <div className="text-sm font-semibold text-green-400">
-            ${formatPrice(stats.max)}
+          <div className="bg-zinc-900/50 rounded-md px-2.5 py-1.5 border border-zinc-800">
+            <div className="text-[10px] text-zinc-400 mb-0.5">High</div>
+            <div className="text-xs font-semibold text-green-400">
+              ${formatPrice(stats.max)}
+            </div>
           </div>
         </div>
       </div>

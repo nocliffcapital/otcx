@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, STABLE_ADDRESS, ERC20_ABI } from "@/lib/contracts";
+import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, STABLE_ADDRESS, MOCK_TOKEN_ADDRESS, ERC20_ABI } from "@/lib/contracts";
 import { useState, useRef } from "react";
 import { ChevronDown, Settings, Menu, X } from "lucide-react";
 import { parseUnits } from "viem";
@@ -55,16 +55,14 @@ export function Navbar() {
     if (!address) return;
     try {
       setMinting(true);
-      // Mock token address - you can make this dynamic if needed
-      const mockTokenAddress = "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82" as `0x${string}`;
       await writeContract({
-        address: mockTokenAddress,
+        address: MOCK_TOKEN_ADDRESS,
         abi: ERC20_ABI,
         functionName: "mint",
-        args: [address, parseUnits("10000", 18)],
+        args: [address, parseUnits("10000", 18)], // 18 decimals for tokens
       });
     } catch (error) {
-      console.error("Error minting tokens:", error);
+      console.error("Error minting test tokens:", error);
     } finally {
       setMinting(false);
     }
@@ -244,8 +242,9 @@ export function Navbar() {
                             onClick={handleMintTestTokens}
                             disabled={minting || !address}
                             className="px-1.5 py-[2px] text-[9px] leading-tight bg-blue-600/80 hover:bg-blue-600 text-white font-medium rounded border border-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Mints Mock MegaETH Token (mMEGAETH) - Use this token address when activating TGE for testing"
                           >
-                            {minting ? "..." : "Mint Tokens"}
+                            {minting ? "..." : "Mint mMEGAETH"}
                           </button>
                         </div>
                         

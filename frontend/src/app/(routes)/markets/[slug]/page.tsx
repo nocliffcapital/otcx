@@ -13,7 +13,6 @@ import { parseUnits, formatUnits } from "viem";
 import { STABLE_DECIMALS, STABLE_ADDRESS, ERC20_ABI, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
 import { useReadContract } from "wagmi";
 import { PriceChart } from "@/components/PriceChart";
-import { ProjectInfo } from "@/components/ProjectInfo";
 import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle, DollarSign, ArrowDown, ArrowUp, Percent, Activity, Clock } from "lucide-react";
 import Link from "next/link";
 import ReputationBadge from "@/components/ReputationBadge";
@@ -40,6 +39,18 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     functionName: "owner",
   });
 
+  // Read user's USDC balance
+  const { data: userBalance } = useReadContract({
+    address: STABLE_ADDRESS,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+  });
+
+  // V3: Use projectId (bytes32) instead of tokenAddress
+  const projectId = slugToProjectId(slug);
+  const { orders, allOrders, loading } = useOrders(projectId);
+
   // Check if orderbook is paused
   const { data: isPausedData } = useReadContract({
     address: ORDERBOOK_ADDRESS,
@@ -47,6 +58,26 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     functionName: "paused",
   });
   const isOrderbookPaused = isPausedData === true;
+  
+  // Check if TGE has been activated for this project
+  const { data: projectTgeActivated } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "projectTgeActivated",
+    args: [projectId],
+  });
+  const isTgeActivated = projectTgeActivated === true;
+  
+  // Fetch settlement fee (in basis points, 10000 = 100%)
+  const { data: settlementFeeBps } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "settlementFeeBps",
+  });
+  
+  // Calculate fee percentage and multiplier
+  const feePercentage = settlementFeeBps ? Number(settlementFeeBps) / 100 : 0.5; // Default 0.5%
+  const feeMultiplier = 1 - (feePercentage / 100); // e.g., 0.995 for 0.5%
   
   // Fetch USDC balance
   const { data: usdcBalance } = useReadContract({
@@ -59,10 +90,6 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       refetchInterval: 5000,
     },
   });
-  
-  // V3: Use projectId (bytes32) instead of tokenAddress
-  const projectId = slugToProjectId(slug);
-  const { orders, allOrders, loading } = useOrders(projectId);
   
   // Helper function to ensure URL has protocol
   const ensureHttps = (url: string | undefined) => {
@@ -201,12 +228,26 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     }
   };
 
-  const handleTakeSell = async (order: { id: bigint }) => {
+  const handleTakeSell = async (order: { id: bigint; amount: bigint; unitPrice: bigint }) => {
     try {
       setActionLoading(order.id.toString());
       // Convert from 24 decimals to 6 decimals (USDC)
       // amount is 18 decimals, unitPrice is 6 decimals, so divide by 10^18
       const total = (order.amount * order.unitPrice) / BigInt(10 ** 18);
+      
+      // Check if user has sufficient balance
+      const balance = userBalance as bigint || 0n;
+      if (balance < total) {
+        const balanceFormatted = parseFloat(formatUnits(balance, STABLE_DECIMALS)).toFixed(2);
+        const requiredFormatted = parseFloat(formatUnits(total, STABLE_DECIMALS)).toFixed(2);
+        toast.error(
+          "Insufficient USDC Balance",
+          `You need $${requiredFormatted} USDC but only have $${balanceFormatted} USDC. Use the "Mint Test USDC" button in the navbar to get test tokens.`
+        );
+        setActionLoading(null);
+        return;
+      }
+
       await takeSellOrder(order.id, total);
       toast.success(
         "Order taken successfully!",
@@ -223,12 +264,26 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     }
   };
 
-  const handleTakeBuy = async (order: { id: bigint }) => {
+  const handleTakeBuy = async (order: { id: bigint; amount: bigint; unitPrice: bigint }) => {
     try {
       setActionLoading(order.id.toString());
       // Convert from 24 decimals to 6 decimals (USDC)
-      // amount is 18 decimals, unitPrice is 6 decimals, so divide by 10^18
-      const total = (order.amount * order.unitPrice) / BigInt(10 ** 18);
+      // Seller must post 110% collateral
+      const total = ((order.amount * order.unitPrice) / BigInt(10 ** 18)) * 110n / 100n;
+      
+      // Check if user has sufficient balance
+      const balance = userBalance as bigint || 0n;
+      if (balance < total) {
+        const balanceFormatted = parseFloat(formatUnits(balance, STABLE_DECIMALS)).toFixed(2);
+        const requiredFormatted = parseFloat(formatUnits(total, STABLE_DECIMALS)).toFixed(2);
+        toast.error(
+          "Insufficient USDC Balance",
+          `You need $${requiredFormatted} USDC (110% collateral) but only have $${balanceFormatted} USDC. Use the "Mint Test USDC" button in the navbar to get test tokens.`
+        );
+        setActionLoading(null);
+        return;
+      }
+
       await takeBuyOrder(order.id, total);
       toast.success(
         "Order taken successfully!",
@@ -485,10 +540,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         </div>
       </div>
 
-      {/* Chart & AI Analysis - Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        {/* Price Chart - Left */}
-        <Card className="h-full">
+      {/* Price Chart & Create Order - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        {/* Price Chart - Left (2 columns) */}
+        <Card className="lg:col-span-2">
           <h2 className="font-semibold mb-3 text-sm flex items-center gap-2">
             <LineChart className="w-4 h-4 text-cyan-400" />
             Price History
@@ -496,189 +551,184 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           <PriceChart orders={orders} allOrders={allOrders} />
         </Card>
 
-        {/* Project Info with Grok Analysis - Right */}
-        {project && metadata && (
-          <div className="h-full">
-            <ProjectInfo
-              project={{
-                name: project.name,
-                slug: slug,
-                twitterUrl: metadata.twitterUrl || '',
-                websiteUrl: metadata.websiteUrl || '',
-                description: metadata.description || '',
-              }}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Create Order - Full Width with Dynamic Border */}
-      <div className={`mb-4 rounded-xl border-2 transition-colors ${
-        side === "SELL" 
-          ? "border-red-500/50 bg-zinc-900/50" 
-          : "border-green-500/50 bg-zinc-900/50"
-      }`}>
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-sm flex items-center gap-2">
-              {side === "SELL" ? (
-                <MinusCircle className="w-4 h-4 text-red-400" />
-              ) : (
-                <PlusCircle className="w-4 h-4 text-green-400" />
-              )}
-              Create Order
-            </h2>
-            <Link 
-              href="/calculator"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative"
-            >
-              <Calculator className="w-5 h-5 text-zinc-500 hover:text-cyan-400 transition-colors cursor-pointer" />
-              <div className="absolute right-0 top-full mt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-10">
-                <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 shadow-lg">
-                  <p className="text-xs text-zinc-300">
-                    Unsure about pricing? Use our calculator to guide you.
-                  </p>
+        {/* Create Order - Right (1 column, thinner) */}
+        <div className={`rounded-xl border-2 transition-colors ${
+          isTgeActivated 
+            ? "border-zinc-700/30 bg-zinc-900/30 opacity-50" 
+            : side === "SELL" 
+              ? "border-red-500/30 bg-zinc-900/50" 
+              : "border-green-500/30 bg-zinc-900/50"
+        }`}>
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-sm flex items-center gap-2">
+                {side === "SELL" ? (
+                  <MinusCircle className="w-4 h-4 text-red-400" />
+                ) : (
+                  <PlusCircle className="w-4 h-4 text-green-400" />
+                )}
+                Create Order
+                {isTgeActivated && (
+                  <Badge className="bg-yellow-600 text-xs ml-2">TGE Active</Badge>
+                )}
+              </h2>
+              <Link 
+                href="/calculator"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative"
+              >
+                <Calculator className="w-5 h-5 text-zinc-500 hover:text-cyan-400 transition-colors cursor-pointer" />
+                <div className="absolute right-0 top-full mt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-10">
+                  <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 shadow-lg">
+                    <p className="text-xs text-zinc-300">
+                      Unsure about pricing? Use our calculator to guide you.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            </div>
+            
+            {/* TGE Active Warning */}
+            {isTgeActivated && (
+              <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-3 mb-3">
+                <div className="flex items-start gap-2">
+                  <Clock className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-yellow-400 mb-1">TGE Settlement Active</p>
+                    <p className="text-[10px] text-zinc-400">
+                      New orders cannot be created during the settlement period. Existing orders can still be settled.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            {/* Sell/Buy Toggle */}
-            <div className="lg:col-span-4">
+            )}
+
+            {/* Stack all fields vertically */}
+            <div className="space-y-3">
+              {/* Buy/Sell Toggle - Buy on left, Sell on right */}
               <div className="flex gap-2">
-                <Button 
-                  onClick={() => setSide("SELL")}
-                  variant="custom"
-                  className={side === "SELL" ? "bg-red-600 hover:bg-red-700" : "bg-zinc-800 hover:bg-zinc-700"}
-                  disabled={creating}
-                >
-                  Sell
-                </Button>
                 <Button 
                   onClick={() => setSide("BUY")}
                   variant="custom"
-                  className={side === "BUY" ? "bg-green-600 hover:bg-green-700" : "bg-zinc-800 hover:bg-zinc-700"}
-                  disabled={creating}
+                  className={`flex-1 ${side === "BUY" ? "bg-green-600 hover:bg-green-700" : "bg-zinc-800 hover:bg-zinc-700"}`}
+                  disabled={creating || isTgeActivated}
                 >
                   Buy
                 </Button>
+                <Button 
+                  onClick={() => setSide("SELL")}
+                  variant="custom"
+                  className={`flex-1 ${side === "SELL" ? "bg-red-600 hover:bg-red-700" : "bg-zinc-800 hover:bg-zinc-700"}`}
+                  disabled={creating || isTgeActivated}
+                >
+                  Sell
+                </Button>
               </div>
-            </div>
 
-          {/* Form Fields */}
-          <div>
-            <label className="text-xs text-zinc-400 block mb-1">
-              Amount ({project?.isPoints === false ? 'Tokens' : 'Points'})
-            </label>
-            <Input 
-              type="number" 
-              min={0} 
-              value={amount} 
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              disabled={creating}
-            />
-          </div>
-          
-          <div>
-            <label className="text-xs text-zinc-400 block mb-1">Unit Price (USDC)</label>
-            <Input 
-              type="number" 
-              min={0} 
-              step="0.01"
-              value={unitPrice} 
-              onChange={(e) => setUnitPrice(e.target.value)}
-              placeholder="0.00"
-              disabled={creating}
-            />
-            {/* Quick Price Buttons */}
-            {midMarket && (
-              <div className="flex gap-1 mt-1">
-                <button
-                  onClick={() => setUnitPrice((midMarket * 0.95).toFixed(2))}
-                  disabled={creating}
-                  className="px-1.5 py-0.5 text-[10px] bg-zinc-800/50 hover:bg-zinc-700 border border-zinc-700 rounded text-zinc-300 transition-colors"
-                >
-                  -5%
-                </button>
-                <button
-                  onClick={() => setUnitPrice((midMarket * 0.98).toFixed(2))}
-                  disabled={creating}
-                  className="px-1.5 py-0.5 text-[10px] bg-zinc-800/50 hover:bg-zinc-700 border border-zinc-700 rounded text-zinc-300 transition-colors"
-                >
-                  -2%
-                </button>
-                <button
-                  onClick={() => setUnitPrice(midMarket.toFixed(2))}
-                  disabled={creating}
-                  className="px-2 py-0.5 text-[10px] bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded text-cyan-400 transition-colors font-medium"
-                >
-                  Mid
-                </button>
-                <button
-                  onClick={() => setUnitPrice((midMarket * 1.02).toFixed(2))}
-                  disabled={creating}
-                  className="px-1.5 py-0.5 text-[10px] bg-zinc-800/50 hover:bg-zinc-700 border border-zinc-700 rounded text-zinc-300 transition-colors"
-                >
-                  +2%
-                </button>
-                <button
-                  onClick={() => setUnitPrice((midMarket * 1.05).toFixed(2))}
-                  disabled={creating}
-                  className="px-1.5 py-0.5 text-[10px] bg-zinc-800/50 hover:bg-zinc-700 border border-zinc-700 rounded text-zinc-300 transition-colors"
-                >
-                  +5%
-                </button>
+              {/* Amount Field */}
+              <div>
+                <label className="text-xs text-zinc-400 block mb-1">
+                  Amount ({project?.isPoints === false ? 'Tokens' : 'Points'})
+                </label>
+                <Input 
+                  type="number" 
+                  min={0} 
+                  value={amount} 
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  disabled={creating || isTgeActivated}
+                />
               </div>
-            )}
-          </div>
-          
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-zinc-400">Total (USDC)</label>
-              {usdcBalance && address && (
-                <span className="text-[10px] text-zinc-500">
-                  Balance: {parseFloat(formatUnits(usdcBalance, STABLE_DECIMALS)).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC
-                </span>
+              
+              {/* Unit Price Field */}
+              <div>
+                <label className="text-xs text-zinc-400 block mb-1">Unit Price (USDC)</label>
+                <Input 
+                  type="number" 
+                  min={0} 
+                  step="0.01"
+                  value={unitPrice} 
+                  onChange={(e) => setUnitPrice(e.target.value)}
+                  placeholder="0.00"
+                  disabled={creating || isTgeActivated}
+                />
+              </div>
+              
+              {/* Total Field */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-zinc-400">Total (USDC)</label>
+                  {usdcBalance && address && (
+                    <span className="text-[10px] text-zinc-500">
+                      Bal: {parseFloat(formatUnits(usdcBalance, STABLE_DECIMALS)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </span>
+                  )}
+                </div>
+                <div className="w-full rounded-md px-3 py-2 bg-zinc-800/50 border border-cyan-500/30 text-sm font-medium text-cyan-400">
+                  ${total === 0 ? '0.00' : total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1">{side === "SELL" ? "Seller" : "Buyer"} locks ${total === 0 ? '0.00' : total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
+              
+              {/* You Will Receive Info */}
+              <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
+                <p className="text-[10px] text-zinc-400 mb-1.5">When your order fills:</p>
+                {total > 0 && amount ? (
+                  <div className="space-y-1">
+                    {side === "SELL" ? (
+                      <>
+                        <p className="text-xs text-zinc-300">
+                          You receive: <span className="font-semibold text-green-400">${(total * feeMultiplier).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC</span>
+                        </p>
+                        <p className="text-[10px] text-zinc-500">
+                          (${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - {feePercentage}% fee)
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs text-zinc-300">
+                          You receive: <span className="font-semibold text-green-400">{(parseFloat(amount) * feeMultiplier).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} {project?.assetType === "Points" ? "points worth of tokens" : "tokens"}</span>
+                        </p>
+                        <p className="text-[10px] text-zinc-500">
+                          ({parseFloat(amount).toLocaleString()} {project?.assetType === "Points" ? "points" : "tokens"} - {feePercentage}% fee)
+                        </p>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-500 italic">Enter amount and price to see what you'll receive</p>
+                )}
+              </div>
+
+              {/* Create Button - Moved to bottom */}
+              {!address ? (
+                <div>
+                  <p className="text-xs text-zinc-400 text-center">Connect wallet to create orders</p>
+                </div>
+              ) : (
+                <div>
+                  <button
+                    onClick={handleCreate} 
+                    disabled={creating || !address || !amount || !unitPrice || !project || isTgeActivated}
+                    className={`w-full rounded-md border text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 ${
+                      side === "SELL" 
+                        ? "bg-red-600 hover:bg-red-700 border-red-500/50" 
+                        : "bg-green-600 hover:bg-green-700 border-green-500/50"
+                    }`}
+                  >
+                    {isTgeActivated ? "TGE Active - Orders Closed" : creating ? "Creating..." : !project ? "Loading..." : `Create ${side}`}
+                  </button>
+                </div>
               )}
             </div>
-            <div className="w-full rounded-md px-3 py-2 bg-zinc-800/50 border border-cyan-500/30 text-sm font-medium text-cyan-400">
-              ${total === 0 ? '0.00' : total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <p className="text-[10px] text-zinc-500 mt-1">{side === "SELL" ? "Seller" : "Buyer"} locks ${total === 0 ? '0.00' : total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
-          
-          <div>
-            <label className="text-xs text-zinc-400 block mb-1 invisible">Placeholder</label>
-            <button
-              onClick={handleCreate} 
-              disabled={creating || !address || !amount || !unitPrice || !project}
-              className={`w-full rounded-md border text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 ${
-                side === "SELL" 
-                  ? "bg-red-600 hover:bg-red-700 border-red-500/50" 
-                  : "bg-green-600 hover:bg-green-700 border-green-500/50"
-              }`}
-            >
-              {creating ? "Creating..." : !project ? "Loading..." : `Create ${side}`}
-            </button>
-            <p className="text-[10px] text-zinc-500 mt-1 text-center invisible">Good-Til-Cancel • No Expiry</p>
-          </div>
-
-          {!address && (
-            <div className="lg:col-span-4">
-              <p className="text-xs text-zinc-400 text-center">Connect wallet to create orders</p>
-            </div>
-          )}
-        </div>
         </div>
       </div>
 
-      {/* Sell & Buy Orders - Side by Side */}
+      {/* Buy & Sell Orders - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Buy Orders Table */}
+        {/* Buy Orders Table - Left */}
         <Card>
           <h2 className="font-semibold mb-3 flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
@@ -772,7 +822,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           )}
         </Card>
 
-        {/* Sell Orders Table */}
+        {/* Sell Orders Table - Right */}
         <Card>
           <h2 className="font-semibold mb-3 flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">

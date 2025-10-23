@@ -18,6 +18,14 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
  *   - Rounding policy: All fee calculations use floor division (round down)
  *   - Token requirements: Only 18-decimal ERC20 tokens supported
  *   - SafeTransferLib: Robust handling of non-standard ERC20 tokens
+ * 
+ * @dev Conversion Ratio Design:
+ *   - Stored at project level (projectConversionRatio)
+ *   - Applies to ALL orders when settlement occurs
+ *   - For Points: Can be any positive value (e.g., 1.2e18 = 1 point → 1.2 tokens)
+ *   - For Tokens: Must be exactly 1e18 (1:1 ratio enforced)
+ *   - Grace period: 1 hour after TGE activation to correct mistakes
+ *   - Max ratio: 10e18 (1 point = max 10 tokens)
  */
 contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     using SafeTransferLib for address;
@@ -63,7 +71,9 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     uint256 public constant MAX_FEE_BPS = 500;              // 5% max
     uint256 public constant DEFAULT_SETTLEMENT_WINDOW = 4 hours;
     uint256 public constant MAX_SETTLEMENT_WINDOW = 7 days;
-    address public constant POINTS_SENTINEL = 0x000000000000000000000000000000000000dEaD;
+    uint256 public constant MAX_CONVERSION_RATIO = 10e18;   // 1 point = max 10 tokens
+    // Use computed address for POINTS_SENTINEL (impossible to deploy to, collision-resistant)
+    address public constant POINTS_SENTINEL = address(uint160(uint256(keccak256("otcX.POINTS_SENTINEL.v4"))));
     
     // Mutable
     uint256 public nextId = 1;
@@ -78,6 +88,8 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     mapping(bytes32 => bool) public projectTgeActivated;
     mapping(bytes32 => address) public projectTokenAddress;
     mapping(bytes32 => uint64) public projectSettlementDeadline;
+    mapping(bytes32 => uint256) public projectConversionRatio; // Points to tokens ratio (18 decimals, e.g., 1.2e18 = 1 point = 1.2 tokens)
+    mapping(bytes32 => uint64) public projectTgeActivatedAt; // Timestamp of TGE activation (for grace period)
     
     // Points projects: proof submission
     mapping(uint256 => string) public settlementProof;
@@ -87,7 +99,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     
     event OrderCreated(uint256 indexed id, address indexed maker, bool isSell, bytes32 indexed projectId, uint256 amount, uint256 unitPrice);
     event OrderFunded(uint256 indexed id, address buyer, address seller);
-    event ProjectTGEActivated(bytes32 indexed projectId, address tokenAddress, uint64 deadline);
+    event ProjectTGEActivated(bytes32 indexed projectId, address tokenAddress, uint64 deadline, uint256 conversionRatio);
     event OrderSettled(uint256 indexed id, address buyer, address seller, uint256 stableFee, uint256 tokenFee);
     event OrderCanceled(uint256 indexed id, uint256 fee);
     event OrderDefaulted(uint256 indexed id, address compensated, uint256 amount);
@@ -96,6 +108,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     event FeeCollected(bytes32 indexed projectId, address token, uint256 amount);
     event SettlementFeeUpdated(uint64 oldRate, uint64 newRate);
     event CancellationFeeUpdated(uint64 oldRate, uint64 newRate);
+    event ConversionRatioUpdated(bytes32 indexed projectId, uint256 oldRatio, uint256 newRatio);
     event CollateralApproved(address indexed token, uint8 decimals);
     event CollateralRemoved(address indexed token);
     event Paused(address indexed account);
@@ -120,6 +133,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     error FeeTooHigh();
     error CollateralNotApproved();
     error CollateralAlreadyApproved();
+    error GracePeriodExpired();
 
     // ========== MODIFIERS ==========
     
@@ -228,19 +242,22 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         return approvedCollateralList;
     }
 
-    /// @notice Activate TGE for a project (V4: project-level, not per-order!)
+    /// @notice Activate TGE for a project (V4: project-level activation)
     /// @param projectId The project identifier (keccak256 of slug)
-    /// @param tokenAddress The actual token address (or POINTS_SENTINEL for Points)
-    /// @param settlementWindow Duration for settlement (max 7 days)
+    /// @param tokenAddress Token address (or POINTS_SENTINEL for points projects)
+    /// @param settlementWindow Settlement window in seconds (max 7 days)
+    /// @param conversionRatio For points: ratio of points to tokens (18 decimals, e.g., 1.2e18 = 1 point = 1.2 tokens). For tokens: must be 1e18 (1:1)
     function activateProjectTGE(
         bytes32 projectId,
         address tokenAddress,
-        uint64 settlementWindow
+        uint64 settlementWindow,
+        uint256 conversionRatio
     ) external onlyOwner {
         if (projectTgeActivated[projectId]) revert TGEAlreadyActivated();
         if (tokenAddress == address(0)) revert InvalidAddress();
         if (tokenAddress == address(stable)) revert InvalidAddress();
         if (settlementWindow == 0 || settlementWindow > MAX_SETTLEMENT_WINDOW) revert InvalidAmount();
+        if (conversionRatio == 0 || conversionRatio > MAX_CONVERSION_RATIO) revert InvalidAmount();
         
         // For Points projects, allow sentinel
         bool isPointsProject = (tokenAddress == POINTS_SENTINEL);
@@ -249,9 +266,9 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
             // Validate it's a real ERC20 with code
             if (tokenAddress.code.length == 0) revert InvalidAddress();
             
-            // Validate totalSupply() exists
-            try IERC20(tokenAddress).totalSupply() returns (uint256) {
-                // Valid token
+            // Validate totalSupply() exists and is non-zero
+            try IERC20(tokenAddress).totalSupply() returns (uint256 supply) {
+                if (supply == 0) revert InvalidAddress();  // Token must have supply
             } catch {
                 revert InvalidAddress();
             }
@@ -262,13 +279,18 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
             } catch {
                 revert InvalidAddress();
             }
+            
+            // For token projects, conversion ratio must be 1:1 (1e18)
+            if (conversionRatio != 1e18) revert InvalidAmount();
         }
         
         projectTgeActivated[projectId] = true;
         projectTokenAddress[projectId] = tokenAddress;
         projectSettlementDeadline[projectId] = uint64(block.timestamp + settlementWindow);
+        projectConversionRatio[projectId] = conversionRatio;
+        projectTgeActivatedAt[projectId] = uint64(block.timestamp);
         
-        emit ProjectTGEActivated(projectId, tokenAddress, projectSettlementDeadline[projectId]);
+        emit ProjectTGEActivated(projectId, tokenAddress, projectSettlementDeadline[projectId], conversionRatio);
     }
 
     /// @notice Extend settlement deadline for a project
@@ -287,7 +309,40 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         emit SettlementExtended(projectId, projectSettlementDeadline[projectId]);
     }
 
+    /// @notice Emergency update conversion ratio within 1 hour grace period
+    /// @param projectId The project identifier
+    /// @param newRatio New conversion ratio
+    /// @dev Can only be called within 1 hour of TGE activation, before any settlements
+    function updateConversionRatio(
+        bytes32 projectId,
+        uint256 newRatio
+    ) external onlyOwner {
+        if (!projectTgeActivated[projectId]) revert TGENotActivated();
+        if (newRatio == 0 || newRatio > MAX_CONVERSION_RATIO) revert InvalidAmount();
+        
+        // Only allow updates within 1 hour grace period
+        if (block.timestamp > projectTgeActivatedAt[projectId] + 1 hours) revert GracePeriodExpired();
+        
+        // Validate token project ratio
+        address tokenAddress = projectTokenAddress[projectId];
+        bool isPointsProject = (tokenAddress == POINTS_SENTINEL);
+        if (!isPointsProject && newRatio != 1e18) revert InvalidAmount();
+        
+        uint256 oldRatio = projectConversionRatio[projectId];
+        projectConversionRatio[projectId] = newRatio;
+        
+        emit ConversionRatioUpdated(projectId, oldRatio, newRatio);
+    }
+
     // ========== VIEW / PURE HELPERS ==========
+    
+    /// @notice Get conversion ratio for a project (returns 1e18 if not set)
+    /// @param projectId The project identifier
+    /// @return ratio The conversion ratio (1e18 = 1:1)
+    function getConversionRatio(bytes32 projectId) external view returns (uint256) {
+        uint256 ratio = projectConversionRatio[projectId];
+        return ratio == 0 ? 1e18 : ratio;
+    }
     
     /// @notice Calculate total order value in stable
     /// @param amount Token amount (18 decimals)
@@ -375,7 +430,9 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (projectTgeActivated[order.projectId]) revert TGEAlreadyActivated();
         
         uint256 totalValue = (order.amount * order.unitPrice) / 1e18;
-        uint256 collateral = totalValue;  // Both parties: 100% collateral
+        uint256 collateral = order.isSell 
+            ? totalValue                 // Buyer pays purchase price
+            : (totalValue * 110) / 100;  // Seller posts 110% collateral
         
         // Transfer collateral from taker
         address(stable).safeTransferFrom(msg.sender, address(this), collateral);
@@ -473,9 +530,14 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
             revert InvalidStatus();
         }
         
-        // Calculate fees: 0.5% stable + 0.5% token
+        // Apply conversion ratio (for token projects, this is always 1e18 = 1:1)
+        uint256 conversionRatio = projectConversionRatio[order.projectId];
+        if (conversionRatio == 0) conversionRatio = 1e18; // Default to 1:1 if not set (safety)
+        uint256 actualTokenAmount = (order.amount * conversionRatio) / 1e18;
+        
+        // Calculate fees: 0.5% stable + 0.5% token (on actual token amount)
         uint256 stableFee = (order.buyerFunds * settlementFeeBps) / BPS_DENOMINATOR;
-        uint256 tokenFee = (order.amount * settlementFeeBps) / BPS_DENOMINATOR;
+        uint256 tokenFee = (actualTokenAmount * settlementFeeBps) / BPS_DENOMINATOR;
         
         // Cache values before state change
         address buyer = order.buyer;
@@ -487,11 +549,11 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         order.status = Status.SETTLED;
         
         // INTERACTIONS: External calls
-        // Seller must deposit tokens
-        tokenAddress.safeTransferFrom(seller, address(this), order.amount);
+        // Seller must deposit actual token amount (with conversion ratio applied)
+        tokenAddress.safeTransferFrom(seller, address(this), actualTokenAmount);
         
         // Transfer tokens to buyer (minus fee)
-        tokenAddress.safeTransfer(buyer, order.amount - tokenFee);
+        tokenAddress.safeTransfer(buyer, actualTokenAmount - tokenFee);
         
         // Transfer stable to seller (minus fee) + return seller collateral
         address(stable).safeTransfer(seller, totalToSeller);
@@ -522,11 +584,17 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
 
     /// @notice Admin manually settles Points project order after verifying proof
     /// @param orderId The order to settle
+    /// @dev For Points projects, the conversion ratio is informational only (off-chain transfer)
+    /// The admin verifies that seller transferred actualTokenAmount = (order.amount * conversionRatio) / 1e18
     function settleOrderManual(uint256 orderId) external onlyOwner nonReentrant {
         Order storage order = orders[orderId];
         if (order.status != Status.FUNDED) revert InvalidStatus();
         if (!projectTgeActivated[order.projectId]) revert TGENotActivated();
         if (bytes(settlementProof[orderId]).length == 0) revert InvalidStatus();
+        
+        // Note: For Points projects, conversion ratio is already applied off-chain
+        // Seller should have transferred: (order.amount * projectConversionRatio[projectId]) / 1e18 tokens
+        // Admin verifies this before calling settleOrderManual
         
         // Calculate fee: 0.5% of total collateral (no token to capture for Points)
         uint256 totalCollateral = order.buyerFunds + order.sellerCollateral;

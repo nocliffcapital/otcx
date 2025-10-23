@@ -13,6 +13,7 @@ import { isAddress, getAddress } from "viem";
 import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings, DollarSign, Shield, Coins, Trash2 } from "lucide-react";
 import { uploadImageToPinata, uploadMetadataToPinata } from "@/lib/pinata";
 import { useToast } from "@/components/Toast";
+import { ProjectImage } from "@/components/ProjectImage";
 
 // V3 Project structure
 type Project = {
@@ -31,7 +32,10 @@ export default function AdminPage() {
   const toast = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProject, setEditingProject] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "disabled">("all");
+  const [showTGEManager, setShowTGEManager] = useState(false);
+  const [tgeProjectSlug, setTgeProjectSlug] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"active" | "upcoming" | "ended" | "all">("active");
+  const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({});
   const [collateralToRemove, setCollateralToRemove] = useState<string | null>(null);
   const [collateralToApprove, setCollateralToApprove] = useState<string | null>(null);
   
@@ -93,6 +97,24 @@ export default function AdminPage() {
       
       console.log('✅ Projects loaded:', allProjects);
       setProjects(allProjects);
+
+      // Fetch TGE status for each project
+      const tgeStatusMap: Record<string, boolean> = {};
+      for (const project of allProjects) {
+        try {
+          const tgeActivated = await publicClient.readContract({
+            address: ORDERBOOK_ADDRESS,
+            abi: ESCROW_ORDERBOOK_ABI,
+            functionName: "projectTgeActivated",
+            args: [project.id],
+          }) as boolean;
+          tgeStatusMap[project.slug] = tgeActivated;
+        } catch (error) {
+          console.error(`Failed to fetch TGE status for ${project.slug}:`, error);
+          tgeStatusMap[project.slug] = false;
+        }
+      }
+      setProjectTgeStatus(tgeStatusMap);
     } catch (error) {
       console.error('❌ Failed to load projects:', error);
       setProjects([]);
@@ -669,6 +691,16 @@ export default function AdminPage() {
     setShowAddForm(false);
   };
 
+  const openTGEManager = (slug: string) => {
+    setTgeProjectSlug(slug);
+    setShowTGEManager(true);
+  };
+
+  const closeTGEManager = () => {
+    setTgeProjectSlug(null);
+    setShowTGEManager(false);
+  };
+
   // Refresh after successful transaction
   const [hasRefreshed, setHasRefreshed] = useState(false);
   
@@ -877,9 +909,18 @@ export default function AdminPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs text-zinc-500 mb-1">Fee Collector Address</div>
-              <div className="text-sm font-mono text-violet-400">
-                {feeCollector || "Loading..."}
-              </div>
+              {feeCollector ? (
+                <a 
+                  href={`https://blockscan.com/address/${feeCollector}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-mono text-violet-400 hover:text-violet-300 underline decoration-dotted hover:decoration-solid transition-all"
+                >
+                  {feeCollector}
+                </a>
+              ) : (
+                <div className="text-sm font-mono text-violet-400">Loading...</div>
+              )}
             </div>
             <Badge className="bg-violet-600/20 text-violet-400 border-violet-500/30">
               Fees Auto-Transferred
@@ -983,35 +1024,58 @@ export default function AdminPage() {
           </div>
           
           {approvedCollateral && approvedCollateral.length > 0 ? (
-            <div className="grid grid-cols-1 gap-2">
-              {approvedCollateral.map((tokenAddr, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-lg border border-zinc-800"
-                >
-                  <div className="flex items-center gap-3">
-                    <Coins className="w-4 h-4 text-violet-400" />
-                    <div>
-                      <div className="text-sm font-mono text-white">{tokenAddr}</div>
-                      <div className="text-xs text-zinc-500">
-                        {idx === 0 && "Primary Stable (Cannot Remove)"}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {idx !== 0 && (
-                    <Button
-                      onClick={() => handleRemoveCollateral(tokenAddr)}
-                      disabled={isPending}
-                      variant="custom"
-                      className="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 text-xs px-3 py-1"
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-zinc-800">
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Token Address</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {approvedCollateral.map((tokenAddr, idx) => (
+                    <tr 
+                      key={idx}
+                      className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-all"
                     >
-                      <Trash2 className="w-3 h-3 mr-1" />
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              ))}
+                      {/* Token Address */}
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          <Coins className="w-4 h-4 text-violet-400 flex-shrink-0" />
+                          <span className="text-sm font-mono text-white">{tokenAddr}</span>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-4 px-4">
+                        {idx === 0 ? (
+                          <Badge className="bg-cyan-600 text-xs">Primary Stable</Badge>
+                        ) : (
+                          <Badge className="bg-violet-600 text-xs">Approved</Badge>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-4 px-4 text-right">
+                        {idx !== 0 ? (
+                          <Button
+                            onClick={() => handleRemoveCollateral(tokenAddr)}
+                            disabled={isPending}
+                            variant="custom"
+                            className="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 text-xs px-3 py-1"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Remove
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-zinc-600">Cannot Remove</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="text-center py-8 text-zinc-500">
@@ -1051,45 +1115,27 @@ export default function AdminPage() {
         )}
       </Card>
 
-      {/* Add Project Button */}
-      {!showAddForm && (
-        <div className="mb-6">
-          <Button
-            onClick={() => {
-              resetForm(); // Clear any editing state
-              setShowAddForm(true);
-            }}
-            variant="custom"
-            className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Project
-          </Button>
-        </div>
-      )}
-
-      {/* Add/Edit Project Form */}
+      {/* Add/Edit Project Form - Modal */}
       {showAddForm && (
-        <Card className="mb-8 border-cyan-500/30" data-edit-form>
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-cyan-400">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <Card className="w-full max-w-4xl my-8 border-cyan-500/30 p-4" data-edit-form>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-cyan-400">
                 {editingProject ? `Edit ${formData.name || 'Project'}` : "Add New Project"}
               </h2>
+              <Button
+                onClick={resetForm}
+                variant="custom"
+                className="bg-zinc-800 hover:bg-zinc-700 text-sm px-3 py-1.5"
+              >
+                ✕ Close
+              </Button>
             </div>
-            <Button
-              onClick={resetForm}
-              variant="custom"
-              className="bg-zinc-800 hover:bg-zinc-700"
-            >
-              Cancel
-            </Button>
-          </div>
 
-          <form onSubmit={editingProject ? handleUpdateProject : handleAddProject} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={editingProject ? handleUpdateProject : handleAddProject} className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Project Name <span className="text-red-400">*</span>
                 </label>
                 <Input
@@ -1097,11 +1143,12 @@ export default function AdminPage() {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Lighter"
                   required
+                  className="text-sm py-2"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Slug {editingProject && "(cannot change)"}
                 </label>
                 <Input
@@ -1110,32 +1157,32 @@ export default function AdminPage() {
                   placeholder="e.g., lighter"
                   required
                   disabled={!!editingProject}
-                  className={editingProject ? "bg-zinc-900/50 cursor-not-allowed" : ""}
+                  className={`text-sm py-2 ${editingProject ? "bg-zinc-900/50 cursor-not-allowed" : ""}`}
                 />
-                <p className="text-xs text-zinc-500 mt-1">Used in URLs, lowercase only</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Token Address
                 </label>
                 <Input
                   value={formData.tokenAddress}
                   onChange={(e) => setFormData({ ...formData, tokenAddress: e.target.value })}
                   placeholder="0x... (optional if not deployed)"
+                  className="text-xs py-2 font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Asset Type <span className="text-red-400">*</span>
                 </label>
                 <select
                   value={formData.assetType}
                   onChange={(e) => setFormData({ ...formData, assetType: e.target.value })}
-                  className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full px-3 py-2 text-sm bg-zinc-900/50 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                   required
                 >
                   <option value="Tokens">Tokens</option>
@@ -1144,58 +1191,60 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Twitter URL
                 </label>
                 <Input
                   value={formData.twitterUrl}
                   onChange={(e) => setFormData({ ...formData, twitterUrl: e.target.value })}
                   placeholder="https://x.com/project"
+                  className="text-sm py-2"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Website URL
                 </label>
                 <Input
                   value={formData.websiteUrl}
                   onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
                   placeholder="https://project.xyz"
+                  className="text-sm py-2"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
                 Description
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
+                rows={2}
                 placeholder="Brief description of the project..."
-                className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
+                className="w-full px-3 py-2 text-sm bg-zinc-900/50 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
               />
             </div>
 
             {/* Logo and Icon Upload */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Logo Upload */}
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Project Logo (Full)
                 </label>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {/* Preview */}
                   {logoPreview && (
-                    <div className="relative w-full h-32 bg-zinc-900/30 rounded-lg overflow-hidden border-2 border-cyan-500/30">
+                    <div className="relative w-full h-20 bg-zinc-900/30 rounded-lg overflow-hidden border border-cyan-500/30">
                       <img 
                         src={logoPreview} 
                         alt="Logo preview" 
-                        className="w-full h-full object-contain p-2"
+                        className="w-full h-full object-contain p-1"
                       />
                       <button
                         type="button"
@@ -1203,7 +1252,7 @@ export default function AdminPage() {
                           setLogoFile(null);
                           setLogoPreview(null);
                         }}
-                        className="absolute top-2 right-2 w-6 h-6 bg-red-600 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-700"
+                        className="absolute top-1 right-1 w-5 h-5 bg-red-600 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-700"
                       >
                         ×
                       </button>
@@ -1211,17 +1260,11 @@ export default function AdminPage() {
                   )}
                   
                   {/* Upload Button */}
-                  <label className="flex items-center justify-center px-4 py-8 bg-zinc-900/50 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-cyan-500/50 hover:bg-zinc-900/70 transition-all">
+                  <label className="flex items-center justify-center px-3 py-4 bg-zinc-900/50 border border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-cyan-500/50 hover:bg-zinc-900/70 transition-all">
                     <div className="text-center">
-                      <Upload className="w-6 h-6 mx-auto mb-2 text-zinc-400" />
-                      <p className="text-xs text-zinc-300">
-                        {logoFile ? 'Change' : 'Upload'} Full Logo
-                      </p>
-                      <p className="text-[10px] text-zinc-500 mt-1">
-                        For headers & detail pages
-                      </p>
-                      <p className="text-[10px] text-zinc-600 mt-0.5">
-                        (Max height: 48px, max width: 200px)
+                      <Upload className="w-4 h-4 mx-auto mb-1 text-zinc-400" />
+                      <p className="text-[10px] text-zinc-300">
+                        {logoFile ? 'Change' : 'Upload'} Logo
                       </p>
                     </div>
                     <input
@@ -1232,8 +1275,8 @@ export default function AdminPage() {
                     />
                   </label>
                   {logoFile && (
-                    <p className="text-xs text-cyan-400 flex items-center">
-                      <CheckCircle className="w-3 h-3 mr-1" />
+                    <p className="text-[10px] text-cyan-400 flex items-center truncate">
+                      <CheckCircle className="w-3 h-3 mr-1 flex-shrink-0" />
                       {logoFile.name}
                     </p>
                   )}
@@ -1242,17 +1285,17 @@ export default function AdminPage() {
 
               {/* Icon Upload */}
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Project Icon (Round)
                 </label>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {/* Preview */}
                   {iconPreview && (
-                    <div className="relative w-full h-32 bg-zinc-900/30 rounded-lg overflow-hidden border-2 border-blue-500/30 flex items-center justify-center">
+                    <div className="relative w-full h-20 bg-zinc-900/30 rounded-lg overflow-hidden border border-blue-500/30 flex items-center justify-center">
                       <img 
                         src={iconPreview} 
                         alt="Icon preview" 
-                        className="w-24 h-24 object-cover rounded-full border-4 border-blue-500/20"
+                        className="w-16 h-16 object-cover rounded-full border-2 border-blue-500/20"
                       />
                       <button
                         type="button"
@@ -1260,7 +1303,7 @@ export default function AdminPage() {
                           setIconFile(null);
                           setIconPreview(null);
                         }}
-                        className="absolute top-2 right-2 w-6 h-6 bg-red-600 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-700"
+                        className="absolute top-1 right-1 w-5 h-5 bg-red-600 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-700"
                       >
                         ×
                       </button>
@@ -1268,17 +1311,11 @@ export default function AdminPage() {
                   )}
                   
                   {/* Upload Button */}
-                  <label className="flex items-center justify-center px-4 py-8 bg-zinc-900/50 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-violet-500/50 hover:bg-zinc-900/70 transition-all">
+                  <label className="flex items-center justify-center px-3 py-4 bg-zinc-900/50 border border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-violet-500/50 hover:bg-zinc-900/70 transition-all">
                     <div className="text-center">
-                      <Upload className="w-6 h-6 mx-auto mb-2 text-zinc-400" />
-                      <p className="text-xs text-zinc-300">
-                        {iconFile ? 'Change' : 'Upload'} Round Icon
-                      </p>
-                      <p className="text-[10px] text-zinc-500 mt-1">
-                        For lists & navigation
-                      </p>
-                      <p className="text-[10px] text-zinc-600 mt-0.5">
-                        (Displayed: 40-48px round)
+                      <Upload className="w-4 h-4 mx-auto mb-1 text-zinc-400" />
+                      <p className="text-[10px] text-zinc-300">
+                        {iconFile ? 'Change' : 'Upload'} Icon
                       </p>
                     </div>
                     <input
@@ -1289,8 +1326,8 @@ export default function AdminPage() {
                     />
                   </label>
                   {iconFile && (
-                    <p className="text-xs text-violet-400 flex items-center">
-                      <CheckCircle className="w-3 h-3 mr-1" />
+                    <p className="text-[10px] text-violet-400 flex items-center truncate">
+                      <CheckCircle className="w-3 h-3 mr-1 flex-shrink-0" />
                       {iconFile.name}
                     </p>
                   )}
@@ -1298,12 +1335,12 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 pt-4">
+            <div className="flex flex-col gap-2 pt-1">
               <Button
                 type="submit"
                 disabled={isPending || isConfirming || uploadingLogo || uploadingIcon || uploadingMetadata}
                 variant="custom"
-                className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700"
+                className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700 text-sm py-2"
               >
                 {uploadingLogo ? (
                   <>
@@ -1362,47 +1399,113 @@ export default function AdminPage() {
             </div>
           </form>
 
-          {/* TGE Management for This Project - Only show when editing */}
-          {editingProject && (
-            <div className="mt-8 pt-8 border-t border-zinc-800">
-              <h3 className="text-xl font-bold text-violet-400 mb-4">TGE Settlement Management</h3>
-              <p className="text-sm text-zinc-400 mb-4">Manage settlement windows for orders in this project</p>
-              
-              {loadingOrders ? (
-                <p className="text-sm text-zinc-400">Loading orders for this project...</p>
-              ) : (
-                <TGESettlementManager 
-                  orders={orders.filter(o => {
-                    const project = projects.find(p => p.slug === editingProject);
-                    if (!project) return false;
-                    // V3: Compare projectId (bytes32) from order with project.id
-                    return o.projectToken && typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === project.id.toLowerCase();
-                  })}
-                  assetType={projects.find(p => p.slug === editingProject)?.isPoints ? "Points" : "Tokens"}
-                />
-              )}
+          </Card>
+        </div>
+      )}
+
+      {/* TGE Management Modal - Separate from Edit */}
+      {showTGEManager && tgeProjectSlug && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <Card className="w-full max-w-5xl my-8 border-violet-500/30 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-violet-400">
+                TGE Management - {projects.find(p => p.slug === tgeProjectSlug)?.name}
+              </h2>
+              <Button
+                onClick={closeTGEManager}
+                variant="custom"
+                className="bg-zinc-800 hover:bg-zinc-700 text-sm px-3 py-1.5"
+              >
+                ✕ Close
+              </Button>
             </div>
-          )}
-        </Card>
+            
+            {loadingOrders ? (
+              <p className="text-sm text-zinc-400">Loading orders for this project...</p>
+            ) : (
+              <TGESettlementManager 
+                orders={orders.filter(o => {
+                  const project = projects.find(p => p.slug === tgeProjectSlug);
+                  if (!project) return false;
+                  // V3: Compare projectId (bytes32) from order with project.id
+                  return o.projectToken && typeof o.projectToken === 'string' && o.projectToken.toLowerCase() === project.id.toLowerCase();
+                })}
+                assetType={projects.find(p => p.slug === tgeProjectSlug)?.isPoints ? "Points" : "Tokens"}
+              />
+            )}
+          </Card>
+        </div>
       )}
 
       {/* Projects List */}
       <Card>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">All Projects</h2>
-          
-          {/* Status Filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-zinc-400">Filter:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "disabled")}
-              className="px-4 py-2 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">All Projects</h2>
+            <Button
+              onClick={() => setShowAddForm(true)}
+              variant="custom"
+              className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700"
             >
-              <option value="all">All Projects</option>
-              <option value="active">Active Only</option>
-              <option value="disabled">Disabled Only</option>
-            </select>
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Project
+            </Button>
+          </div>
+          
+          {/* Status Tabs */}
+          <div className="flex items-center gap-2 border-b border-zinc-800">
+            <button
+              onClick={() => setStatusFilter("active")}
+              className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${
+                statusFilter === "active"
+                  ? "text-cyan-400 border-cyan-400"
+                  : "text-zinc-400 border-transparent hover:text-zinc-300"
+              }`}
+            >
+              Active
+              <Badge className="ml-2 bg-green-700 text-xs">
+                {projects.filter(p => p.active && !projectTgeStatus[p.slug]).length}
+              </Badge>
+            </button>
+            <button
+              onClick={() => setStatusFilter("upcoming")}
+              className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${
+                statusFilter === "upcoming"
+                  ? "text-cyan-400 border-cyan-400"
+                  : "text-zinc-400 border-transparent hover:text-zinc-300"
+              }`}
+            >
+              Upcoming
+              <Badge className="ml-2 bg-yellow-700 text-xs">
+                {projects.filter(p => !p.active).length}
+              </Badge>
+            </button>
+            <button
+              onClick={() => setStatusFilter("ended")}
+              className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${
+                statusFilter === "ended"
+                  ? "text-cyan-400 border-cyan-400"
+                  : "text-zinc-400 border-transparent hover:text-zinc-300"
+              }`}
+            >
+              Ended
+              <Badge className="ml-2 bg-red-900/50 text-xs">
+                {projects.filter(p => projectTgeStatus[p.slug]).length}
+              </Badge>
+            </button>
+            <button
+              onClick={() => setStatusFilter("all")}
+              className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${
+                statusFilter === "all"
+                  ? "text-cyan-400 border-cyan-400"
+                  : "text-zinc-400 border-transparent hover:text-zinc-300"
+              }`}
+            >
+              All Projects
+              <Badge className="ml-2 bg-zinc-700 text-xs">
+                {projects.length}
+              </Badge>
+            </button>
           </div>
         </div>
         
@@ -1413,8 +1516,9 @@ export default function AdminPage() {
         ) : (() => {
             const filteredProjects = projects.filter((project) => {
               if (statusFilter === "all") return true;
-              if (statusFilter === "active") return project.active;
-              if (statusFilter === "disabled") return !project.active;
+              if (statusFilter === "active") return project.active && !projectTgeStatus[project.slug];
+              if (statusFilter === "upcoming") return !project.active;
+              if (statusFilter === "ended") return projectTgeStatus[project.slug];
               return true;
             });
             
@@ -1429,65 +1533,125 @@ export default function AdminPage() {
                     <p className="text-sm text-zinc-500 mb-4">
                       Showing {filteredProjects.length} of {projects.length} project{projects.length !== 1 ? 's' : ''}
                     </p>
-                    <div className="space-y-4">
-                      {filteredProjects.map((project) => (
-              <div
-                key={project.slug}
-                className="flex items-center justify-between p-4 bg-zinc-900/30 border border-zinc-800 rounded-lg hover:border-cyan-500/30 transition-all"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold">{project.name}</h3>
-                    <Badge className={project.active ? "bg-green-600" : "bg-zinc-600"}>
-                      {project.active ? "Active" : "Inactive"}
-                    </Badge>
-                    <Badge className={project.isPoints ? "bg-purple-600" : "bg-blue-600"}>
-                      {project.isPoints ? "Points" : "Tokens"}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-4 mb-1">
-                    <p className="text-sm text-zinc-400">Slug: {project.slug}</p>
-                    <p className="text-xs text-zinc-500">
-                      Added: {new Date(Number(project.addedAt) * 1000).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                  {project.metadataURI && (
-                    <p className="text-xs text-zinc-500 truncate max-w-md">
-                      Metadata: {project.metadataURI}
-                    </p>
-                  )}
-                  {project.tokenAddress && project.tokenAddress !== '0x0000000000000000000000000000000000000000' && (
-                    <p className="text-xs text-zinc-500 truncate max-w-md">
-                      Token: {project.tokenAddress}
-                    </p>
-                  )}
-                </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-zinc-800">
+                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Project</th>
+                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Type</th>
+                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Lifecycle</th>
+                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Slug</th>
+                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Added</th>
+                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Token Address</th>
+                            <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
+                            <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">TGE</th>
+                            <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Edit</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredProjects.map((project) => (
+                            <tr 
+                              key={project.slug}
+                              className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-all"
+                            >
+                              {/* Project Name */}
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-2">
+                                  <ProjectImage 
+                                    metadataURI={project.metadataURI}
+                                    imageType="icon"
+                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-zinc-700"
+                                    fallbackText={project.name.charAt(0).toUpperCase()}
+                                  />
+                                  <span className="text-base font-semibold text-white">{project.name}</span>
+                                </div>
+                              </td>
 
-                <div className="flex items-center gap-3">
-                  <Button
-                    onClick={() => startEditing(project)}
-                    variant="custom"
-                    className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-sm px-3 py-1.5"
-                  >
-                    Edit
-                  </Button>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-zinc-400">
-                      {project.active ? "Active" : "Disabled"}
-                    </span>
-                    <Switch
-                      checked={project.active}
-                      onChange={() => handleToggleStatus(project.id, project.active)}
-                      disabled={isPending || isConfirming}
-                    />
-                  </div>
-                </div>
-              </div>
-                      ))}
+                              {/* Type */}
+                              <td className="py-4 px-4">
+                                <Badge className={project.isPoints ? "bg-purple-600" : "bg-blue-600"}>
+                                  {project.isPoints ? "Points" : "Tokens"}
+                                </Badge>
+                              </td>
+
+                              {/* Lifecycle */}
+                              <td className="py-4 px-4">
+                                {projectTgeStatus[project.slug] ? (
+                                  <Badge className="bg-red-900/50">Ended</Badge>
+                                ) : project.active ? (
+                                  <Badge className="bg-green-600">Active</Badge>
+                                ) : (
+                                  <Badge className="bg-yellow-600">Upcoming</Badge>
+                                )}
+                              </td>
+
+                              {/* Slug */}
+                              <td className="py-4 px-4">
+                                <span className="text-sm text-zinc-400 font-mono">{project.slug}</span>
+                              </td>
+
+                              {/* Added Date */}
+                              <td className="py-4 px-4">
+                                <span className="text-sm text-zinc-400">
+                                  {new Date(Number(project.addedAt) * 1000).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </span>
+                              </td>
+
+                              {/* Token Address */}
+                              <td className="py-4 px-4">
+                                {project.tokenAddress && project.tokenAddress !== '0x0000000000000000000000000000000000000000' ? (
+                                  <span className="text-xs text-zinc-500 font-mono">
+                                    {project.tokenAddress.slice(0, 6)}...{project.tokenAddress.slice(-4)}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-zinc-600">—</span>
+                                )}
+                              </td>
+
+                              {/* Status Toggle */}
+                              <td className="py-4 px-4">
+                                <div className="flex items-center justify-center gap-2">
+                                  <span className="text-xs text-zinc-400">
+                                    {project.active ? "On" : "Off"}
+                                  </span>
+                                  <Switch
+                                    checked={project.active}
+                                    onChange={() => handleToggleStatus(project.id, project.active)}
+                                    disabled={isPending || isConfirming}
+                                  />
+                                </div>
+                              </td>
+
+                              {/* TGE Button */}
+                              <td className="py-4 px-4 text-center">
+                                <Button
+                                  onClick={() => openTGEManager(project.slug)}
+                                  variant="custom"
+                                  className="bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 border border-violet-500/30 text-xs px-2 py-1"
+                                >
+                                  🚀 TGE
+                                </Button>
+                              </td>
+
+                              {/* Edit Button */}
+                              <td className="py-4 px-4 text-right">
+                                <Button
+                                  onClick={() => startEditing(project)}
+                                  variant="custom"
+                                  className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs px-2 py-1"
+                                >
+                                  <Edit2 className="w-3 h-3 mr-1 inline" />
+                                  Edit
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </>
                 )}

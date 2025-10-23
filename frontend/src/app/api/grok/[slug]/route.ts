@@ -26,9 +26,19 @@ export async function GET(
 ) {
   const { slug } = await params;
 
+  // Get project details from query params or registry
+  const projectName = request.nextUrl.searchParams.get('name') || slug;
+  const twitter = request.nextUrl.searchParams.get('twitter') || '';
+  const website = request.nextUrl.searchParams.get('website') || '';
+  const description = request.nextUrl.searchParams.get('description') || '';
+
+  // Create a cache key that includes project details to avoid stale data
+  // when project info changes but slug stays the same
+  const cacheKey = `${slug}:${projectName}:${twitter}:${website}`;
+
   // Check cache first (allow bypassing with ?refresh=true)
   const forceRefresh = request.nextUrl.searchParams.get('refresh') === 'true';
-  const cached = cache.get(slug);
+  const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION && !forceRefresh) {
     return NextResponse.json({
       ...cached.data,
@@ -36,12 +46,6 @@ export async function GET(
       cacheAge: Math.floor((Date.now() - cached.timestamp) / 1000 / 60), // minutes
     });
   }
-
-  // Get project details from query params or registry
-  const projectName = request.nextUrl.searchParams.get('name') || slug;
-  const twitter = request.nextUrl.searchParams.get('twitter') || '';
-  const website = request.nextUrl.searchParams.get('website') || '';
-  const description = request.nextUrl.searchParams.get('description') || '';
 
   const GROK_API_KEY = process.env.GROK_API_KEY;
   
@@ -60,42 +64,35 @@ export async function GET(
       twitterHandle = match ? `@${match[1]}` : '';
     }
 
-    // Call Grok API (xAI)
-    const prompt = `You are analyzing the cryptocurrency/DeFi project "${projectName}".
+    // Call Grok API (xAI) - Simple, direct prompt like a chat
+    const prompt = `Search Twitter/X for recent discussions about ${projectName}${twitterHandle ? ` (${twitterHandle})` : ''} and tell me:
 
-PROJECT INFORMATION (from verified on-chain registry):
-- Project Name: ${projectName}
-${twitter ? `- Official Twitter/X: ${twitter} (handle: ${twitterHandle})` : '- Official Twitter/X: Not provided'}
-${website ? `- Official Website: ${website}` : ''}
-${description ? `- Project Description: ${description}` : ''}
+1. What prices are people discussing for ${projectName} in OTC deals? Look for tweets like "WTB ${projectName} at $X" or "Selling ${projectName} at $Y"
 
-YOUR TASK:
-${twitterHandle ? `Search Twitter/X using the handle "${twitterHandle}" to find REAL, RECENT price discussions from the last 24-48 hours.` : `Search Twitter/X for "${projectName}" to find REAL, RECENT price discussions from the last 24-48 hours.`}
+2. What's the sentiment around ${projectName}? Are people excited, cautious, or neutral?
 
-WHAT TO LOOK FOR:
-1. **OTC Market Activity**: People posting "WTB/WTS at $X", "Buying at $Y", "Selling at $Z"
-2. **Price Discovery**: Discussions about fair value, what people paid in private deals
-3. **Valuation Estimates**: FDV discussions, market cap estimates, price per token predictions
-4. **Community Consensus**: What price range is being actively discussed and traded
+3. What price range seems realistic based on actual Twitter discussions about ${projectName}?
 
-CRITICAL INSTRUCTIONS:
-- Use ACTUAL numbers from real Twitter posts, NOT generic placeholder values
-- If Twitter shows discussions at "$100-$150", report that range
-- If you see OTC deals at "$90", include that in your low estimate
-- The source should reflect WHERE you found the data (e.g., "Twitter OTC deals", "Community consensus on X")
+Project info:
+- Name: ${projectName}
+${twitter ? `- Twitter: ${twitter}` : ''}
+${website ? `- Website: ${website}` : ''}
+${description ? `- Description: ${description}` : ''}
 
-SENTIMENT:
-- Analyze tweet sentiment: positive/negative/neutral percentages
-- Base this on real reactions, retweets, and discussion tone
-
-Return ONLY valid JSON (no markdown, no code blocks, no explanations):
+Return your findings in this JSON format (no markdown, just raw JSON):
 {
-  "sentiment": {"positive": <number>, "negative": <number>, "neutral": <number>},
-  "priceEstimates": [{"low": "$<actual_low_price>", "average": "$<actual_avg_price>", "high": "$<actual_high_price>", "source": "<where_you_found_this_data>"}],
-  "summary": "<2-sentence summary based on actual Twitter research>"
+  "sentiment": {"positive": <0-100>, "negative": <0-100>, "neutral": <0-100>},
+  "priceEstimates": [{"low": "$<price>", "average": "$<price>", "high": "$<price>", "source": "<where you found this>"}],
+  "summary": "<2-3 sentences about what you found on Twitter about ${projectName}>"
 }
 
-REMEMBER: Replace ALL placeholder values with REAL data from Twitter. Do NOT use generic numbers.`;
+IMPORTANT: If you can't find specific OTC price quotes, look for:
+- Valuation estimates (FDV/market cap discussions)
+- Total token supply mentions
+- Then calculate: Price per token = Valuation / Total Supply
+- Include this calculation in your source field
+
+If you truly can't find any pricing data, use "N/A" for prices and explain what you found instead.`;
 
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
@@ -114,9 +111,9 @@ REMEMBER: Replace ALL placeholder values with REAL data from Twitter. Do NOT use
             content: prompt,
           },
         ],
-        model: 'grok-2-1212',
+        model: 'grok-4-0709',
         stream: false,
-        temperature: 0.7,
+        temperature: 0,
       }),
     });
 
@@ -172,8 +169,8 @@ REMEMBER: Replace ALL placeholder values with REAL data from Twitter. Do NOT use
       };
     }
 
-    // Cache the result
-    cache.set(slug, {
+    // Cache the result with the composite key
+    cache.set(cacheKey, {
       data: analysis,
       timestamp: Date.now(),
     });
@@ -217,7 +214,7 @@ REMEMBER: Replace ALL placeholder values with REAL data from Twitter. Do NOT use
     };
 
     // Cache fallback data for a shorter time (1 hour)
-    cache.set(slug, {
+    cache.set(cacheKey, {
       data: fallbackData,
       timestamp: Date.now() - (CACHE_DURATION - 60 * 60 * 1000), // Expire in 1 hour instead of 12
     });

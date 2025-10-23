@@ -36,10 +36,16 @@ const CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 const CACHE_KEY_PREFIX = 'grok_analysis_';
 
 // Helper functions for localStorage cache
-function getCachedAnalysis(slug: string): { data: GrokAnalysis; timestamp: number } | null {
+// Use composite key to avoid stale data when project details change
+function getCacheKey(project: Project): string {
+  return `${project.slug}:${project.name}:${project.twitterUrl}:${project.websiteUrl}`;
+}
+
+function getCachedAnalysis(project: Project): { data: GrokAnalysis; timestamp: number } | null {
   if (typeof window === 'undefined') return null;
   try {
-    const cached = localStorage.getItem(CACHE_KEY_PREFIX + slug);
+    const cacheKey = getCacheKey(project);
+    const cached = localStorage.getItem(CACHE_KEY_PREFIX + cacheKey);
     if (!cached) return null;
     return JSON.parse(cached);
   } catch {
@@ -47,10 +53,11 @@ function getCachedAnalysis(slug: string): { data: GrokAnalysis; timestamp: numbe
   }
 }
 
-function setCachedAnalysis(slug: string, data: GrokAnalysis, timestamp: number) {
+function setCachedAnalysis(project: Project, data: GrokAnalysis, timestamp: number) {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(CACHE_KEY_PREFIX + slug, JSON.stringify({ data, timestamp }));
+    const cacheKey = getCacheKey(project);
+    localStorage.setItem(CACHE_KEY_PREFIX + cacheKey, JSON.stringify({ data, timestamp }));
   } catch (err) {
     console.warn('Failed to cache analysis to localStorage:', err);
   }
@@ -65,7 +72,7 @@ export function ProjectInfo({ project }: { project: Project }) {
     async function fetchAnalysis() {
       try {
         // Check localStorage cache first
-        const cached = getCachedAnalysis(project.slug);
+        const cached = getCachedAnalysis(project);
         if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
           console.log(`Using localStorage cache for ${project.slug} (age: ${Math.round((Date.now() - cached.timestamp) / 1000 / 60)} minutes)`);
           setAnalysis(cached.data);
@@ -93,7 +100,7 @@ export function ProjectInfo({ project }: { project: Project }) {
         
         // Store in localStorage cache
         const timestamp = Date.now();
-        setCachedAnalysis(project.slug, data, timestamp);
+        setCachedAnalysis(project, data, timestamp);
         
         setAnalysis(data);
         setError(null);

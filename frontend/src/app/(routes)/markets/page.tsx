@@ -10,7 +10,7 @@ import { useReadContract, usePublicClient } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, STABLE_DECIMALS, slugToProjectId } from "@/lib/contracts";
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
-import { TrendingUp, SearchX } from "lucide-react";
+import { TrendingUp, SearchX, DollarSign, Clock, Activity } from "lucide-react";
 
 // Smart decimal formatting based on price
 function formatPrice(price: number): string {
@@ -39,6 +39,7 @@ type ProjectStats = {
   lastPrice: number | null;  // Last filled order price
   orderCount: number;
   totalVolume: number;  // Total USDC volume across all orders
+  tradeCount: number;  // Number of filled/matched orders (trades)
 };
 
 export default function ProjectsPage() {
@@ -63,7 +64,11 @@ export default function ProjectsPage() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | "Tokens" | "Points">("all");
-  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
+  const [viewMode, setViewMode] = useState<"cards" | "list">("list");
+  const [marketTab, setMarketTab] = useState<"live" | "upcoming" | "ended">("live");
+  const [sortBy, setSortBy] = useState<"name" | "price" | "volume" | "orders">("volume");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({});
 
   // V3: getActiveProjects returns full structs with metadataURI
   // No need to fetch individually - metadata is on IPFS
@@ -101,9 +106,15 @@ export default function ProjectsPage() {
   useEffect(() => {
     if (!publicClient || !projects || projects.length === 0) return;
 
+    let isInitialLoad = true;
+
     const fetchStats = async () => {
       try {
-        setLoadingStats(true);
+        // Only show loading spinner on initial load, not on refreshes
+        if (isInitialLoad) {
+          setLoadingStats(true);
+          isInitialLoad = false;
+        }
         
         // Get next order ID
         const nextId = await publicClient.readContract({
@@ -150,6 +161,27 @@ export default function ProjectsPage() {
         ]).catch(err => {
           console.warn('Some orders failed to load:', err);
         });
+
+        // Fetch TGE status for each project
+        const tgeStatusMap: Record<string, boolean> = {};
+        const tgePromises = (projects as Project[]).map(async (project) => {
+          try {
+            const projectId = slugToProjectId(project.slug);
+            const tgeActivated = await publicClient.readContract({
+              address: ORDERBOOK_ADDRESS,
+              abi: ESCROW_ORDERBOOK_ABI,
+              functionName: "projectTgeActivated",
+              args: [projectId],
+            }) as boolean;
+            tgeStatusMap[project.slug] = tgeActivated;
+          } catch (err) {
+            console.error(`Failed to fetch TGE status for ${project.slug}:`, err);
+            tgeStatusMap[project.slug] = false;
+          }
+        });
+
+        await Promise.all(tgePromises);
+        setProjectTgeStatus(tgeStatusMap);
 
         // Calculate stats for each project
         const stats: Record<string, ProjectStats> = {};
@@ -203,6 +235,7 @@ export default function ProjectsPage() {
             lastPrice,
             orderCount: openOrders.length, // Only count OPEN orders
             totalVolume,
+            tradeCount: filledOrders.length, // Number of filled/matched orders
           };
         });
 
@@ -221,17 +254,58 @@ export default function ProjectsPage() {
     return () => clearInterval(interval);
   }, [publicClient, projects]);
 
-  // Filter projects based on search query and asset type
+  // Calculate global stats
+  const globalStats = {
+    total24hVolume: Object.values(projectStats).reduce((sum, stats) => sum + stats.totalVolume, 0),
+    totalTrades: Object.values(projectStats).reduce((sum, stats) => sum + (stats.tradeCount || 0), 0),
+    liveMarkets: projects.filter(p => p.active).length,  // Active = open for trading
+    totalMarkets: projects.length,
+  };
+
+  // Filter projects based on search query, asset type, and market tab
   const filteredProjects = projects 
-    ? (projects as Project[]).filter(project => {
-        const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          project.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          project.assetType.toLowerCase().includes(searchQuery.toLowerCase());
-        
-        const matchesAssetType = assetFilter === "all" || project.assetType === assetFilter;
-        
-        return matchesSearch && matchesAssetType;
-      })
+    ? (projects as Project[])
+        .filter(project => {
+          const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            project.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            project.assetType.toLowerCase().includes(searchQuery.toLowerCase());
+          
+          const matchesAssetType = assetFilter === "all" || project.assetType === assetFilter;
+          
+          // Market tab filtering
+          const tgeActivated = projectTgeStatus[project.slug] || false;
+          const matchesTab = 
+            marketTab === "live" ? (project.active && !tgeActivated) :  // Live = active AND TGE not activated
+            marketTab === "upcoming" ? (!project.active && !tgeActivated) :  // Upcoming = not yet active AND no TGE
+            marketTab === "ended" ? tgeActivated :  // Ended = TGE has been activated (regardless of active status)
+            false;
+          
+          return matchesSearch && matchesAssetType && matchesTab;
+        })
+        .sort((a, b) => {
+          const statsA = projectStats[a.slug];
+          const statsB = projectStats[b.slug];
+          
+          let comparison = 0;
+          switch (sortBy) {
+            case "name":
+              comparison = a.name.localeCompare(b.name);
+              break;
+            case "price":
+              const priceA = statsA?.lastPrice || statsA?.lowestAsk || 0;
+              const priceB = statsB?.lastPrice || statsB?.lowestAsk || 0;
+              comparison = priceA - priceB;
+              break;
+            case "volume":
+              comparison = (statsA?.totalVolume || 0) - (statsB?.totalVolume || 0);
+              break;
+            case "orders":
+              comparison = (statsA?.orderCount || 0) - (statsB?.orderCount || 0);
+              break;
+          }
+          
+          return sortDirection === "asc" ? comparison : -comparison;
+        })
     : [];
 
   return (
@@ -267,6 +341,156 @@ export default function ProjectsPage() {
           <p className="text-lg text-zinc-400 mb-6">
             Browse pre-TGE OTC markets for tokens and points
           </p>
+
+        {/* Top Stats Cards */}
+        {!loadingStats && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {/* 24h Volume */}
+            <Card className="p-3 border-cyan-500/30 bg-cyan-950/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-cyan-500/20 rounded-lg flex-shrink-0">
+                  <DollarSign className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[10px] text-zinc-400 mb-0.5">Pre-market 24h Vol</h3>
+                  <p className="text-xl font-bold text-cyan-400">
+                    ${globalStats.total24hVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">
+                    {globalStats.totalTrades} Total Trades
+                  </p>
+                </div>
+                <div className="h-[72px] w-[152px] flex-shrink-0">
+                  <svg 
+                    viewBox="0 0 152 72" 
+                    className="w-full h-full"
+                    preserveAspectRatio="none"
+                  >
+                    <defs>
+                      <linearGradient id="volume-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="rgb(6, 182, 212)" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="rgb(6, 182, 212)" stopOpacity="0.05" />
+                      </linearGradient>
+                    </defs>
+                    {(() => {
+                      const points = Array.from({ length: 20 }).map((_, i) => {
+                        const variation = (Math.sin(i * 0.5) * 0.15 + Math.cos(i * 0.3) * 0.1);
+                        const normalizedY = 0.5 + variation;
+                        const x = (i / 19) * 152;
+                        const y = 72 - (normalizedY * 54 + 9);
+                        return { x, y };
+                      });
+
+                      let pathData = `M ${points[0].x} ${points[0].y}`;
+                      for (let i = 0; i < points.length - 1; i++) {
+                        const xMid = (points[i].x + points[i + 1].x) / 2;
+                        const yMid = (points[i].y + points[i + 1].y) / 2;
+                        pathData += ` Q ${points[i].x} ${points[i].y}, ${xMid} ${yMid}`;
+                      }
+                      pathData += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
+                      const areaPath = pathData + ` L 152 72 L 0 72 Z`;
+
+                      return (
+                        <>
+                          <path d={areaPath} fill="url(#volume-gradient)" />
+                          <path d={pathData} fill="none" stroke="rgb(6, 182, 212)" strokeWidth="2" />
+                        </>
+                      );
+                    })()}
+                  </svg>
+                </div>
+              </div>
+            </Card>
+
+            {/* Total Projects */}
+            <Card className="p-3 border-violet-500/30 bg-violet-950/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-violet-500/20 rounded-lg flex-shrink-0">
+                  <Activity className="w-5 h-5 text-violet-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[10px] text-zinc-400 mb-0.5">Total Projects</h3>
+                  <p className="text-xl font-bold text-violet-400">
+                    {globalStats.totalMarkets}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">
+                    {globalStats.liveMarkets} Live • {projects.filter(p => !p.active).length} Upcoming
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* In Settlement */}
+            <Card className="p-3 border-emerald-500/30 bg-emerald-950/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-500/20 rounded-lg flex-shrink-0">
+                  <Clock className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[10px] text-zinc-400 mb-0.5">In Settlement</h3>
+                  <p className="text-xl font-bold text-emerald-400">
+                    {projects.filter(p => projectTgeStatus[p.slug]).length}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">
+                    {projects.filter(p => projectTgeStatus[p.slug]).length > 0 ? 'Projects completing TGE' : 'No active settlements'}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div className="flex items-center gap-2 border-b border-zinc-800 mb-6">
+          <button
+            onClick={() => setMarketTab("live")}
+            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+              marketTab === "live"
+                ? "text-green-400"
+                : "text-zinc-400 hover:text-zinc-300"
+            }`}
+          >
+            Live
+            {marketTab === "live" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-400"></div>
+            )}
+            <Badge className="ml-2 bg-green-600 text-xs">
+              {projects.filter(p => p.active && !projectTgeStatus[p.slug]).length}
+            </Badge>
+          </button>
+          <button
+            onClick={() => setMarketTab("upcoming")}
+            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+              marketTab === "upcoming"
+                ? "text-cyan-400"
+                : "text-zinc-400 hover:text-zinc-300"
+            }`}
+          >
+            Upcoming
+            {marketTab === "upcoming" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+            )}
+            <Badge className="ml-2 bg-cyan-600 text-xs">
+              {projects.filter(p => !p.active).length}
+            </Badge>
+          </button>
+          <button
+            onClick={() => setMarketTab("ended")}
+            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+              marketTab === "ended"
+                ? "text-emerald-400"
+                : "text-zinc-400 hover:text-zinc-300"
+            }`}
+          >
+            Ended
+            {marketTab === "ended" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400"></div>
+            )}
+            <Badge className="ml-2 bg-emerald-600 text-xs">
+              {projects.filter(p => projectTgeStatus[p.slug]).length}
+            </Badge>
+          </button>
+        </div>
         
         {/* Search Bar and Request Button */}
         <div className="flex gap-4 items-center justify-between">
@@ -334,19 +558,6 @@ export default function ProjectsPage() {
           {/* View Toggle */}
           <div className="flex gap-2">
             <button
-              onClick={() => setViewMode("cards")}
-              className={`p-2 rounded-lg transition-all ${
-                viewMode === "cards" 
-                  ? "bg-cyan-600 text-white" 
-                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
-              }`}
-              title="Card View"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-            </button>
-            <button
               onClick={() => setViewMode("list")}
               className={`p-2 rounded-lg transition-all ${
                 viewMode === "list" 
@@ -357,6 +568,19 @@ export default function ProjectsPage() {
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode("cards")}
+              className={`p-2 rounded-lg transition-all ${
+                viewMode === "cards" 
+                  ? "bg-cyan-600 text-white" 
+                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+              }`}
+              title="Card View"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
               </svg>
             </button>
           </div>
@@ -370,7 +594,8 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {!isLoading && projects && projects.length === 0 && (
+      {/* Card View */}
+      {viewMode === "cards" && !isLoading && projects && projects.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 px-4">
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500/20 to-violet-500/20 flex items-center justify-center mb-6">
             <svg className="w-10 h-10 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -391,20 +616,19 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {!isLoading && filteredProjects.length === 0 && projects && projects.length > 0 && (
-        <div className="text-center py-12">
-          <div className="flex justify-center mb-4">
-            <SearchX className="w-16 h-16 text-zinc-600" />
+      {viewMode === "cards" && projects && projects.length > 0 && (
+        <>
+        {filteredProjects.length === 0 && projects && projects.length > 0 ? (
+          <div className="text-center py-12">
+            <div className="flex justify-center mb-4">
+              <SearchX className="w-16 h-16 text-zinc-600" />
+            </div>
+            <p className="text-zinc-400 text-lg mb-2">No projects match your search</p>
+            <p className="text-zinc-500 text-sm">Try searching for something else</p>
           </div>
-          <p className="text-zinc-400 text-lg mb-2">No projects match your search</p>
-          <p className="text-zinc-500 text-sm">Try searching for something else</p>
-        </div>
-      )}
-
-      {/* Card View */}
-      {viewMode === "cards" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredProjects.map((project) => {
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredProjects.map((project) => {
           const stats = projectStats[project.slug];
           
           return (
@@ -468,11 +692,9 @@ export default function ProjectsPage() {
                         ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
-                    {stats.orderCount > 0 && (
-                      <div className="text-xs text-zinc-500 mt-2">
-                        {stats.orderCount} active order{stats.orderCount !== 1 ? 's' : ''}
-                      </div>
-                    )}
+                    <div className="text-xs text-zinc-500 mt-2">
+                      {stats.orderCount} active order{stats.orderCount !== 1 ? 's' : ''}
+                    </div>
                   </div>
                 ) : (
                   <div className="mb-3 space-y-2">
@@ -492,116 +714,313 @@ export default function ProjectsPage() {
           );
         })}
         </div>
+        )}
+        </>
       )}
 
-      {/* List View */}
+      {/* List View - Table */}
       {viewMode === "list" && (
-        <div className="space-y-2">
-          {filteredProjects.map((project) => {
-            const stats = projectStats[project.slug];
-            
-            return (
-              <Link key={project.slug} href={`/markets/${project.slug}`}>
-                <Card className="hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer group transition-all p-3">
-                  <div className="flex items-center gap-4">
-                    {/* Project Icon */}
-                    <ProjectImage 
-                      metadataURI={project.metadataURI}
-                      imageType="icon"
-                      className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-zinc-700 group-hover:border-blue-500/50 transition-all"
-                      fallbackText={project.name.charAt(0).toUpperCase()}
-                    />
+        <div className="overflow-x-auto">
+          <table className="w-full table-fixed">
+            <colgroup>
+              <col style={{ width: '60px' }} />
+              <col style={{ width: '180px' }} />
+              <col style={{ width: '100px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '100px' }} />
+              <col style={{ width: '60px' }} />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-zinc-800">
+                <th className="text-left py-3 px-4"></th>
+                <th className="text-left py-3 px-4">
+                  <button
+                    onClick={() => {
+                      if (sortBy === "name") {
+                        setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                      } else {
+                        setSortBy("name");
+                        setSortDirection("asc");
+                      }
+                    }}
+                    className="flex items-center gap-1 hover:text-cyan-400 transition-colors text-xs font-semibold text-zinc-400 uppercase tracking-wider"
+                  >
+                    Token
+                    {sortBy === "name" && (
+                      <span>{sortDirection === "asc" ? "↑" : "↓"}</span>
+                    )}
+                  </button>
+                </th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Type</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
+                <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Chart</th>
+                <th className="text-right py-3 px-4">
+                  <button
+                    onClick={() => {
+                      if (sortBy === "price") {
+                        setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                      } else {
+                        setSortBy("price");
+                        setSortDirection("desc");
+                      }
+                    }}
+                    className="flex items-center justify-end gap-1 hover:text-cyan-400 transition-colors text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-auto"
+                  >
+                    Last Price
+                    {sortBy === "price" && (
+                      <span>{sortDirection === "asc" ? "↑" : "↓"}</span>
+                    )}
+                  </button>
+                </th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Best Ask</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Best Bid</th>
+                <th className="text-right py-3 px-4">
+                  <button
+                    onClick={() => {
+                      if (sortBy === "volume") {
+                        setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                      } else {
+                        setSortBy("volume");
+                        setSortDirection("desc");
+                      }
+                    }}
+                    className="flex items-center justify-end gap-1 hover:text-cyan-400 transition-colors text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-auto"
+                  >
+                    Volume
+                    {sortBy === "volume" && (
+                      <span>{sortDirection === "asc" ? "↑" : "↓"}</span>
+                    )}
+                  </button>
+                </th>
+                <th className="text-right py-3 px-4">
+                  <button
+                    onClick={() => {
+                      if (sortBy === "orders") {
+                        setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                      } else {
+                        setSortBy("orders");
+                        setSortDirection("desc");
+                      }
+                    }}
+                    className="flex items-center justify-end gap-1 hover:text-cyan-400 transition-colors text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-auto"
+                  >
+                    Orders
+                    {sortBy === "orders" && (
+                      <span>{sortDirection === "asc" ? "↑" : "↓"}</span>
+                    )}
+                  </button>
+                </th>
+                <th className="py-3 px-4"></th> {/* Arrow */}
+              </tr>
+            </thead>
+            <tbody>
+              {!projects || projects.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="py-12 text-center">
+                    <div className="flex flex-col items-center">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500/20 to-violet-500/20 flex items-center justify-center mb-6">
+                        <svg className="w-10 h-10 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                      </div>
+                      <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+                        No Active Projects
+                      </h3>
+                      <p className="text-zinc-400 text-center max-w-md mb-6">
+                        There are currently no projects listed on the platform. Check back soon or request a new project to get started.
+                      </p>
+                      <Link href="/request">
+                        <button className="px-6 py-3 text-sm font-medium text-purple-400 border-2 border-purple-500/50 rounded-lg whitespace-nowrap transition-all hover:bg-purple-600 hover:text-white hover:border-purple-600">
+                          + Request a Project
+                        </button>
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredProjects.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="py-12 text-center">
+                    <div className="flex flex-col items-center">
+                      <SearchX className="w-16 h-16 text-zinc-600 mb-4" />
+                      <p className="text-zinc-400 text-lg mb-2">No projects match your search</p>
+                      <p className="text-zinc-500 text-sm">Try searching for something else</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredProjects.map((project) => {
+                const stats = projectStats[project.slug];
+                
+                return (
+                  <tr 
+                    key={project.slug}
+                    onClick={() => window.location.href = `/markets/${project.slug}`}
+                    className="border-b border-zinc-800/50 hover:bg-zinc-900/50 cursor-pointer group transition-all"
+                  >
+                    {/* Icon */}
+                    <td className="py-4 px-4">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-zinc-700 group-hover:border-blue-500/50 transition-all flex-shrink-0">
+                        <ProjectImage 
+                          metadataURI={project.metadataURI}
+                          imageType="icon"
+                          className="w-full h-full object-cover"
+                          fallbackText={project.name.charAt(0).toUpperCase()}
+                        />
+                      </div>
+                    </td>
                     
-                    {/* Project Name & Type */}
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
-                      <h3 className="font-semibold text-base">{project.name}</h3>
+                    {/* Token Name */}
+                    <td className="py-4 px-4">
+                      <span className="font-semibold text-base text-white">{project.name}</span>
+                    </td>
+                    
+                    {/* Type */}
+                    <td className="py-4 px-4">
                       <Badge className={`${project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"} text-xs`}>
                         {project.assetType}
                       </Badge>
-                    </div>
+                    </td>
                     
-                    {/* Stats */}
-                    {!loadingStats && stats ? (
-                      <div className="flex items-center gap-8 text-sm">
-                        {/* Mini Price Chart */}
-                        <div className="w-24 h-12 flex items-end gap-[2px] px-1">
+                    {/* Status */}
+                    <td className="py-4 px-4">
+                      {(() => {
+                        const tgeActivated = projectTgeStatus[project.slug] || false;
+                        // TGE activation takes priority over active status
+                        if (tgeActivated) {
+                          return <Badge className="bg-red-600/80 text-xs">Ended</Badge>;
+                        } else if (!project.active) {
+                          return <Badge className="bg-yellow-600 text-xs">Upcoming</Badge>;
+                        } else {
+                          return <Badge className="bg-green-600 text-xs">Live</Badge>;
+                        }
+                      })()}
+                    </td>
+                    
+                    {/* Chart */}
+                    <td className="py-4 px-4">
+                      {!loadingStats && stats ? (
+                        <div className="w-[120px] h-12 mx-auto">
                           {stats.lowestAsk !== null && stats.highestBid !== null ? (
-                            // Generate 12 bars for sparkline
-                            Array.from({ length: 12 }).map((_, i) => {
-                              // Create some variation around mid price
-                              const mid = ((stats.lowestAsk || 0) + (stats.highestBid || 0)) / 2;
-                              const variation = (Math.sin(i * 0.8) * 0.1 + Math.cos(i * 0.5) * 0.05) * mid;
-                              const value = mid + variation;
-                              const minVal = Math.min(stats.lowestAsk || 0, stats.highestBid || 0) * 0.95;
-                              const maxVal = Math.max(stats.lowestAsk || 0, stats.highestBid || 0) * 1.05;
-                              const height = maxVal > minVal ? ((value - minVal) / (maxVal - minVal)) * 100 : 50;
-                              
-                              return (
-                                <div
-                                  key={i}
-                                  className="flex-1 bg-cyan-500/60 rounded-sm transition-all group-hover:bg-cyan-400"
-                                  style={{ height: `${Math.max(height, 20)}%` }}
-                                />
-                              );
-                            })
+                            <svg 
+                              viewBox="0 0 120 48" 
+                              className="w-full h-full"
+                              preserveAspectRatio="none"
+                            >
+                              <defs>
+                                <linearGradient id={`gradient-${project.slug}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                  <stop offset="0%" stopColor="rgb(6, 182, 212)" stopOpacity="0.4" />
+                                  <stop offset="100%" stopColor="rgb(6, 182, 212)" stopOpacity="0.05" />
+                                </linearGradient>
+                              </defs>
+                              {(() => {
+                                const points = Array.from({ length: 20 }).map((_, i) => {
+                                  const mid = ((stats.lowestAsk || 0) + (stats.highestBid || 0)) / 2;
+                                  const variation = (Math.sin(i * 0.5) * 0.1 + Math.cos(i * 0.3) * 0.05) * mid;
+                                  const value = mid + variation;
+                                  const minVal = Math.min(stats.lowestAsk || 0, stats.highestBid || 0) * 0.95;
+                                  const maxVal = Math.max(stats.lowestAsk || 0, stats.highestBid || 0) * 1.05;
+                                  const normalizedY = maxVal > minVal ? ((value - minVal) / (maxVal - minVal)) : 0.5;
+                                  const x = (i / 19) * 120;
+                                  const y = 48 - (normalizedY * 36 + 6);
+                                  return { x, y };
+                                });
+
+                                let pathData = `M ${points[0].x} ${points[0].y}`;
+                                for (let i = 0; i < points.length - 1; i++) {
+                                  const xMid = (points[i].x + points[i + 1].x) / 2;
+                                  const yMid = (points[i].y + points[i + 1].y) / 2;
+                                  pathData += ` Q ${points[i].x} ${points[i].y}, ${xMid} ${yMid}`;
+                                }
+                                pathData += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
+                                const areaPath = pathData + ` L 120 48 L 0 48 Z`;
+
+                                return (
+                                  <>
+                                    <path d={areaPath} fill={`url(#gradient-${project.slug})`} />
+                                    <path d={pathData} fill="none" stroke="rgb(6, 182, 212)" strokeWidth="2" className="group-hover:stroke-cyan-400" />
+                                  </>
+                                );
+                              })()}
+                            </svg>
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">
-                              —
-                            </div>
+                            <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">—</div>
                           )}
                         </div>
-                        
-                        <div className="text-right">
-                          <div className="text-zinc-400 text-xs mb-1">Last Price</div>
-                          <div className="font-semibold text-blue-400">
-                            {stats.lastPrice !== null ? `$${stats.lastPrice.toFixed(4)}` : "—"}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-zinc-400 text-xs mb-1">Best Ask</div>
-                          <div className="font-semibold text-red-400">
-                            {stats.lowestAsk !== null ? `$${stats.lowestAsk.toFixed(4)}` : "—"}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-zinc-400 text-xs mb-1">Best Bid</div>
-                          <div className="font-semibold text-green-400">
-                            {stats.highestBid !== null ? `$${stats.highestBid.toFixed(4)}` : "—"}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-zinc-400 text-xs mb-1">Volume</div>
-                          <div className="font-semibold text-white">
-                            ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-zinc-400 text-xs mb-1">Orders</div>
-                          <div className="font-semibold text-zinc-300">
-                            {stats.orderCount}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-8">
-                        <div className="h-12 w-24 bg-zinc-800/50 rounded animate-pulse"></div>
-                        <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
-                        <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
-                        <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
-                        <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
-                        <div className="h-8 w-16 bg-zinc-800/50 rounded animate-pulse"></div>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="h-12 w-[120px] bg-zinc-800/50 rounded animate-pulse mx-auto"></div>
+                      )}
+                    </td>
+                    
+                    {/* Last Price */}
+                    <td className="py-4 px-4 text-right">
+                      {!loadingStats && stats ? (
+                        <span className="font-semibold text-blue-400">
+                          {stats.lastPrice !== null ? `$${formatPrice(stats.lastPrice)}` : "—"}
+                        </span>
+                      ) : (
+                        <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                      )}
+                    </td>
+                    
+                    {/* Best Ask */}
+                    <td className="py-4 px-4 text-right">
+                      {!loadingStats && stats ? (
+                        <span className="font-semibold text-red-400">
+                          {stats.lowestAsk !== null ? `$${formatPrice(stats.lowestAsk)}` : "—"}
+                        </span>
+                      ) : (
+                        <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                      )}
+                    </td>
+                    
+                    {/* Best Bid */}
+                    <td className="py-4 px-4 text-right">
+                      {!loadingStats && stats ? (
+                        <span className="font-semibold text-green-400">
+                          {stats.highestBid !== null ? `$${formatPrice(stats.highestBid)}` : "—"}
+                        </span>
+                      ) : (
+                        <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                      )}
+                    </td>
+                    
+                    {/* Volume */}
+                    <td className="py-4 px-4 text-right">
+                      {!loadingStats && stats ? (
+                        <span className="font-semibold text-white">
+                          ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </span>
+                      ) : (
+                        <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                      )}
+                    </td>
+                    
+                    {/* Orders */}
+                    <td className="py-4 px-4 text-right">
+                      {!loadingStats && stats ? (
+                        <span className="font-semibold text-zinc-300">{stats.orderCount}</span>
+                      ) : (
+                        <div className="h-6 w-16 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                      )}
+                    </td>
                     
                     {/* Arrow */}
-                    <div className="text-zinc-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all">
-                      →
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
+                    <td className="py-4 px-4 text-right">
+                      <span className="text-zinc-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all inline-block">
+                        →
+                      </span>
+                    </td>
+                  </tr>
+                );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       )}
       </div>

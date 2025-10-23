@@ -21,6 +21,9 @@ export const STABLE_ADDRESS = process.env.NEXT_PUBLIC_STABLE as `0x${string}`;
 export const STABLE_DECIMALS = Number(process.env.NEXT_PUBLIC_STABLE_DECIMALS || 6);
 export const REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_REGISTRY as `0x${string}`;
 
+// Mock Token for testing Token settlements (has public mint function)
+export const MOCK_TOKEN_ADDRESS = "0xfd61aE399C5F9A2e90292395A37F9C87b5f08084" as `0x${string}`;
+
 // ERC20 ABI (unchanged)
 export const ERC20_ABI = [
   { "type": "function", "name": "approve", "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "outputs": [{ "name": "", "type": "bool" }], "stateMutability": "nonpayable" },

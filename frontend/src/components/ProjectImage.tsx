@@ -95,7 +95,7 @@ export function ProjectImage({
     <img 
       src={imageUrl} 
       alt={`Project ${imageType}`}
-      className={className}
+      className={`${className} object-cover`}
       onError={() => setError(true)}
     />
   );
