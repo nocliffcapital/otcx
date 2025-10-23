@@ -6,8 +6,7 @@ import { PrivateOrderCreator } from "@/components/PrivateOrderCreator";
 import { useOrderbook } from "@/hooks/useOrderbook";
 import { useReadContract } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, slugToProjectId } from "@/lib/contracts";
-import { Lock, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Lock } from "lucide-react";
 import { ProjectImage } from "@/components/ProjectImage";
 import { Badge } from "@/components/ui/Badge";
 
@@ -48,17 +47,12 @@ export default function PrivateOrderPage() {
     <div className="relative min-h-screen">
       {/* Header */}
       <div className="relative mx-auto max-w-7xl px-4 py-8">
-        <Link 
-          href="/markets"
-          className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-cyan-400 transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Markets
-        </Link>
-
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-3">
-            Create Private Order
+          <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 mb-3">
+            <Lock className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
+            <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+              Create Private Order
+            </span>
           </h1>
           <p className="text-lg text-zinc-400">
             Create an order that only a specific address can fill. Perfect for negotiated trades.

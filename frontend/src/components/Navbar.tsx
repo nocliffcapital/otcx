@@ -263,7 +263,7 @@ export function Navbar() {
                         <button
                           onClick={openChainModal}
                           type="button"
-                          className="px-4 py-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-100 font-medium rounded-lg border border-cyan-500/20 hover:border-cyan-500/40 transition-all flex items-center gap-2 text-sm"
+                          className="px-4 py-2 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-100 font-medium rounded-lg border border-cyan-500/20 hover:border-cyan-500/40 transition-all flex items-center gap-2 text-sm"
                         >
                           {chain.hasIcon && (
                             <div
@@ -290,7 +290,7 @@ export function Navbar() {
                         <button
                           onClick={openAccountModal}
                           type="button"
-                          className="px-4 py-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-100 font-medium rounded-lg border border-violet-500/20 hover:border-violet-500/40 transition-all text-sm"
+                          className="px-4 py-2 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-100 font-medium rounded-lg border border-violet-500/20 hover:border-violet-500/40 transition-all text-sm"
                         >
                           {account.displayName}
                         </button>
