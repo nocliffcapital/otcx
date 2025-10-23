@@ -99,14 +99,10 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
       return;
     }
     
-    // Validate ratio range (max 10:1)
-    if (ratio > 10) {
-      toast.error("Conversion ratio too high", "Maximum ratio is 10:1 (1 point = 10 tokens)");
-      return;
-    }
-    
-    // Convert to 18 decimals (e.g., 1.2 -> 1.2e18)
-    const ratioBigInt = BigInt(Math.floor(ratio * 1e18));
+    // Convert to 18 decimals with high precision
+    // For very small numbers (e.g., 0.0000001), use scientific notation
+    // For very large numbers (e.g., 1000000), multiply by 1e18
+    const ratioBigInt = BigInt(Math.round(ratio * 1e18));
     
     // For token projects, ratio must be 1.0 (1:1)
     if (!isPointsProject && ratio !== 1.0) {
@@ -239,23 +235,20 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
                   className="text-sm"
                 />
               </div>
-              <div className="w-48">
+              <div className="w-56">
                 <label className="text-sm text-zinc-300 mb-2 block font-medium">
                   Conversion Ratio {!isPointsProject && <span className="text-zinc-500 font-normal">(must be 1.0)</span>}
                 </label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  max="10"
-                  placeholder={isPointsProject ? "e.g., 1.2" : "1.0"}
+                  type="text"
+                  placeholder={isPointsProject ? "e.g., 1.2 or 0.0001 or 100000" : "1.0"}
                   value={conversionRatio}
                   onChange={(e) => setConversionRatio(e.target.value)}
-                  className="text-sm"
+                  className="text-sm font-mono"
                   disabled={!isPointsProject}
                 />
                 {isPointsProject && (
-                  <p className="text-xs text-zinc-500 mt-1">Max: 10:1 (1 point = 10 tokens)</p>
+                  <p className="text-xs text-zinc-500 mt-1">1 point = ? tokens (any positive number)</p>
                 )}
               </div>
               <Button

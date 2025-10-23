@@ -71,7 +71,6 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     uint256 public constant MAX_FEE_BPS = 500;              // 5% max
     uint256 public constant DEFAULT_SETTLEMENT_WINDOW = 4 hours;
     uint256 public constant MAX_SETTLEMENT_WINDOW = 7 days;
-    uint256 public constant MAX_CONVERSION_RATIO = 10e18;   // 1 point = max 10 tokens
     // Use computed address for POINTS_SENTINEL (impossible to deploy to, collision-resistant)
     address public constant POINTS_SENTINEL = address(uint160(uint256(keccak256("otcX.POINTS_SENTINEL.v4"))));
     
@@ -257,7 +256,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (tokenAddress == address(0)) revert InvalidAddress();
         if (tokenAddress == address(stable)) revert InvalidAddress();
         if (settlementWindow == 0 || settlementWindow > MAX_SETTLEMENT_WINDOW) revert InvalidAmount();
-        if (conversionRatio == 0 || conversionRatio > MAX_CONVERSION_RATIO) revert InvalidAmount();
+        if (conversionRatio == 0) revert InvalidAmount();
         
         // For Points projects, allow sentinel
         bool isPointsProject = (tokenAddress == POINTS_SENTINEL);
@@ -318,7 +317,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         uint256 newRatio
     ) external onlyOwner {
         if (!projectTgeActivated[projectId]) revert TGENotActivated();
-        if (newRatio == 0 || newRatio > MAX_CONVERSION_RATIO) revert InvalidAmount();
+        if (newRatio == 0) revert InvalidAmount();
         
         // Only allow updates within 1 hour grace period
         if (block.timestamp > projectTgeActivatedAt[projectId] + 1 hours) revert GracePeriodExpired();
