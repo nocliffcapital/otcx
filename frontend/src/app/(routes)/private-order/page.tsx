@@ -22,7 +22,22 @@ export default function PrivateOrderPage() {
     functionName: "getActiveProjects",
   }) as { data: any[] | undefined };
 
-  const projects = projectsData || [];
+  const projects = (projectsData || []).map((p: any) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    metadataURI: p.metadataURI,
+    isPoints: p.isPoints,
+    active: p.active,
+    assetType: p.isPoints ? "Points" : "Tokens",
+    twitterUrl: p.twitterUrl || "",
+    websiteUrl: p.websiteUrl || "",
+    description: p.description || "",
+    tokenAddress: p.tokenAddress,
+  }));
+
+  // Debug: Log projects data
+  console.log('Private Order - Projects:', projects);
 
   const handleCreateOrder = async (params: {
     amount: bigint;
@@ -67,9 +82,9 @@ export default function PrivateOrderPage() {
               {projects.length === 0 ? (
                 <p className="text-zinc-400 text-center py-8">No projects available</p>
               ) : (
-                projects.map((project) => (
+                projects.map((project, index) => (
                   <button
-                    key={project.slug}
+                    key={project.slug || `project-${index}`}
                     onClick={() => setSelectedProject(project.slug)}
                     className="w-full p-4 bg-zinc-900/50 hover:bg-zinc-800/50 border border-zinc-800 hover:border-purple-500/50 rounded-lg transition-all text-left group"
                   >
