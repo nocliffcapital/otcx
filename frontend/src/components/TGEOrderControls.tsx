@@ -165,28 +165,15 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
     });
   };
 
-  const handleDepositTokens = () => {
-    if (!confirm(`Deposit tokens for order #${order.id}?`)) {
+  const handleSettleOrder = () => {
+    if (!confirm(`Settle order #${order.id}?\nThis will transfer tokens and complete the settlement.`)) {
       return;
     }
 
     writeContract({
       address: ORDERBOOK_ADDRESS,
       abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "depositTokensForSettlement",
-      args: [order.id],
-    });
-  };
-
-  const handleClaimTokens = () => {
-    if (!confirm(`Claim tokens for order #${order.id}?`)) {
-      return;
-    }
-
-    writeContract({
-      address: ORDERBOOK_ADDRESS,
-      abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "claimTokens",
+      functionName: "settleOrder",
       args: [order.id],
     });
   };
@@ -404,41 +391,52 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
                 variant="custom"
                 className="bg-cyan-600 hover:bg-cyan-700 border border-cyan-500/30 text-[11px] h-7 w-full"
               >
-                <CheckCircle className="w-3 h-3 mr-1" />
-                1. Approve Tokens
+                {isPending || isConfirming ? (
+                  <>
+                    <div className="w-3 h-3 mr-1 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Approving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    1. Approve Tokens
+                  </>
+                )}
               </Button>
-              {isConfirming && (
-                <p className="text-xs text-blue-400 mt-1">⏳ Confirming approval...</p>
-              )}
             </div>
           ) : (
             <Button
-              onClick={handleDepositTokens}
+              onClick={handleSettleOrder}
               disabled={isPending || isConfirming}
               variant="custom"
-              className="bg-blue-600 hover:bg-blue-700 border border-blue-500/30 text-[11px] h-7 w-full"
+              className="bg-green-600 hover:bg-green-700 border border-green-500/30 text-[11px] h-7 w-full"
             >
-              <CheckCircle className="w-3 h-3 mr-1" />
-              2. Deposit Tokens
+              {isPending || isConfirming ? (
+                <>
+                  <div className="w-3 h-3 mr-1 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Settling...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  2. Settle Order
+                </>
+              )}
             </Button>
           )}
           {hasApproval && (
-            <p className="text-xs text-green-400">✓ Tokens approved - ready to deposit</p>
+            <p className="text-xs text-green-400">✓ Tokens approved - click to settle</p>
           )}
         </div>
       )}
 
-      {/* Buyer Controls - Claim Tokens (SETTLED) */}
+      {/* Buyer - Order Settled (no action needed) */}
       {isBuyer && status === 2 && (
-        <Button
-          onClick={handleClaimTokens}
-          disabled={isPending || isConfirming}
-          variant="custom"
-          className="bg-green-600 hover:bg-green-700 border border-green-500/30 text-xs h-8"
-        >
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Claim Tokens
-        </Button>
+        <div className="p-3 bg-green-950/30 border border-green-500/30 rounded-lg">
+          <p className="text-xs text-green-400 text-center">
+            ✅ Order Settled - Tokens delivered
+          </p>
+        </div>
       )}
       {isBuyer && isInSettlement && isOverdue && !order.tokensDeposited && (
         <Button
