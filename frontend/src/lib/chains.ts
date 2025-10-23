@@ -31,7 +31,7 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     name: 'Sepolia Testnet',
     shortName: 'Sepolia',
     rpcUrl: process.env.NEXT_PUBLIC_SEPOLIA_RPC || 'https://sepolia.infura.io/v3/',
-    orderbook: '0xCd91558c71B439400F4DE9B1298EC951940889Ca', // V4 orderbook with EnumerableSet
+    orderbook: '0xf80FFd609b9D9C26F587b73623595d7fE352560e', // V4 orderbook with Private Orders
     registry: '0xEcFe9Cf7c3426144fee4510cCb5e1E85Ba3ef24D', // Brand new empty registry (just deployed)
     stable: '0xd5d56a9Cd59550c6D95569620F7eb89C1E4c9101',
     stableSymbol: 'USDC',
