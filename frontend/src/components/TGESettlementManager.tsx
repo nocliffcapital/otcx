@@ -99,6 +99,12 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
       return;
     }
     
+    // Validate ratio range (max 10:1)
+    if (ratio > 10) {
+      toast.error("Conversion ratio too high", "Maximum ratio is 10:1 (1 point = 10 tokens)");
+      return;
+    }
+    
     // Convert to 18 decimals (e.g., 1.2 -> 1.2e18)
     const ratioBigInt = BigInt(Math.floor(ratio * 1e18));
     
@@ -241,12 +247,16 @@ export function TGESettlementManager({ orders, assetType }: { orders: Order[]; a
                   type="number"
                   step="0.01"
                   min="0.01"
+                  max="10"
                   placeholder={isPointsProject ? "e.g., 1.2" : "1.0"}
                   value={conversionRatio}
                   onChange={(e) => setConversionRatio(e.target.value)}
                   className="text-sm"
                   disabled={!isPointsProject}
                 />
+                {isPointsProject && (
+                  <p className="text-xs text-zinc-500 mt-1">Max: 10:1 (1 point = 10 tokens)</p>
+                )}
               </div>
               <Button
                 onClick={handleBatchActivateTGE}
