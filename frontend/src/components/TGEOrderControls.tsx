@@ -6,7 +6,7 @@ import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, REGISTRY_ADDRESS, PROJECT_REGI
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Badge } from "./ui/Badge";
-import { Clock, PlayCircle, Plus, CheckCircle, AlertCircle, DollarSign } from "lucide-react";
+import { Clock, PlayCircle, Plus, CheckCircle, AlertCircle, DollarSign, Loader2 } from "lucide-react";
 import { useToast } from "./Toast";
 
 interface TGEOrderControlsProps {
@@ -265,10 +265,30 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
   return (
     <div className="space-y-2">
       {/* Status Messages - Only show transaction status, not settlement status (already shown at top) */}
-      {isPending && <p className="text-xs text-blue-400">⏳ Confirming transaction...</p>}
-      {isConfirming && <p className="text-xs text-blue-400">⏳ Waiting for confirmation...</p>}
-      {isSuccess && <p className="text-xs text-green-400">✅ Transaction confirmed!</p>}
-      {isError && <p className="text-xs text-red-400">❌ Error: {error?.message}</p>}
+      {isPending && (
+        <p className="text-xs text-blue-400 flex items-center gap-1">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          Confirming transaction...
+        </p>
+      )}
+      {isConfirming && (
+        <p className="text-xs text-blue-400 flex items-center gap-1">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          Waiting for confirmation...
+        </p>
+      )}
+      {isSuccess && (
+        <p className="text-xs text-green-400 flex items-center gap-1">
+          <CheckCircle className="w-3 h-3" />
+          Transaction confirmed!
+        </p>
+      )}
+      {isError && (
+        <p className="text-xs text-red-400 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          Error: {error?.message}
+        </p>
+      )}
 
       {/* Admin Controls - Activate TGE (TOKENS ONLY) - V4: This is now project-level */}
       {isOwner && isTokenProject && !projectTgeActivated && (
@@ -403,12 +423,12 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
                 variant="custom"
                 className="bg-cyan-600 hover:bg-cyan-700 border border-cyan-500/30 text-[11px] h-7 w-full"
               >
-                {isPending || isConfirming ? (
-                  <>
-                    <div className="w-3 h-3 mr-1 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Approving...
-                  </>
-                ) : (
+              {isPending || isConfirming ? (
+                <>
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  Approving...
+                </>
+              ) : (
                   <>
                     <CheckCircle className="w-3 h-3 mr-1" />
                     1. Approve Tokens
@@ -425,7 +445,7 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
             >
               {isPending || isConfirming ? (
                 <>
-                  <div className="w-3 h-3 mr-1 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                   Settling...
                 </>
               ) : (

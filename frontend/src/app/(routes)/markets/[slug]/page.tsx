@@ -13,7 +13,7 @@ import { parseUnits, formatUnits } from "viem";
 import { STABLE_DECIMALS, STABLE_ADDRESS, ERC20_ABI, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
 import { useReadContract } from "wagmi";
 import { PriceChart } from "@/components/PriceChart";
-import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle, DollarSign, ArrowDown, ArrowUp, Percent, Activity, Clock, User } from "lucide-react";
+import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle, DollarSign, ArrowDown, ArrowUp, Percent, Activity, Clock, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import ReputationBadge from "@/components/ReputationBadge";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
@@ -726,7 +726,18 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                         : "bg-green-600 hover:bg-green-700 border-green-500/50"
                     }`}
                   >
-                    {isTgeActivated ? "TGE Active - Orders Closed" : creating ? "Creating..." : !project ? "Loading..." : `Create ${side}`}
+                    {creating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin inline" />
+                        Creating...
+                      </>
+                    ) : isTgeActivated ? (
+                      "TGE Active - Orders Closed"
+                    ) : !project ? (
+                      "Loading..."
+                    ) : (
+                      `Create ${side}`
+                    )}
                   </button>
                 </div>
               )}
@@ -819,11 +830,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               className="bg-red-600 hover:bg-red-700 text-xs h-7 px-3"
                             >
                               {actionLoading === order.id.toString() ? (
-                                <span className="flex items-center gap-1">
-                                  <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
-                                  <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
-                                  <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
-                                </span>
+                                <>
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                  Selling...
+                                </>
                               ) : "Sell"}
                             </Button>
                           ) : address && address.toLowerCase() === order.maker.toLowerCase() ? (
@@ -926,11 +936,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               className="bg-green-600 hover:bg-green-700 text-xs h-7 px-3"
                             >
                               {actionLoading === order.id.toString() ? (
-                                <span className="flex items-center gap-1">
-                                  <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
-                                  <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
-                                  <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
-                                </span>
+                                <>
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                  Buying...
+                                </>
                               ) : "Buy"}
                             </Button>
                           ) : address && address.toLowerCase() === order.maker.toLowerCase() ? (

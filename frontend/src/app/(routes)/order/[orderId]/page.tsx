@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Lock, ExternalLink, ArrowRight, CheckCircle } from 'lucide-react';
+import { Lock, ExternalLink, ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useOrderbook } from '@/hooks/useOrderbook';
 import { formatUnits } from 'viem';
@@ -248,7 +248,7 @@ export default function PrivateOrderPage() {
             >
               {taking ? (
                 <>
-                  <span className="animate-spin mr-2">⏳</span>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Taking Order...
                 </>
               ) : (

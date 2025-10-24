@@ -5,7 +5,7 @@ import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Badge } from "./ui/Badge";
-import { Lock, Copy, Check, AlertCircle, User } from "lucide-react";
+import { Lock, Copy, Check, AlertCircle, User, Loader2 } from "lucide-react";
 import { parseUnits, formatUnits, isAddress } from "viem";
 import { useToast } from "./Toast";
 import { STABLE_DECIMALS } from "@/lib/contracts";
@@ -227,10 +227,10 @@ export function PrivateOrderCreator({
             className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-semibold h-12 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isCreating ? (
-              <span className="flex items-center gap-2">
-                <span className="animate-spin">⏳</span>
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Creating...
-              </span>
+              </>
             ) : (
               <span className="flex items-center gap-2">
                 <Lock className="w-4 h-4" />

@@ -13,7 +13,7 @@ import { formatUnits } from "viem";
 import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { useState, useEffect, useMemo } from "react";
 import { useReadContract, usePublicClient } from "wagmi";
-import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight, FileText, Search, AlertCircle, Link as LinkIcon, Copy } from "lucide-react";
+import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight, FileText, Search, AlertCircle, Link as LinkIcon, Copy, Loader2 } from "lucide-react";
 
 // V4: Simplified status enum (no TGE_ACTIVATED status)
 const STATUS_LABELS = [
@@ -215,7 +215,7 @@ export default function MyOrdersPage() {
       // amount is 18 decimals, unitPrice is 6 decimals, so divide by 10^18
       const total = (order.amount * order.unitPrice) / BigInt(10 ** 18);
       
-      toast.info("⏳ Locking collateral...", "Transaction pending");
+      toast.info("Locking collateral", "Transaction pending");
       
       if (order.isSell) {
         // I'm the seller, need to lock seller collateral
@@ -423,7 +423,7 @@ export default function MyOrdersPage() {
 
         {address && loading && (
           <Card className="p-6 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mb-4"></div>
+            <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto mb-4" />
             <p className="text-zinc-400">Loading your orders...</p>
           </Card>
         )}
@@ -767,8 +767,12 @@ export default function MyOrdersPage() {
                         disabled={!!locking}
                         className="bg-cyan-600 hover:bg-cyan-700 text-xs px-2 py-1 whitespace-nowrap h-7"
                       >
-                        <Lock className="w-3 h-3 mr-1 inline" />
-                        {locking === order.id.toString() ? "..." : "Lock"}
+                        {locking === order.id.toString() ? (
+                          <Loader2 className="w-3 h-3 mr-1 inline animate-spin" />
+                        ) : (
+                          <Lock className="w-3 h-3 mr-1 inline" />
+                        )}
+                        {locking === order.id.toString() ? "Locking..." : "Lock"}
                       </Button>
                     )}
                     
@@ -783,7 +787,12 @@ export default function MyOrdersPage() {
                         disabled={!!canceling}
                         className="bg-red-600 hover:bg-red-700 text-xs px-2 py-1 h-7"
                       >
-                        {canceling === order.id.toString() ? "..." : "Cancel"}
+                        {canceling === order.id.toString() ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1 inline animate-spin" />
+                            Canceling...
+                          </>
+                        ) : "Cancel"}
                       </Button>
                     )}
                   </div>
