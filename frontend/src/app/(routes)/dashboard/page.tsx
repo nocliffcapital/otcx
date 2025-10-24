@@ -319,7 +319,7 @@ export default function MyOrdersPage() {
 
         {/* Summary Stats */}
         {address && !loading && orders.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
             {/* Total Orders */}
             <Card className="p-2 border-cyan-500/30 bg-cyan-950/10">
               <div className="flex items-center gap-2">

@@ -234,26 +234,26 @@ export default function HomePage() {
           </div>
 
           {/* Stats */}
-          <div className="flex justify-center gap-16 text-center">
+          <div className="flex justify-center gap-8 md:gap-16 text-center flex-wrap">
             <div>
-              <div className="text-3xl font-bold text-cyan-400/70">100%</div>
-              <div className="text-sm text-zinc-500">Escrow</div>
+              <div className="text-2xl md:text-3xl font-bold text-cyan-400/70">100%</div>
+              <div className="text-xs md:text-sm text-zinc-500">Escrow</div>
             </div>
-            <div className="w-px bg-zinc-800"></div>
+            <div className="w-px bg-zinc-800 hidden sm:block"></div>
             <div>
-              <div className="text-3xl font-bold text-violet-400/70">
+              <div className="text-2xl md:text-3xl font-bold text-violet-400/70">
                 {loading ? (
                   <span className="animate-pulse">...</span>
                 ) : (
                   `$${totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                 )}
               </div>
-              <div className="text-sm text-zinc-500">Total Volume</div>
+              <div className="text-xs md:text-sm text-zinc-500">Total Volume</div>
             </div>
-            <div className="w-px bg-zinc-800"></div>
+            <div className="w-px bg-zinc-800 hidden sm:block"></div>
             <div>
-              <div className="text-3xl font-bold text-pink-400/70">24/7</div>
-              <div className="text-sm text-zinc-500">Available</div>
+              <div className="text-2xl md:text-3xl font-bold text-pink-400/70">24/7</div>
+              <div className="text-xs md:text-sm text-zinc-500">Available</div>
             </div>
           </div>
         </div>

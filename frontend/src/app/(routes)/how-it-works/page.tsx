@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { 
@@ -12,10 +13,49 @@ import {
   HelpCircle,
   Coins,
   Zap,
-  BookOpen
+  BookOpen,
+  Lock,
+  Globe
 } from "lucide-react";
+import { usePublicClient } from "wagmi";
+import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 
 export default function HowItWorksPage() {
+  const [activeTab, setActiveTab] = useState<"overview" | "process" | "private" | "risks" | "faq">("overview");
+  const [settlementFee, setSettlementFee] = useState<string>("0.5");
+  const [cancellationFee, setCancellationFee] = useState<string>("0.1");
+  const publicClient = usePublicClient();
+
+  useEffect(() => {
+    const fetchFees = async () => {
+      if (!publicClient) return;
+      
+      try {
+        const [settlementFeeBps, cancellationFeeBps] = await Promise.all([
+          publicClient.readContract({
+            address: ORDERBOOK_ADDRESS,
+            abi: ESCROW_ORDERBOOK_ABI,
+            functionName: "settlementFeeBps",
+          }),
+          publicClient.readContract({
+            address: ORDERBOOK_ADDRESS,
+            abi: ESCROW_ORDERBOOK_ABI,
+            functionName: "cancellationFeeBps",
+          }),
+        ]);
+
+        // Convert basis points to percentage (e.g., 50 bps = 0.5%)
+        setSettlementFee((Number(settlementFeeBps) / 100).toFixed(2));
+        setCancellationFee((Number(cancellationFeeBps) / 100).toFixed(2));
+      } catch (error) {
+        console.error("Failed to fetch fees:", error);
+        // Keep default values on error
+      }
+    };
+
+    fetchFees();
+  }, [publicClient]);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
@@ -56,7 +96,80 @@ export default function HowItWorksPage() {
         </a>
       </div>
 
-      {/* Overview */}
+      {/* Tabs */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 border-b border-zinc-800">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+              activeTab === "overview"
+                ? "text-cyan-400"
+                : "text-zinc-400 hover:text-zinc-300"
+            }`}
+          >
+            Overview & Assets
+            {activeTab === "overview" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("process")}
+            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+              activeTab === "process"
+                ? "text-cyan-400"
+                : "text-zinc-400 hover:text-zinc-300"
+            }`}
+          >
+            The Process
+            {activeTab === "process" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("private")}
+            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+              activeTab === "private"
+                ? "text-cyan-400"
+                : "text-zinc-400 hover:text-zinc-300"
+            }`}
+          >
+            Private vs Public
+            {activeTab === "private" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("risks")}
+            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+              activeTab === "risks"
+                ? "text-cyan-400"
+                : "text-zinc-400 hover:text-zinc-300"
+            }`}
+          >
+            Risks & Best Practices
+            {activeTab === "risks" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("faq")}
+            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+              activeTab === "faq"
+                ? "text-cyan-400"
+                : "text-zinc-400 hover:text-zinc-300"
+            }`}
+          >
+            FAQ
+            {activeTab === "faq" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Overview Tab */}
+      {activeTab === "overview" && (
+        <>
       <Card className="mb-6 border-cyan-900/30 bg-gradient-to-br from-cyan-950/10 to-violet-950/10">
         <div className="flex items-start gap-3 mb-4">
           <FileText className="w-6 h-6 text-cyan-400 mt-1" />
@@ -144,8 +257,12 @@ export default function HowItWorksPage() {
           </div>
         </div>
       </Card>
+        </>
+      )}
 
-      {/* How It Works */}
+      {/* Process Tab */}
+      {activeTab === "process" && (
+        <>
       <Card className="mb-6">
         <div className="flex items-start gap-3 mb-4">
           <Zap className="w-6 h-6 text-cyan-400 mt-1" />
@@ -267,7 +384,6 @@ export default function HowItWorksPage() {
         </div>
       </Card>
 
-      {/* Default Protection */}
       <Card className="mb-6">
         <div className="flex items-start gap-3 mb-4">
           <Shield className="w-6 h-6 text-cyan-400 mt-1" />
@@ -301,8 +417,278 @@ export default function HowItWorksPage() {
           </p>
         </div>
       </Card>
+        </>
+      )}
 
-      {/* Risks & Best Practices - Side by Side */}
+      {/* Private vs Public Tab */}
+      {activeTab === "private" && (
+        <>
+      <Card className="mb-6 border-purple-900/30 bg-gradient-to-br from-purple-950/10 to-cyan-950/10">
+        <div className="flex items-start gap-3 mb-4">
+          <Lock className="w-6 h-6 text-purple-400 mt-1" />
+          <h2 className="text-2xl font-bold">Private vs Public Orders</h2>
+        </div>
+        <p className="text-zinc-300 leading-relaxed mb-6">
+          otcX offers two types of orders: <strong className="text-purple-400">Private Orders</strong> and <strong className="text-cyan-400">Public Orders</strong>. 
+          Each serves different use cases and provides different levels of visibility and control.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Public Orders */}
+          <div className="bg-cyan-950/30 border border-cyan-800/50 rounded-lg p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Globe className="w-5 h-5 text-cyan-400" />
+              <h3 className="text-xl font-semibold text-cyan-400">Public Orders</h3>
+            </div>
+            
+            <p className="text-sm text-zinc-400 mb-4">
+              Public orders are visible to everyone and can be taken by anyone on the platform.
+            </p>
+
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-white">Visible in Orderbook</p>
+                  <p className="text-xs text-zinc-400">Appears in the public markets page for all users to see</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-white">Anyone Can Take</p>
+                  <p className="text-xs text-zinc-400">Any user can fill your order on a first-come, first-served basis</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-white">Maximum Liquidity</p>
+                  <p className="text-xs text-zinc-400">Higher chance of order being filled quickly</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-white">Price Discovery</p>
+                  <p className="text-xs text-zinc-400">Contributes to market price discovery and transparency</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 bg-cyan-950/50 border border-cyan-800/30 rounded-lg">
+              <p className="text-xs text-cyan-300">
+                <strong>Best for:</strong> Traders looking for quick fills, market makers, and anyone comfortable with public visibility
+              </p>
+            </div>
+          </div>
+
+          {/* Private Orders */}
+          <div className="bg-purple-950/30 border border-purple-800/50 rounded-lg p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Lock className="w-5 h-5 text-purple-400" />
+              <h3 className="text-xl font-semibold text-purple-400">Private Orders</h3>
+            </div>
+            
+            <p className="text-sm text-zinc-400 mb-4">
+              Private orders are created for a specific counterparty and are not visible in the public orderbook.
+            </p>
+
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-white">Not in Public Orderbook</p>
+                  <p className="text-xs text-zinc-400">Order is hidden from the markets page and not visible to other users</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-white">Specific Counterparty</p>
+                  <p className="text-xs text-zinc-400">Only the wallet address you specify can take the order</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-white">Shareable Link</p>
+                  <p className="text-xs text-zinc-400">Generate a unique URL to share with your intended counterparty</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-white">On-Chain Enforcement</p>
+                  <p className="text-xs text-zinc-400">Privacy is enforced by the smart contract, not just the UI</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 bg-purple-950/50 border border-purple-800/30 rounded-lg">
+              <p className="text-xs text-purple-300">
+                <strong>Best for:</strong> OTC deals, pre-negotiated trades, privacy-conscious users, and specific counterparty agreements
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* How Private Orders Work */}
+      <Card className="mb-6">
+        <div className="flex items-start gap-3 mb-4">
+          <Zap className="w-6 h-6 text-purple-400 mt-1" />
+          <h2 className="text-2xl font-bold">How Private Orders Work</h2>
+        </div>
+        
+        <div className="space-y-5">
+          {/* Step 1 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-cyan-600 rounded-lg flex items-center justify-center font-bold text-sm">
+                1
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold mb-2">Create Private Order</h3>
+              <p className="text-zinc-400 text-sm">
+                Navigate to the <strong className="text-purple-400">Private Orders</strong> page, select your project, 
+                enter the order details, and specify the wallet address of your intended counterparty.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-cyan-600 rounded-lg flex items-center justify-center font-bold text-sm">
+                2
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold mb-2">Share the Link</h3>
+              <p className="text-zinc-400 text-sm mb-2">
+                After creating the order, you'll receive a unique shareable URL. Send this link to your counterparty via:
+              </p>
+              <div className="space-y-1 text-sm ml-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-1 bg-purple-400 rounded-full"></div>
+                  <span className="text-zinc-400">Telegram, Discord, or other messaging apps</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-1 bg-purple-400 rounded-full"></div>
+                  <span className="text-zinc-400">Email (though less secure)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-1 bg-purple-400 rounded-full"></div>
+                  <span className="text-zinc-400">Any secure communication channel</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-cyan-600 rounded-lg flex items-center justify-center font-bold text-sm">
+                3
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold mb-2">Counterparty Takes Order</h3>
+              <p className="text-zinc-400 text-sm">
+                Your counterparty opens the link, connects their wallet, and if they're the authorized address, 
+                they can take the order. The smart contract verifies their wallet address on-chain.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 4 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-cyan-600 rounded-lg flex items-center justify-center font-bold text-sm">
+                4
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold mb-2">Settlement</h3>
+              <p className="text-zinc-400 text-sm">
+                Once taken, private orders follow the same settlement process as public orders - both parties lock collateral, 
+                and settlement happens according to the asset type (Tokens or Points).
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Key Differences */}
+      <Card className="mb-6">
+        <div className="flex items-start gap-3 mb-4">
+          <Shield className="w-6 h-6 text-cyan-400 mt-1" />
+          <h2 className="text-2xl font-bold">Key Differences</h2>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-800">
+                <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Feature</th>
+                <th className="text-left py-3 px-4 text-cyan-400 font-semibold">Public Orders</th>
+                <th className="text-left py-3 px-4 text-purple-400 font-semibold">Private Orders</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-zinc-800/50">
+                <td className="py-3 px-4 text-zinc-300 font-medium">Visibility</td>
+                <td className="py-3 px-4 text-zinc-400">Visible to everyone</td>
+                <td className="py-3 px-4 text-zinc-400">Hidden from orderbook</td>
+              </tr>
+              <tr className="border-b border-zinc-800/50">
+                <td className="py-3 px-4 text-zinc-300 font-medium">Who Can Take</td>
+                <td className="py-3 px-4 text-zinc-400">Anyone</td>
+                <td className="py-3 px-4 text-zinc-400">Specific wallet only</td>
+              </tr>
+              <tr className="border-b border-zinc-800/50">
+                <td className="py-3 px-4 text-zinc-300 font-medium">Access Method</td>
+                <td className="py-3 px-4 text-zinc-400">Browse markets page</td>
+                <td className="py-3 px-4 text-zinc-400">Shareable link</td>
+              </tr>
+              <tr className="border-b border-zinc-800/50">
+                <td className="py-3 px-4 text-zinc-300 font-medium">Privacy</td>
+                <td className="py-3 px-4 text-zinc-400">Fully public</td>
+                <td className="py-3 px-4 text-zinc-400">Counterparty privacy</td>
+              </tr>
+              <tr className="border-b border-zinc-800/50">
+                <td className="py-3 px-4 text-zinc-300 font-medium">Settlement</td>
+                <td className="py-3 px-4 text-zinc-400">Same process</td>
+                <td className="py-3 px-4 text-zinc-400">Same process</td>
+              </tr>
+              <tr className="border-b border-zinc-800/50">
+                <td className="py-3 px-4 text-zinc-300 font-medium">Fees</td>
+                <td className="py-3 px-4 text-zinc-400">Same fees</td>
+                <td className="py-3 px-4 text-zinc-400">Same fees</td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 text-zinc-300 font-medium">Use Case</td>
+                <td className="py-3 px-4 text-zinc-400">Market trading</td>
+                <td className="py-3 px-4 text-zinc-400">OTC deals</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </Card>
+        </>
+      )}
+
+      {/* Risks Tab */}
+      {activeTab === "risks" && (
+        <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Risks */}
         <Card className="h-full">
@@ -424,8 +810,12 @@ export default function HowItWorksPage() {
           </div>
         </Card>
       </div>
+        </>
+      )}
 
-      {/* FAQ */}
+      {/* FAQ Tab */}
+      {activeTab === "faq" && (
+        <>
       <Card className="mb-6">
         <div className="flex items-start gap-3 mb-4">
           <HelpCircle className="w-6 h-6 text-cyan-400 mt-1" />
@@ -472,11 +862,11 @@ export default function HowItWorksPage() {
             <ul className="space-y-1 text-xs text-zinc-400 ml-4">
               <li className="flex items-start gap-2">
                 <div className="w-1 h-1 bg-cyan-400 rounded-full mt-1.5"></div>
-                <span><strong className="text-cyan-400">Settlement Fee:</strong> 0.5% from both buyer and seller when the trade settles</span>
+                <span><strong className="text-cyan-400">Settlement Fee:</strong> Currently {settlementFee}% from both buyer and seller when the trade settles</span>
               </li>
               <li className="flex items-start gap-2">
                 <div className="w-1 h-1 bg-orange-400 rounded-full mt-1.5"></div>
-                <span><strong className="text-orange-400">Cancellation Fee:</strong> 0.1% if you cancel an order (discourages spam)</span>
+                <span><strong className="text-orange-400">Cancellation Fee:</strong> Currently {cancellationFee}% if you cancel an order (discourages spam)</span>
               </li>
               <li className="flex items-start gap-2">
                 <div className="w-1 h-1 bg-zinc-500 rounded-full mt-1.5"></div>
@@ -484,7 +874,7 @@ export default function HowItWorksPage() {
               </li>
             </ul>
             <p className="text-xs text-green-400 mt-2">
-              💡 Fees are capped at 5% maximum and can be adjusted by protocol governance.
+              💡 Fees are dynamic and adjustable by the protocol owner, with a maximum cap of 5% to protect users.
             </p>
           </div>
 
@@ -500,6 +890,52 @@ export default function HowItWorksPage() {
 
       {/* Disclaimer */}
       <Card className="bg-red-950/20 border-red-800/50">
+        <div className="flex items-start gap-3 mb-3">
+          <AlertTriangle className="w-6 h-6 text-red-400 mt-1" />
+          <h2 className="text-xl font-bold text-red-400">Important Disclaimer</h2>
+        </div>
+        <p className="text-sm text-zinc-300 leading-relaxed mb-3">
+          otcX is an experimental decentralized trading protocol. By using this platform, you acknowledge that:
+        </p>
+        <ul className="space-y-1.5 text-sm text-zinc-400">
+          <li className="flex items-start gap-2">
+            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
+            <span>You are trading at your own risk</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
+            <span>Pre-TGE tokens may never materialize or have value</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
+            <span>Smart contracts may contain bugs or vulnerabilities</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
+            <span>There is no central authority to resolve disputes</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
+            <span>You may lose all funds locked in the contract</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
+            <span>This is not financial advice</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
+            <span>You are responsible for complying with your local laws and regulations</span>
+          </li>
+        </ul>
+        <p className="text-sm text-red-400 mt-4 font-semibold">
+          USE AT YOUR OWN RISK. DO YOUR OWN RESEARCH.
+        </p>
+      </Card>
+        </>
+      )}
+
+      {/* Disclaimer - Show on all tabs */}
+      <Card className="bg-red-950/20 border-red-800/50 mt-6">
         <div className="flex items-start gap-3 mb-3">
           <AlertTriangle className="w-6 h-6 text-red-400 mt-1" />
           <h2 className="text-xl font-bold text-red-400">Important Disclaimer</h2>

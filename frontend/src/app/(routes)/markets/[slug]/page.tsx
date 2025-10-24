@@ -452,7 +452,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       </div>
 
       {/* Market Info Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 mb-6 p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-lg">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6 p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-lg">
         <div>
           <p className="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
             <DollarSign className="w-3 h-3" />

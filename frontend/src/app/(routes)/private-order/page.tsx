@@ -1,19 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { PrivateOrderCreator } from "@/components/PrivateOrderCreator";
 import { useOrderbook } from "@/hooks/useOrderbook";
 import { useReadContract } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, slugToProjectId } from "@/lib/contracts";
-import { Lock } from "lucide-react";
+import { Lock, Search } from "lucide-react";
 import { ProjectImage } from "@/components/ProjectImage";
 import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
 
 export default function PrivateOrderPage() {
   const { address, createPrivateOrder } = useOrderbook();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [assetTypeFilter, setAssetTypeFilter] = useState<"all" | "points" | "tokens">("all");
 
   // Fetch all projects
   const { data: projectsData } = useReadContract({
@@ -35,6 +38,24 @@ export default function PrivateOrderPage() {
     description: p.description || "",
     tokenAddress: p.tokenAddress,
   }));
+
+  // Filter projects based on search and asset type
+  const filteredProjects = useMemo(() => {
+    return projects.filter((project) => {
+      // Search filter
+      const matchesSearch = searchQuery.trim() === "" || 
+        project.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        project.slug?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Asset type filter
+      const matchesAssetType = 
+        assetTypeFilter === "all" ||
+        (assetTypeFilter === "points" && project.isPoints) ||
+        (assetTypeFilter === "tokens" && !project.isPoints);
+      
+      return matchesSearch && matchesAssetType;
+    });
+  }, [projects, searchQuery, assetTypeFilter]);
 
   const handleCreateOrder = async (params: {
     amount: bigint;
@@ -75,12 +96,66 @@ export default function PrivateOrderPage() {
         {/* Project Selection */}
         {!selectedProject ? (
           <Card>
-            <h2 className="text-xl font-bold mb-4">Select a Project</h2>
+            <div className="mb-4">
+              <h2 className="text-xl font-bold mb-4">Select a Project</h2>
+              
+              {/* Search and Filter */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                {/* Search Bar */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search projects..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {/* Asset Type Filter */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setAssetTypeFilter("all")}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                      assetTypeFilter === "all"
+                        ? "bg-cyan-600 text-white"
+                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setAssetTypeFilter("points")}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                      assetTypeFilter === "points"
+                        ? "bg-purple-600 text-white"
+                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                    }`}
+                  >
+                    Points
+                  </button>
+                  <button
+                    onClick={() => setAssetTypeFilter("tokens")}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                      assetTypeFilter === "tokens"
+                        ? "bg-blue-600 text-white"
+                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                    }`}
+                  >
+                    Tokens
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               {projects.length === 0 ? (
                 <p className="text-zinc-400 text-center py-8">No projects available</p>
+              ) : filteredProjects.length === 0 ? (
+                <p className="text-zinc-400 text-center py-8">No projects match your filters</p>
               ) : (
-                projects.map((project, index) => (
+                filteredProjects.map((project, index) => (
                   <button
                     key={project.slug || `project-${index}`}
                     onClick={() => {
@@ -112,28 +187,28 @@ export default function PrivateOrderPage() {
         ) : (
           <>
             {/* Selected Project Info */}
-            <Card className="mb-6">
+            <Card className="mb-6 bg-zinc-900/30 border-zinc-800">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <ProjectImage 
                     metadataURI={selectedProjectData?.metadataURI}
                     imageType="icon"
-                    className="w-12 h-12 rounded-full object-cover border-2 border-zinc-700"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-zinc-700"
                     fallbackText={selectedProjectData?.name.charAt(0).toUpperCase()}
                   />
                   <div>
-                    <h3 className="font-semibold text-white">{selectedProjectData?.name}</h3>
+                    <h3 className="text-sm font-semibold text-white">{selectedProjectData?.name}</h3>
                     <p className="text-xs text-zinc-500">{selectedProjectData?.slug}</p>
                   </div>
-                  <Badge className={selectedProjectData?.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"}>
+                  <Badge className={`${selectedProjectData?.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"} text-xs`}>
                     {selectedProjectData?.assetType}
                   </Badge>
                 </div>
                 <button
                   onClick={() => setSelectedProject(null)}
-                  className="text-sm text-zinc-400 hover:text-white transition-colors"
+                  className="text-xs text-zinc-400 hover:text-purple-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800/50"
                 >
-                  Change Project
+                  Change
                 </button>
               </div>
             </Card>

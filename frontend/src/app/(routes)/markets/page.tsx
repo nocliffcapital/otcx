@@ -343,96 +343,63 @@ export default function ProjectsPage() {
 
         {/* Top Stats Cards */}
         {!loadingStats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
             {/* 24h Volume */}
-            <Card className="p-3 border-cyan-500/30 bg-cyan-950/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-cyan-500/20 rounded-lg flex-shrink-0">
-                  <DollarSign className="w-5 h-5 text-cyan-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-[10px] text-zinc-400 mb-0.5">Pre-market 24h Vol</h3>
-                  <p className="text-xl font-bold text-cyan-400">
-                    ${globalStats.total24hVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                  </p>
-                  <p className="text-[10px] text-zinc-500 mt-0.5">
-                    {globalStats.totalTrades} Total Trades
-                  </p>
-                </div>
-                <div className="h-[72px] w-[152px] flex-shrink-0">
-                  <svg 
-                    viewBox="0 0 152 72" 
-                    className="w-full h-full"
-                    preserveAspectRatio="none"
-                  >
-                    <defs>
-                      <linearGradient id="volume-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="rgb(6, 182, 212)" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="rgb(6, 182, 212)" stopOpacity="0.05" />
-                      </linearGradient>
-                    </defs>
-                    {(() => {
-                      const points = Array.from({ length: 20 }).map((_, i) => {
-                        const variation = (Math.sin(i * 0.5) * 0.15 + Math.cos(i * 0.3) * 0.1);
-                        const normalizedY = 0.5 + variation;
-                        const x = (i / 19) * 152;
-                        const y = 72 - (normalizedY * 54 + 9);
-                        return { x, y };
-                      });
-
-                      let pathData = `M ${points[0].x} ${points[0].y}`;
-                      for (let i = 0; i < points.length - 1; i++) {
-                        const xMid = (points[i].x + points[i + 1].x) / 2;
-                        const yMid = (points[i].y + points[i + 1].y) / 2;
-                        pathData += ` Q ${points[i].x} ${points[i].y}, ${xMid} ${yMid}`;
-                      }
-                      pathData += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
-                      const areaPath = pathData + ` L 152 72 L 0 72 Z`;
-
-                      return (
-                        <>
-                          <path d={areaPath} fill="url(#volume-gradient)" />
-                          <path d={pathData} fill="none" stroke="rgb(6, 182, 212)" strokeWidth="2" />
-                        </>
-                      );
-                    })()}
-                  </svg>
+            <Card className="p-4 border-cyan-500/30 bg-cyan-950/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-cyan-500/20 rounded-xl">
+                    <DollarSign className="w-6 h-6 text-cyan-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs text-zinc-400 uppercase tracking-wide mb-1">Pre-market 24h Vol</h3>
+                    <p className="text-2xl font-bold text-cyan-400">
+                      ${globalStats.total24hVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      {globalStats.totalTrades} Total Trades
+                    </p>
+                  </div>
                 </div>
               </div>
             </Card>
 
             {/* Total Projects */}
-            <Card className="p-3 border-violet-500/30 bg-violet-950/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-violet-500/20 rounded-lg flex-shrink-0">
-                  <Activity className="w-5 h-5 text-violet-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-[10px] text-zinc-400 mb-0.5">Total Projects</h3>
-                  <p className="text-xl font-bold text-violet-400">
-                    {globalStats.totalMarkets}
-                  </p>
-                  <p className="text-[10px] text-zinc-500 mt-0.5">
-                    {globalStats.liveMarkets} Live Markets
-                  </p>
+            <Card className="p-4 border-violet-500/30 bg-violet-950/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-violet-500/20 rounded-xl">
+                    <Activity className="w-6 h-6 text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs text-zinc-400 uppercase tracking-wide mb-1">Total Projects</h3>
+                    <p className="text-2xl font-bold text-violet-400">
+                      {globalStats.totalMarkets}
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      {globalStats.liveMarkets} Live Markets
+                    </p>
+                  </div>
                 </div>
               </div>
             </Card>
 
             {/* In Settlement */}
-            <Card className="p-3 border-emerald-500/30 bg-emerald-950/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-500/20 rounded-lg flex-shrink-0">
-                  <Clock className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-[10px] text-zinc-400 mb-0.5">In Settlement</h3>
-                  <p className="text-xl font-bold text-emerald-400">
-                    {projects.filter(p => projectTgeStatus[p.slug]).length}
-                  </p>
-                  <p className="text-[10px] text-zinc-500 mt-0.5">
-                    {projects.filter(p => projectTgeStatus[p.slug]).length > 0 ? 'Projects completing TGE' : 'No active settlements'}
-                  </p>
+            <Card className="p-4 border-green-500/30 bg-green-950/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-green-500/20 rounded-xl">
+                    <Clock className="w-6 h-6 text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs text-zinc-400 uppercase tracking-wide mb-1">In Settlement</h3>
+                    <p className="text-2xl font-bold text-green-400">
+                      {projects.filter(p => projectTgeStatus[p.slug]).length}
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      {projects.filter(p => projectTgeStatus[p.slug]).length > 0 ? 'Active settlements' : 'No active settlements'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </Card>

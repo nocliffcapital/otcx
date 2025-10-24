@@ -97,42 +97,47 @@ export function PrivateOrderCreator({
 
   return (
     <Card className="border-purple-500/30 bg-purple-950/10">
-      <div className="mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Lock className="w-5 h-5 text-purple-400" />
-          <h3 className="text-lg font-bold text-purple-400">Create Private Order</h3>
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Lock className="w-4 h-4 text-purple-400" />
+          <h3 className="text-base font-bold text-purple-400">Order Details</h3>
         </div>
-        <p className="text-sm text-zinc-400">
-          Create an order that only a specific address can fill
+        <p className="text-xs text-zinc-400">
+          Specify order details and recipient address
         </p>
       </div>
 
       {!createdOrderId ? (
         <div className="space-y-4">
           {/* Side Selector */}
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setSide("SELL")}
-              variant="custom"
-              className={`flex-1 h-10 font-semibold transition-all ${
-                side === "SELL"
-                  ? "bg-red-600 hover:bg-red-700 text-white"
-                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
-              }`}
-            >
-              SELL
-            </Button>
-            <Button
-              onClick={() => setSide("BUY")}
-              variant="custom"
-              className={`flex-1 h-10 font-semibold transition-all ${
-                side === "BUY"
-                  ? "bg-green-600 hover:bg-green-700 text-white"
-                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
-              }`}
-            >
-              BUY
-            </Button>
+          <div>
+            <label className="text-sm font-medium text-zinc-300 mb-2 block">
+              Order Type
+            </label>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setSide("SELL")}
+                variant="custom"
+                className={`flex-1 h-9 text-sm font-semibold transition-all ${
+                  side === "SELL"
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
+                }`}
+              >
+                SELL
+              </Button>
+              <Button
+                onClick={() => setSide("BUY")}
+                variant="custom"
+                className={`flex-1 h-9 text-sm font-semibold transition-all ${
+                  side === "BUY"
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
+                }`}
+              >
+                BUY
+              </Button>
+            </div>
           </div>
 
           {/* Recipient Address */}
@@ -224,7 +229,7 @@ export function PrivateOrderCreator({
             onClick={handleCreate}
             disabled={!amount || !unitPrice || !isValidAddress || isCreating}
             variant="custom"
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-semibold h-12 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-semibold h-10 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isCreating ? (
               <>
@@ -286,7 +291,7 @@ export function PrivateOrderCreator({
           <Button
             onClick={handleReset}
             variant="custom"
-            className="w-full bg-zinc-800 hover:bg-zinc-700"
+            className="w-full bg-zinc-800 hover:bg-zinc-700 h-10 text-sm"
           >
             Create Another Private Order
           </Button>
