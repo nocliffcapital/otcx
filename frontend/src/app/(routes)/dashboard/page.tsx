@@ -296,17 +296,17 @@ export default function MyOrdersPage() {
             </Card>
 
             {/* Completed Settlements (Settled) */}
-            <Card className="p-4 border-emerald-500/30 bg-emerald-950/20">
+            <Card className="p-4 border-green-500/30 bg-green-950/20">
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-emerald-500/20 rounded-lg">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                <div className="p-2 bg-green-500/20 rounded-lg">
+                  <CheckCircle2 className="w-6 h-6 text-green-400" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-emerald-400 mb-1">Completed Settlements</h3>
+                  <h3 className="text-sm font-semibold text-green-400 mb-1">Completed Settlements</h3>
                   {stats.settled > 0 ? (
                     <p className="text-xs text-zinc-300">
                       <CheckCircle2 className="w-3 h-3 inline mr-1" />
-                      You have <span className="font-bold text-emerald-400">{stats.settled}</span> completed settlement(s)
+                      You have <span className="font-bold text-green-400">{stats.settled}</span> completed settlement(s)
                     </p>
                   ) : (
                     <p className="text-xs text-zinc-400">No completed settlements</p>
@@ -375,39 +375,39 @@ export default function MyOrdersPage() {
             </Card>
             
             {/* Active Orders */}
-            <Card className="p-2 border-orange-500/30 bg-orange-950/10">
+            <Card className="p-2 border-cyan-500/30 bg-cyan-950/10">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-orange-500/20 rounded-lg flex-shrink-0">
-                  <Clock className="w-4 h-4 text-orange-400" />
+                <div className="p-1.5 bg-cyan-500/20 rounded-lg flex-shrink-0">
+                  <Clock className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-orange-400 leading-none text-left">{stats.active}</div>
+                  <div className="text-lg font-bold text-cyan-400 leading-none text-left">{stats.active}</div>
                   <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Active</div>
                 </div>
               </div>
             </Card>
             
             {/* In Settlement */}
-            <Card className="p-2 border-blue-500/30 bg-blue-950/10">
+            <Card className="p-2 border-violet-500/30 bg-violet-950/10">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-blue-500/20 rounded-lg flex-shrink-0">
-                  <TrendingUp className="w-4 h-4 text-blue-400" />
+                <div className="p-1.5 bg-violet-500/20 rounded-lg flex-shrink-0">
+                  <TrendingUp className="w-4 h-4 text-violet-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-blue-400 leading-none text-left">{stats.inSettlement}</div>
+                  <div className="text-lg font-bold text-violet-400 leading-none text-left">{stats.inSettlement}</div>
                   <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Settlement</div>
                 </div>
               </div>
             </Card>
             
             {/* Settled */}
-            <Card className="p-2 border-emerald-500/30 bg-emerald-950/10">
+            <Card className="p-2 border-green-500/30 bg-green-950/10">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-emerald-500/20 rounded-lg flex-shrink-0">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <div className="p-1.5 bg-green-500/20 rounded-lg flex-shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-emerald-400 leading-none text-left">{stats.settled}</div>
+                  <div className="text-lg font-bold text-green-400 leading-none text-left">{stats.settled}</div>
                   <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Settled</div>
                 </div>
               </div>

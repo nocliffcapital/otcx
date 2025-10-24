@@ -23,6 +23,16 @@
 - **Filled Orders**: `bg-violet-600` (Violet)
 - **Ended Settlements**: `bg-green-600` (Green)
 
+### Dashboard Summary Cards
+- **Total Orders**: `bg-cyan-500/30` (Cyan)
+- **Total Volume**: `bg-violet-500/30` (Violet)
+- **Buy Orders**: `bg-green-500/30` (Green)
+- **Sell Orders**: `bg-red-500/30` (Red)
+- **Active Orders**: `bg-cyan-500/30` (Cyan) - Changed from orange
+- **In Settlement**: `bg-violet-500/30` (Violet) - Changed from blue
+- **Settled**: `bg-green-500/30` (Green) - Changed from emerald
+- **Completed Settlements Alert**: `bg-green-500/30` (Green) - Changed from emerald
+
 ### Order Type in Dashboard
 - **Private Orders**: `bg-purple-600` (Purple)
 
@@ -112,6 +122,10 @@
 - Dashboard "Open Orders" tab changed from Orange to Cyan
 - Markets & Admin "Ended" tab badge changed from Emerald to Red (now matches status badge)
 - Dashboard "Ended Settlements" tab badge changed from Emerald to Green
+- Dashboard "Active Orders" card changed from Orange to Cyan
+- Dashboard "In Settlement" card changed from Blue to Violet
+- Dashboard "Settled" card changed from Emerald to Green
+- Dashboard "Completed Settlements" alert card changed from Emerald to Green
 
 **Standardized:**
 - All asset type badges use consistent colors across the platform
