@@ -809,13 +809,13 @@ export default function AdminPage() {
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-xs text-zinc-400">Orderbook Status:</span>
                 {isContractPaused ? (
-                  <Badge className="bg-red-600 text-white font-semibold text-xs">
-                    <PauseCircle className="w-3 h-3 mr-1" />
+                  <Badge className="bg-red-600 text-white text-[10px] px-2 py-0.5">
+                    <PauseCircle className="w-2.5 h-2.5 mr-1" />
                     PAUSED
                   </Badge>
                 ) : (
-                  <Badge className="bg-green-600 text-white font-semibold text-xs">
-                    <PlayCircle className="w-3 h-3 mr-1" />
+                  <Badge className="bg-green-600 text-white text-[10px] px-2 py-0.5">
+                    <PlayCircle className="w-2.5 h-2.5 mr-1" />
                     ACTIVE
                   </Badge>
                 )}
