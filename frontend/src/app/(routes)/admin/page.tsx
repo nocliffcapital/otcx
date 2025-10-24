@@ -34,7 +34,7 @@ export default function AdminPage() {
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [showTGEManager, setShowTGEManager] = useState(false);
   const [tgeProjectSlug, setTgeProjectSlug] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"active" | "upcoming" | "ended" | "all">("active");
+  const [statusFilter, setStatusFilter] = useState<"active" | "ended" | "all">("active");
   const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({});
   const [collateralToRemove, setCollateralToRemove] = useState<string | null>(null);
   const [collateralToApprove, setCollateralToApprove] = useState<string | null>(null);
@@ -1461,33 +1461,20 @@ export default function AdminPage() {
               }`}
             >
               Active
-              <Badge className="ml-2 bg-green-700 text-xs">
+              <Badge className="ml-2 bg-green-600 text-xs">
                 {projects.filter(p => p.active && !projectTgeStatus[p.slug]).length}
-              </Badge>
-            </button>
-            <button
-              onClick={() => setStatusFilter("upcoming")}
-              className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${
-                statusFilter === "upcoming"
-                  ? "text-cyan-400 border-cyan-400"
-                  : "text-zinc-400 border-transparent hover:text-zinc-300"
-              }`}
-            >
-              Upcoming
-              <Badge className="ml-2 bg-yellow-700 text-xs">
-                {projects.filter(p => !p.active).length}
               </Badge>
             </button>
             <button
               onClick={() => setStatusFilter("ended")}
               className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${
                 statusFilter === "ended"
-                  ? "text-cyan-400 border-cyan-400"
+                  ? "text-emerald-400 border-emerald-400"
                   : "text-zinc-400 border-transparent hover:text-zinc-300"
               }`}
             >
               Ended
-              <Badge className="ml-2 bg-red-900/50 text-xs">
+              <Badge className="ml-2 bg-red-600/70 text-xs">
                 {projects.filter(p => projectTgeStatus[p.slug]).length}
               </Badge>
             </button>
@@ -1515,7 +1502,6 @@ export default function AdminPage() {
             const filteredProjects = projects.filter((project) => {
               if (statusFilter === "all") return true;
               if (statusFilter === "active") return project.active && !projectTgeStatus[project.slug];
-              if (statusFilter === "upcoming") return !project.active;
               if (statusFilter === "ended") return projectTgeStatus[project.slug];
               return true;
             });
@@ -1575,11 +1561,9 @@ export default function AdminPage() {
                               {/* Lifecycle */}
                               <td className="py-4 px-4">
                                 {projectTgeStatus[project.slug] ? (
-                                  <Badge className="bg-red-900/50">Ended</Badge>
-                                ) : project.active ? (
-                                  <Badge className="bg-green-600">Active</Badge>
+                                  <Badge className="bg-red-600/80">Ended</Badge>
                                 ) : (
-                                  <Badge className="bg-yellow-600">Upcoming</Badge>
+                                  <Badge className="bg-green-600">Active</Badge>
                                 )}
                               </td>
 

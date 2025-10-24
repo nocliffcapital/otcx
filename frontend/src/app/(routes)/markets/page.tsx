@@ -65,7 +65,7 @@ export default function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | "Tokens" | "Points">("all");
   const [viewMode, setViewMode] = useState<"cards" | "list">("list");
-  const [marketTab, setMarketTab] = useState<"live" | "upcoming" | "ended">("live");
+  const [marketTab, setMarketTab] = useState<"live" | "ended">("live");
   const [sortBy, setSortBy] = useState<"name" | "price" | "volume" | "orders">("volume");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({});
@@ -276,7 +276,6 @@ export default function ProjectsPage() {
           const tgeActivated = projectTgeStatus[project.slug] || false;
           const matchesTab = 
             marketTab === "live" ? (project.active && !tgeActivated) :  // Live = active AND TGE not activated
-            marketTab === "upcoming" ? (!project.active && !tgeActivated) :  // Upcoming = not yet active AND no TGE
             marketTab === "ended" ? tgeActivated :  // Ended = TGE has been activated (regardless of active status)
             false;
           
@@ -414,7 +413,7 @@ export default function ProjectsPage() {
                     {globalStats.totalMarkets}
                   </p>
                   <p className="text-[10px] text-zinc-500 mt-0.5">
-                    {globalStats.liveMarkets} Live • {projects.filter(p => !p.active).length} Upcoming
+                    {globalStats.liveMarkets} Live Markets
                   </p>
                 </div>
               </div>
@@ -459,22 +458,6 @@ export default function ProjectsPage() {
             </Badge>
           </button>
           <button
-            onClick={() => setMarketTab("upcoming")}
-            className={`px-4 py-2 text-sm font-medium transition-all relative ${
-              marketTab === "upcoming"
-                ? "text-cyan-400"
-                : "text-zinc-400 hover:text-zinc-300"
-            }`}
-          >
-            Upcoming
-            {marketTab === "upcoming" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
-            )}
-            <Badge className="ml-2 bg-cyan-600 text-xs">
-              {projects.filter(p => !p.active).length}
-            </Badge>
-          </button>
-          <button
             onClick={() => setMarketTab("ended")}
             className={`px-4 py-2 text-sm font-medium transition-all relative ${
               marketTab === "ended"
@@ -486,7 +469,7 @@ export default function ProjectsPage() {
             {marketTab === "ended" && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400"></div>
             )}
-            <Badge className="ml-2 bg-emerald-600 text-xs">
+            <Badge className="ml-2 bg-red-600/70 text-xs">
               {projects.filter(p => projectTgeStatus[p.slug]).length}
             </Badge>
           </button>
@@ -750,7 +733,7 @@ export default function ProjectsPage() {
                     }}
                     className="flex items-center gap-1 hover:text-cyan-400 transition-colors text-xs font-semibold text-zinc-400 uppercase tracking-wider"
                   >
-                    Token
+                    Project
                     {sortBy === "name" && (
                       <span>{sortDirection === "asc" ? "↑" : "↓"}</span>
                     )}
@@ -758,7 +741,6 @@ export default function ProjectsPage() {
                 </th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Type</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
-                <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Chart</th>
                 <th className="text-right py-3 px-4">
                   <button
                     onClick={() => {
@@ -779,23 +761,11 @@ export default function ProjectsPage() {
                 </th>
                 <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Best Ask</th>
                 <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Best Bid</th>
-                <th className="text-right py-3 px-4">
-                  <button
-                    onClick={() => {
-                      if (sortBy === "volume") {
-                        setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-                      } else {
-                        setSortBy("volume");
-                        setSortDirection("desc");
-                      }
-                    }}
-                    className="flex items-center justify-end gap-1 hover:text-cyan-400 transition-colors text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-auto"
-                  >
-                    Volume
-                    {sortBy === "volume" && (
-                      <span>{sortDirection === "asc" ? "↑" : "↓"}</span>
-                    )}
-                  </button>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider whitespace-nowrap">24h Volume</th>
+                <th className="text-right py-3 px-4 whitespace-nowrap">
+                  <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                    Total Volume
+                  </div>
                 </th>
                 <th className="text-right py-3 px-4">
                   <button
@@ -890,67 +860,10 @@ export default function ProjectsPage() {
                         // TGE activation takes priority over active status
                         if (tgeActivated) {
                           return <Badge className="bg-red-600/80 text-xs">Ended</Badge>;
-                        } else if (!project.active) {
-                          return <Badge className="bg-yellow-600 text-xs">Upcoming</Badge>;
                         } else {
                           return <Badge className="bg-green-600 text-xs">Live</Badge>;
                         }
                       })()}
-                    </td>
-                    {/* Chart */}
-                    <td className="py-4 px-4">
-                      {!loadingStats && stats ? (
-                        <div className="w-[120px] h-12 mx-auto">
-                          {stats.tradeCount > 0 || (stats.lowestAsk !== null && stats.highestBid !== null) ? (
-                            <svg 
-                              viewBox="0 0 120 48" 
-                              className="w-full h-full"
-                              preserveAspectRatio="xMidYMid meet"
-                            >
-                              <defs>
-                                <linearGradient id={`gradient-${project.slug}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                                  <stop offset="0%" stopColor="rgb(6, 182, 212)" stopOpacity="0.4" />
-                                  <stop offset="100%" stopColor="rgb(6, 182, 212)" stopOpacity="0.05" />
-                                </linearGradient>
-                              </defs>
-                              {(() => {
-                                // Use lastPrice if available (has trades), otherwise use bid/ask spread
-                                const basePrice = stats.lastPrice || ((stats.lowestAsk || 0) + (stats.highestBid || 0)) / 2;
-                                const points = Array.from({ length: 20 }).map((_, i) => {
-                                  const variation = (Math.sin(i * 0.5) * 0.1 + Math.cos(i * 0.3) * 0.05) * basePrice;
-                                  const value = basePrice + variation;
-                                  const minVal = basePrice * 0.95;
-                                  const maxVal = basePrice * 1.05;
-                                  const normalizedY = maxVal > minVal ? ((value - minVal) / (maxVal - minVal)) : 0.5;
-                                  const x = (i / 19) * 116 + 2; // Add 2px padding on each side
-                                  const y = 46 - (normalizedY * 40 + 2); // Adjusted for 2px padding top/bottom
-                                  return { x, y };
-                                });
-
-                                let pathData = `M ${points[0].x} ${points[0].y}`;
-                                for (let i = 0; i < points.length - 1; i++) {
-                                  const xMid = (points[i].x + points[i + 1].x) / 2;
-                                  const yMid = (points[i].y + points[i + 1].y) / 2;
-                                  pathData += ` Q ${points[i].x} ${points[i].y}, ${xMid} ${yMid}`;
-                                }
-                                pathData += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
-                                const areaPath = pathData + ` L 118 48 L 2 48 Z`; // Adjusted for padding
-
-                                return (
-                                  <>
-                                    <path d={areaPath} fill={`url(#gradient-${project.slug})`} />
-                                    <path d={pathData} fill="none" stroke="rgb(6, 182, 212)" strokeWidth="1.5" className="group-hover:stroke-cyan-400" />
-                                  </>
-                                );
-                              })()}
-                            </svg>
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">—</div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="h-12 w-[120px] bg-zinc-800/50 rounded animate-pulse mx-auto"></div>
-                      )}
                     </td>
                     {/* Last Price */}
                     <td className="py-4 px-4 text-right">
@@ -982,7 +895,17 @@ export default function ProjectsPage() {
                         <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
-                    {/* Volume */}
+                    {/* 24h Volume */}
+                    <td className="py-4 px-4 text-right">
+                      {!loadingStats && stats ? (
+                        <span className="font-semibold text-zinc-400">
+                          ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </span>
+                      ) : (
+                        <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                      )}
+                    </td>
+                    {/* Total Volume */}
                     <td className="py-4 px-4 text-right">
                       {!loadingStats && stats ? (
                         <span className="font-semibold text-white">

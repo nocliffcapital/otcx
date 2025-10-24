@@ -450,7 +450,7 @@ export default function MyOrdersPage() {
                 {activeTab === "open" && (
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
                 )}
-                <Badge className="ml-2 bg-orange-600 text-xs">
+                <Badge className="ml-2 bg-cyan-600 text-xs">
                   {stats.active}
                 </Badge>
               </button>
@@ -498,7 +498,7 @@ export default function MyOrdersPage() {
                 {activeTab === "ended" && (
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
                 )}
-                <Badge className="ml-2 bg-emerald-600 text-xs">
+                <Badge className="ml-2 bg-green-600 text-xs">
                   {orders.filter(o => o.status === 2 || o.status === 3 || o.status === 4).length}
                 </Badge>
               </button>

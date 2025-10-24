@@ -9,6 +9,88 @@ import { useEffect, useState } from "react";
 import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, STABLE_DECIMALS } from "@/lib/contracts";
 import { formatUnits } from "viem";
 
+// Animated chart component
+function AnimatedChart() {
+  const [offset, setOffset] = useState(0);
+  
+  useEffect(() => {
+    // Continuous smooth animation
+    const interval = setInterval(() => {
+      setOffset((prev) => prev + 0.5);
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Generate points with varying amplitudes (like a real chart)
+  const generatePoints = () => {
+    const points: { x: number; y: number }[] = [];
+    const numPoints = 80;
+    
+    for (let i = 0; i < numPoints; i++) {
+      const x = (i / (numPoints - 1)) * 100;
+      
+      // Combine multiple sine waves with different frequencies and amplitudes
+      // This creates a more natural, varied pattern
+      const wave1 = Math.sin((i + offset) * 0.15) * 15; // Large slow waves
+      const wave2 = Math.sin((i + offset) * 0.4) * 8;   // Medium waves
+      const wave3 = Math.sin((i + offset) * 0.8) * 4;   // Small fast waves
+      
+      // Add some trend (gradual rise and fall)
+      const trend = Math.sin((i + offset * 0.3) * 0.05) * 10;
+      
+      const y = 50 + wave1 + wave2 + wave3 + trend;
+      
+      points.push({ x, y: Math.max(10, Math.min(90, y)) }); // Clamp between 10-90
+    }
+    
+    return points;
+  };
+
+  const points = generatePoints();
+  
+  const pathData = points.reduce((acc, point, i) => {
+    if (i === 0) return `M ${point.x} ${point.y}`;
+    // Use smooth curves instead of straight lines
+    const prevPoint = points[i - 1];
+    const controlX = (prevPoint.x + point.x) / 2;
+    return `${acc} Q ${controlX} ${prevPoint.y}, ${point.x} ${point.y}`;
+  }, "");
+
+  return (
+    <div className="absolute inset-0 overflow-hidden opacity-14">
+      <svg
+        className="w-full h-full"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        {/* Gradient fill */}
+        <defs>
+          <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        
+        {/* Fill area */}
+        <path
+          d={`${pathData} L 100 100 L 0 100 Z`}
+          fill="url(#chartGradient)"
+        />
+        
+        {/* Line */}
+        <path
+          d={pathData}
+          fill="none"
+          stroke="#06b6d4"
+          strokeWidth="0.7"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const publicClient = usePublicClient();
   const [totalVolume, setTotalVolume] = useState<number>(0);
@@ -80,23 +162,12 @@ export default function HomePage() {
       {/* Tech grid background */}
       <div className="absolute inset-0 bg-grid-pattern opacity-20"></div>
       
-      {/* Animated scanning lines */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute h-px w-full bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-scan-horizontal" style={{ top: '20%' }}></div>
-        <div className="absolute h-px w-full bg-gradient-to-r from-transparent via-zinc-600 to-transparent animate-scan-horizontal" style={{ top: '60%', animationDelay: '3s' }}></div>
-        <div className="absolute w-px h-full bg-gradient-to-b from-transparent via-blue-500 to-transparent animate-scan-vertical" style={{ left: '30%' }}></div>
-        <div className="absolute w-px h-full bg-gradient-to-b from-transparent via-zinc-600 to-transparent animate-scan-vertical" style={{ left: '70%', animationDelay: '2s' }}></div>
-      </div>
-      
-      {/* Corner accents */}
-      <div className="absolute top-0 left-0 w-32 h-32 border-t-2 border-l-2 border-blue-500/30"></div>
-      <div className="absolute top-0 right-0 w-32 h-32 border-t-2 border-r-2 border-zinc-600/30"></div>
-      <div className="absolute bottom-0 left-0 w-32 h-32 border-b-2 border-l-2 border-zinc-600/30"></div>
-      <div className="absolute bottom-0 right-0 w-32 h-32 border-b-2 border-r-2 border-blue-500/30"></div>
+      {/* Animated chart background */}
+      <AnimatedChart />
       
       {/* Hero Section */}
       <div className="relative mx-auto max-w-6xl px-4 py-20 md:py-32">
-        <div className="flex flex-col items-center text-center space-y-8">
+        <div className="flex flex-col items-center text-center space-y-12">
           {/* Main heading */}
           <div className="flex flex-col items-center space-y-6">
             <Logo variant="full" className="h-20 md:h-28 w-auto" />
@@ -163,25 +234,25 @@ export default function HomePage() {
           </div>
 
           {/* Stats */}
-          <div className="flex justify-center gap-8 text-center">
+          <div className="flex justify-center gap-16 text-center">
             <div>
-              <div className="text-3xl font-bold text-cyan-400">100%</div>
+              <div className="text-3xl font-bold text-cyan-400/70">100%</div>
               <div className="text-sm text-zinc-500">Escrow</div>
             </div>
             <div className="w-px bg-zinc-800"></div>
             <div>
-              <div className="text-3xl font-bold text-violet-400">
+              <div className="text-3xl font-bold text-violet-400/70">
                 {loading ? (
                   <span className="animate-pulse">...</span>
                 ) : (
                   `$${totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                 )}
               </div>
-              <div className="text-sm text-zinc-500">Volume</div>
+              <div className="text-sm text-zinc-500">Total Volume</div>
             </div>
             <div className="w-px bg-zinc-800"></div>
             <div>
-              <div className="text-3xl font-bold text-pink-400">24/7</div>
+              <div className="text-3xl font-bold text-pink-400/70">24/7</div>
               <div className="text-sm text-zinc-500">Available</div>
             </div>
           </div>
