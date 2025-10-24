@@ -26,12 +26,32 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <title>otcX - Decentralized OTC Marketplace</title>
         <meta name="description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
-        <link rel="icon" href="https://dweb.link/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq" type="image/png" />
+        
+        {/* Favicons */}
+        <link rel="icon" type="image/png" sizes="32x32" href="https://dweb.link/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq" />
+        <link rel="icon" type="image/png" sizes="16x16" href="https://dweb.link/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq" />
+        <link rel="shortcut icon" href="https://dweb.link/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq" />
+        
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta property="og:title" content="otcX - Decentralized OTC Marketplace" />
-        <meta property="og:description" content="Trade pre-TGE tokens & points with secure on-chain escrow." />
+        
+        {/* Open Graph / Facebook / LinkedIn / Telegram */}
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://otcx.trade" />
+        <meta property="og:title" content="otcX - Decentralized OTC Marketplace" />
+        <meta property="og:description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
+        <meta property="og:image" content="https://dweb.link/ipfs/bafkreial2uizk25jdkkmjwftasl7wmqwkfiyicqwpjngqjlrinvbqbxrzu" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="otcX - Decentralized OTC Trading Platform" />
+        <meta property="og:site_name" content="otcX" />
+        
+        {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content="https://otcx.trade" />
+        <meta name="twitter:title" content="otcX - Decentralized OTC Marketplace" />
+        <meta name="twitter:description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
+        <meta name="twitter:image" content="https://dweb.link/ipfs/bafkreial2uizk25jdkkmjwftasl7wmqwkfiyicqwpjngqjlrinvbqbxrzu" />
+        <meta name="twitter:image:alt" content="otcX - Decentralized OTC Trading Platform" />
       </head>
       <body className={`min-h-screen bg-gradient-to-b from-zinc-950 to-black text-zinc-100 ${spaceGrotesk.variable} font-sans relative`}>
         {/* Tech grid background for all pages */}
