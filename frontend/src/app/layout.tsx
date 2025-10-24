@@ -28,9 +28,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
         
         {/* Favicons */}
-        <link rel="icon" type="image/png" sizes="32x32" href="https://dweb.link/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq" />
-        <link rel="icon" type="image/png" sizes="16x16" href="https://dweb.link/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq" />
-        <link rel="shortcut icon" href="https://dweb.link/ipfs/bafkreig4bsrihy2gc6voorpv46x5us2gjesizcbarhh4u74b26t3ez27wq" />
+        <link rel="icon" type="image/png" sizes="32x32" href="https://dweb.link/ipfs/bafkreibkhmzwv2yt5vbyvf4ptl4fc44hte2hmumjaap6oo55l65xquvxre" />
+        <link rel="icon" type="image/png" sizes="16x16" href="https://dweb.link/ipfs/bafkreibkhmzwv2yt5vbyvf4ptl4fc44hte2hmumjaap6oo55l65xquvxre" />
+        <link rel="shortcut icon" href="https://dweb.link/ipfs/bafkreibkhmzwv2yt5vbyvf4ptl4fc44hte2hmumjaap6oo55l65xquvxre" />
         
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         
