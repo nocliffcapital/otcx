@@ -498,7 +498,7 @@ export default function AdminPage() {
   const handleUpdateSettlementFee = () => {
     const feeBps = Number(newSettlementFee);
     if (isNaN(feeBps) || feeBps < 0 || feeBps > Number(maxFeeBps || 500)) {
-      alert(`Fee must be between 0 and ${(Number(maxFeeBps || 500) / 100).toFixed(2)}%`);
+      toast.error("Invalid fee", `Fee must be between 0 and ${(Number(maxFeeBps || 500) / 100).toFixed(2)}%`);
       return;
     }
 
@@ -506,6 +506,8 @@ export default function AdminPage() {
       return;
     }
 
+    toast.info("Updating settlement fee", "Transaction pending");
+    
     writeContract({
       address: ORDERBOOK_ADDRESS,
       abi: ESCROW_ORDERBOOK_ABI,
@@ -518,7 +520,7 @@ export default function AdminPage() {
   const handleUpdateCancellationFee = () => {
     const feeBps = Number(newCancellationFee);
     if (isNaN(feeBps) || feeBps < 0 || feeBps > Number(maxFeeBps || 500)) {
-      alert(`Fee must be between 0 and ${(Number(maxFeeBps || 500) / 100).toFixed(2)}%`);
+      toast.error("Invalid fee", `Fee must be between 0 and ${(Number(maxFeeBps || 500) / 100).toFixed(2)}%`);
       return;
     }
 
@@ -526,6 +528,8 @@ export default function AdminPage() {
       return;
     }
 
+    toast.info("Updating cancellation fee", "Transaction pending");
+    
     writeContract({
       address: ORDERBOOK_ADDRESS,
       abi: ESCROW_ORDERBOOK_ABI,
@@ -707,6 +711,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (isSuccess && !hasRefreshed) {
       setHasRefreshed(true);
+      toast.success("Transaction confirmed!", "Changes will be reflected shortly");
       setTimeout(() => {
         refetch();
         refetchPaused();
