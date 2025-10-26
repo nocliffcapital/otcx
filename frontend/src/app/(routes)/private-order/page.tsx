@@ -6,7 +6,7 @@ import { PrivateOrderCreator } from "@/components/PrivateOrderCreator";
 import { useOrderbook } from "@/hooks/useOrderbook";
 import { useReadContract } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, slugToProjectId } from "@/lib/contracts";
-import { Lock, Search } from "lucide-react";
+import { Lock, Search, UserPlus, Users, ShieldCheck, Calendar, Coins, CheckCircle, ArrowRight } from "lucide-react";
 import { ProjectImage } from "@/components/ProjectImage";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
@@ -224,17 +224,162 @@ export default function PrivateOrderPage() {
           </>
         )}
 
-        {/* Info Section */}
-        <Card className="mt-6 bg-zinc-900/30 border-zinc-800">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Lock className="w-4 h-4 text-purple-400" />
-            How Private Orders Work
-          </h3>
-          <div className="space-y-2 text-sm text-zinc-400">
-            <p>• <strong className="text-zinc-300">Private:</strong> Your order will not appear in the public orderbook</p>
-            <p>• <strong className="text-zinc-300">Address-Locked:</strong> Only the specified address can take your order</p>
-            <p>• <strong className="text-zinc-300">Shareable Link:</strong> After creation, you'll get a link to share with the recipient</p>
-            <p>• <strong className="text-zinc-300">Secure:</strong> Enforced on-chain - no one else can fill your order</p>
+        {/* Info Section - How It Works */}
+        <Card className="mt-6 bg-gradient-to-br from-zinc-900/50 to-zinc-900/30 border-zinc-800">
+          <div className="mb-6">
+            <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+              <Lock className="w-5 h-5 text-purple-400" />
+              How Private Orders Work
+            </h3>
+            <p className="text-sm text-zinc-400">
+              Secure peer-to-peer trading with on-chain escrow protection
+            </p>
+          </div>
+
+          {/* Step-by-step flow */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Step 1 */}
+            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-purple-500/50 transition-all group">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-500/20 border border-purple-500/50 flex items-center justify-center group-hover:bg-purple-500/30 transition-all">
+                  <UserPlus className="w-5 h-5 text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-semibold text-white text-sm">Step 1: Create Order</h4>
+                    <span className="text-xs text-zinc-500 font-mono">Maker</span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    You create a private order and specify the counterparty's address. Deposit USDC collateral to lock the order.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-blue-500/50 transition-all group">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 border border-blue-500/50 flex items-center justify-center group-hover:bg-blue-500/30 transition-all">
+                  <Users className="w-5 h-5 text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-semibold text-white text-sm">Step 2: Counterparty Accepts</h4>
+                    <span className="text-xs text-zinc-500 font-mono">Taker</span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    The specified address receives the order link and deposits their USDC collateral to accept the trade.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-green-500/50 transition-all group">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-500/20 border border-green-500/50 flex items-center justify-center group-hover:bg-green-500/30 transition-all">
+                  <ShieldCheck className="w-5 h-5 text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-semibold text-white text-sm">Step 3: Order Locked</h4>
+                    <span className="text-xs text-zinc-500 font-mono">Both</span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Both parties' collateral is secured in the smart contract escrow. The order is now fully locked and protected.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 4 */}
+            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-yellow-500/50 transition-all group">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center group-hover:bg-yellow-500/30 transition-all">
+                  <Calendar className="w-5 h-5 text-yellow-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-semibold text-white text-sm">Step 4: TGE Activation</h4>
+                    <span className="text-xs text-zinc-500 font-mono">Wait</span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    When the Token Generation Event happens, the admin activates settlement mode. A 4-hour settlement window begins.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 5 */}
+            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-cyan-500/50 transition-all group">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center group-hover:bg-cyan-500/30 transition-all">
+                  <Coins className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-semibold text-white text-sm">Step 5: Seller Deposits</h4>
+                    <span className="text-xs text-zinc-500 font-mono">Seller</span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    The seller deposits tokens/points into escrow. For points orders, tokens are deposited based on the conversion ratio.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 6 */}
+            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-emerald-500/50 transition-all group">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center group-hover:bg-emerald-500/30 transition-all">
+                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-semibold text-white text-sm">Step 6: Settlement</h4>
+                    <span className="text-xs text-zinc-500 font-mono">Both</span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Buyer claims their tokens/points and seller receives USDC payment. Trade complete with a small platform fee.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Key Features */}
+          <div className="mt-6 pt-6 border-t border-zinc-800">
+            <h4 className="text-sm font-semibold text-zinc-300 mb-3">Key Features</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-start gap-2">
+                <Lock className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-zinc-300">Address-Locked</p>
+                  <p className="text-xs text-zinc-500">Only the specified address can accept</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-zinc-300">Escrow Protected</p>
+                  <p className="text-xs text-zinc-500">Smart contract holds all funds safely</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <ArrowRight className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-zinc-300">Shareable Link</p>
+                  <p className="text-xs text-zinc-500">Send the order link to your counterparty</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Coins className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-zinc-300">Points & Tokens</p>
+                  <p className="text-xs text-zinc-500">Supports both asset types seamlessly</p>
+                </div>
+              </div>
+            </div>
           </div>
         </Card>
       </div>
