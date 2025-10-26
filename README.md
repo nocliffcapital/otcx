@@ -1,12 +1,12 @@
 # otcX - Pre-TGE OTC Trading Platform
 
-**Live Site**: [otcx.fun](https://otcx.fun) | **Docs**: [docs.otcx.fun](https://docs.otcx.fun)
+**Live Site**: [otcx.fun](https://otcx.fun)
 
 A decentralized platform for trading token allocations before Token Generation Events (TGE), supporting both on-chain tokens and off-chain points systems.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Frontend Development
 ```bash
@@ -22,12 +22,11 @@ Visit `http://localhost:3000`
 cd contracts
 forge build
 forge test
-forge lint
 ```
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 otcx/
@@ -38,43 +37,41 @@ otcx/
 │   │   ├── hooks/     # Custom React hooks
 │   │   └── lib/       # Utilities & contract ABIs
 │   └── public/        # Static assets
-├── contracts/         # Foundry smart contracts
-│   ├── src/           # V3 production contracts
-│   ├── test/          # Test suites
-│   └── script/        # Deployment scripts
-└── docs/              # Documentation
-    └── archive/       # Historical docs
+└── contracts/         # Foundry smart contracts
+    ├── src/           # V4 production contracts
+    ├── test/          # Test suites
+    └── script/        # Deployment scripts
 ```
 
 ---
 
-## 🔗 Smart Contracts (V3)
+## Smart Contracts (V4)
 
-### Deployed on Sepolia Testnet
+### Sepolia Testnet
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| **ProjectRegistryV2** | `0x[...]` | Project metadata & management |
-| **EscrowOrderBookV3** | `0x[...]` | Order creation, matching & settlement |
-| **Mock USDC** | `0x[...]` | Test stablecoin (Sepolia) |
+| **ProjectRegistryV2** | `0x7fdBE0DEA92E1e246276DCb50c6d7Dc910563D22` | Project metadata & management |
+| **EscrowOrderBookV4** | `0x1560B643159F2184B9b416D822fAc1A05769af2F` | Order creation, matching & settlement |
+| **Mock USDC** | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` | Test stablecoin (Sepolia) |
 
-**Key V3 Features:**
-- ✅ `bytes32` project identifiers (no placeholder addresses)
-- ✅ IPFS metadata storage via Pinata
-- ✅ Solady battle-tested security libraries
-- ✅ Gas-optimized batch TGE activation
-- ✅ Single-transaction order taking + deposit
-- ✅ Auto-settlement on token deposit
+### Key Features
+- 100% collateral escrow system
+- IPFS metadata storage
+- Solady security libraries
+- Single-transaction order execution
+- Dynamic fee management
+- Private order URLs
 
 ---
 
-## 🛠 Technology Stack
+## Technology Stack
 
 ### Frontend
 - **Framework**: Next.js 15 (App Router)
 - **Styling**: Tailwind CSS
 - **Web3**: wagmi v2 + viem + RainbowKit
-- **State**: React Hooks + Zustand
+- **State**: React Hooks
 - **Deployment**: Netlify
 
 ### Smart Contracts
@@ -86,53 +83,30 @@ otcx/
 
 ---
 
-## 📖 Documentation
+## Core Features
 
-### Essential Docs (Root)
-- **README.md** (this file) - Overview & quick start
-- **V3_MIGRATION_COMPLETE.md** - V3 migration guide & testing
-- **FOUNDRY_AUDIT_SUMMARY.md** - Security audit results (Grade: A+)
+### For Traders
+- **Create Orders**: List token allocations for sale or post buy offers
+- **Browse Markets**: Explore pre-TGE projects (Tokens & Points)
+- **Escrow Safety**: 100% collateral-backed trades with smart contract protection
+- **TGE Settlement**: Automatic settlement after token launch
+- **Private Orders**: Share custom order links with specific counterparties
 
-### Archived Docs
-See `docs/archive/` for historical documentation:
-- V1/V2 implementation details
-- Migration guides
-- Old feature specifications
-- Development logs
-
----
-
-## 🔒 Security
-
-**Latest Audit**: October 22, 2025  
-**Grade**: A+ ✅
-
-- ✅ No high-severity issues
-- ✅ Reentrancy protection (Solady)
-- ✅ Access control (Ownable)
-- ✅ Pausable emergency controls
-- ✅ Comprehensive test coverage
-
-See `FOUNDRY_AUDIT_SUMMARY.md` for full details.
+### For Admins
+- **Project Management**: Add/edit projects via on-chain registry
+- **IPFS Integration**: Upload logos/metadata to Pinata
+- **TGE Activation**: Batch activate settlement for multiple orders
+- **Fee Management**: Adjust settlement and cancellation fees dynamically
+- **Emergency Controls**: Pause/unpause trading
 
 ---
 
-## 🧪 Testing
+## Testing
 
-### Run All Tests
+### Run Contract Tests
 ```bash
 cd contracts
 forge test -vvv
-```
-
-### Run Specific Test
-```bash
-forge test --match-test test_FunctionName -vvv
-```
-
-### Run Linter
-```bash
-forge lint
 ```
 
 ### Generate Gas Report
@@ -140,27 +114,21 @@ forge lint
 forge test --gas-report
 ```
 
-### Run Frontend Tests
-```bash
-cd frontend
-npm test
-```
-
 ---
 
-## 🚢 Deployment
+## Deployment
 
 ### Deploy Contracts (Sepolia)
 ```bash
 cd contracts
 source .env
-forge script script/DeployV3.s.sol --rpc-url sepolia --broadcast --verify
+forge script script/DeployV4.s.sol --rpc-url sepolia --broadcast --verify
 ```
 
 ### Deploy Frontend (Netlify)
 Connected to GitHub `main` branch for automatic deployments.
 
-**Environment Variables Required:**
+**Required Environment Variables:**
 ```
 NEXT_PUBLIC_ORDERBOOK=0x...
 NEXT_PUBLIC_STABLE=0x...
@@ -169,30 +137,11 @@ NEXT_PUBLIC_STABLE_DECIMALS=6
 NEXT_PUBLIC_RPC=https://ethereum-sepolia-rpc.publicnode.com
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=...
 PINATA_JWT=...
-NEXT_PUBLIC_GROK_API_KEY=...
 ```
 
 ---
 
-## 🎯 Core Features
-
-### For Users
-- **Create Orders**: List token allocations for sale or post buy offers
-- **Browse Markets**: Explore pre-TGE projects (Tokens & Points)
-- **Escrow Safety**: Collateral-backed trades with smart contract protection
-- **TGE Settlement**: Automatic settlement after token launch
-- **Points Trading**: Off-chain proof submission for points projects
-
-### For Admins
-- **Project Management**: Add/edit projects via on-chain registry
-- **IPFS Integration**: Upload logos/metadata to Pinata
-- **TGE Activation**: Batch activate settlement for multiple orders
-- **Emergency Controls**: Pause/unpause trading, extend deadlines
-- **Analytics**: View orderbook stats and trade volume
-
----
-
-## 🏗 Development Workflow
+## Development Workflow
 
 ### 1. Make Changes
 ```bash
@@ -212,7 +161,6 @@ npm run dev
 ```bash
 # Contracts
 forge test -vvv
-forge lint
 
 # Frontend
 npm run build  # Check for build errors
@@ -221,42 +169,19 @@ npm run build  # Check for build errors
 ### 3. Commit & Push
 ```bash
 git add .
-git commit -m "feat: description of changes"
+git commit -m "description of changes"
 git push origin main
 ```
 
-### 4. Deploy
-- **Contracts**: Manual deployment via Foundry
-- **Frontend**: Automatic via Netlify (on push to main)
-
 ---
 
-## 🤝 Contributing
-
-This is a private project. For questions or issues, contact the development team.
-
----
-
-## 📜 License
+## License
 
 Proprietary - All Rights Reserved
 
 ---
 
-## 🔗 Links
+## Links
 
 - **Website**: [otcx.fun](https://otcx.fun)
-- **Documentation**: [docs.otcx.fun](https://docs.otcx.fun)
-- **GitHub**: Private Repository
 - **Network**: Ethereum Sepolia (Testnet)
-
----
-
-## 📊 Project Stats
-
-- **Smart Contracts**: 2 (V3)
-- **Security Grade**: A+
-- **Test Coverage**: Comprehensive
-- **Frontend**: Next.js 15 + React 19
-- **Network**: Sepolia Testnet
-- **Status**: Production Ready 🚀

@@ -354,101 +354,89 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-3">
-          <div className="flex items-center gap-3 flex-1">
-            {/* Project Logo */}
-            <ProjectImage 
-              metadataURI={project?.metadataURI}
-              imageType="logo"
-              className="h-10 sm:h-12 max-w-[150px] sm:max-w-[200px] object-contain"
-              fallbackText={project?.name || slug.toUpperCase()}
-            />
-            
-            <Badge className={`${
-              project?.isPoints === false
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
-                : 'bg-violet-600/20 text-violet-400 border border-violet-500/30'
-            } text-xs sm:text-sm px-2 sm:px-2.5 py-1`}>
-              {project?.isPoints === false ? 'Tokens' : 'Points'}
-            </Badge>
-          </div>
-          
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
-            isOrderbookPaused 
-              ? 'bg-red-950/30 border-red-500/50' 
-              : 'bg-green-950/30 border-green-500/50'
-          }`}>
-            <div className={`w-1.5 h-1.5 rounded-full ${
-              isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500'
-            }`} />
-            <span className={`text-xs font-semibold ${
-              isOrderbookPaused ? 'text-red-400' : 'text-green-400'
-            }`}>
-              {isOrderbookPaused ? 'Paused' : 'Active'}
-            </span>
-          </div>
-        </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <p className="text-sm text-zinc-400">
-              <span className="font-bold text-white">{project?.name || slug.toUpperCase()}</span> Pre-TGE OTC Trading
-            </p>
-            
-            {/* Project Reputation Badge */}
-            {metadata?.twitterUrl && project?.name && (
-              <ProjectReputationBadge 
-                twitterUrl={metadata.twitterUrl}
-                projectName={project.name}
-                variant="compact"
+      {/* Polished Project Header */}
+      <div className="mb-8 bg-gradient-to-b from-zinc-900/40 to-transparent rounded-2xl p-6 border border-zinc-800/50">
+        <div className="flex items-start justify-between gap-8">
+          {/* Left Side: Project Info */}
+          <div className="flex-1 space-y-3">
+            {/* Logo */}
+            <div className="flex items-start">
+              <ProjectImage 
+                metadataURI={project?.metadataURI}
+                imageType="logo"
+                className="h-12 w-auto max-w-[220px] object-contain object-left"
+                fallbackText={project?.name || slug.toUpperCase()}
               />
-            )}
-          </div>
-          
-          {/* Project Links from Registry */}
-          {metadata && (metadata.twitterUrl || metadata.websiteUrl) && (
-            <div className="flex gap-2 mt-2">
-              {metadata.twitterUrl && (
+            </div>
+            
+            {/* Title and Subtitle in one line */}
+            <div>
+              <p className="text-sm text-zinc-400">
+                <span className="font-semibold text-white">{project?.name || slug.toUpperCase()}</span> - Pre-TGE OTC Trading
+              </p>
+            </div>
+            
+            {/* Metadata Pills */}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                project?.isPoints === false
+                  ? 'bg-blue-500/15 text-blue-300 ring-1 ring-blue-500/30' 
+                  : 'bg-violet-500/15 text-violet-300 ring-1 ring-violet-500/30'
+              }`}>
+                {project?.isPoints === false ? 'Tokens' : 'Points'}
+              </div>
+              
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                isOrderbookPaused 
+                  ? 'bg-red-500/15 text-red-300 ring-1 ring-red-500/30' 
+                  : 'bg-green-500/15 text-green-300 ring-1 ring-green-500/30'
+              }`}>
+                <div className={`w-1.5 h-1.5 rounded-full ${
+                  isOrderbookPaused ? 'bg-red-400 animate-pulse' : 'bg-green-400'
+                }`} />
+                {isOrderbookPaused ? 'Trading Suspended' : 'Trading Live'}
+              </div>
+              
+              {/* Social Links */}
+              {metadata?.twitterUrl && (
                 <a
                   href={ensureHttps(metadata.twitterUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 rounded-lg transition-colors group text-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-blue-400 ring-1 ring-zinc-700/50 hover:ring-blue-500/30 transition-all"
                 >
-                  <svg className="w-3.5 h-3.5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                   </svg>
-                  <span className="font-medium group-hover:text-blue-400 transition-colors">
-                    Twitter
-                  </span>
+                  Twitter
                 </a>
               )}
-              {metadata.websiteUrl && (
+              
+              {metadata?.websiteUrl && (
                 <a
                   href={ensureHttps(metadata.websiteUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 rounded-lg transition-colors group text-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-green-400 ring-1 ring-zinc-700/50 hover:ring-green-500/30 transition-all"
                 >
-                  <svg
-                    className="w-3.5 h-3.5 text-green-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-                    />
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                   </svg>
-                  <span className="font-medium group-hover:text-green-400 transition-colors">
-                    Website
-                  </span>
+                  Website
                 </a>
               )}
             </div>
+          </div>
+          
+          {/* Right Side: Reputation Badge */}
+          {metadata?.twitterUrl && project?.name && (
+            <ProjectReputationBadge 
+              twitterUrl={metadata.twitterUrl}
+              projectName={project.name}
+              variant="prominent"
+            />
           )}
+        </div>
       </div>
 
       {/* Market Info Bar */}
