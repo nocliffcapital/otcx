@@ -786,13 +786,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                     return (
                       <tr key={order.id.toString()} className="border-b border-zinc-800/50 hover:bg-zinc-900/30 transition-colors">
                         <td className="py-3 px-3 font-medium text-zinc-100">
-                          ${formatUnits(order.unitPrice, STABLE_DECIMALS)}
+                          ${Number(formatUnits(order.unitPrice, STABLE_DECIMALS)).toLocaleString()}
                         </td>
                         <td className="py-3 px-3 text-center text-zinc-300">
-                          {formatUnits(order.amount, 18)}
+                          {Number(formatUnits(order.amount, 18)).toLocaleString()}
                         </td>
                         <td className="py-3 px-3 text-center text-zinc-400">
-                          ${formatUnits(total, STABLE_DECIMALS)}
+                          ${Number(formatUnits(total, STABLE_DECIMALS)).toLocaleString()}
                         </td>
                         <td className="py-3 px-3 text-center text-zinc-300">
                           <div className="flex items-center justify-center gap-1.5">
@@ -892,13 +892,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                     return (
                       <tr key={order.id.toString()} className="border-b border-zinc-800/50 hover:bg-zinc-900/30 transition-colors">
                         <td className="py-3 px-3 font-medium text-zinc-100">
-                          ${formatUnits(order.unitPrice, STABLE_DECIMALS)}
+                          ${Number(formatUnits(order.unitPrice, STABLE_DECIMALS)).toLocaleString()}
                         </td>
                         <td className="py-3 px-3 text-center text-zinc-300">
-                          {formatUnits(order.amount, 18)}
+                          {Number(formatUnits(order.amount, 18)).toLocaleString()}
                         </td>
                         <td className="py-3 px-3 text-center text-zinc-400">
-                          ${formatUnits(total, STABLE_DECIMALS)}
+                          ${Number(formatUnits(total, STABLE_DECIMALS)).toLocaleString()}
                         </td>
                         <td className="py-3 px-3 text-center text-zinc-300">
                           <div className="flex items-center justify-center gap-1.5">
@@ -1004,13 +1004,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                         </Badge>
                       </td>
                       <td className="py-3 px-3 font-medium text-zinc-100">
-                        ${formatUnits(order.unitPrice, STABLE_DECIMALS)}
+                        ${Number(formatUnits(order.unitPrice, STABLE_DECIMALS)).toLocaleString()}
                       </td>
                       <td className="py-3 px-3 text-center text-zinc-300">
-                        {formatUnits(order.amount, 18)}
+                        {Number(formatUnits(order.amount, 18)).toLocaleString()}
                       </td>
                       <td className="py-3 px-3 text-center text-zinc-400">
-                        ${formatUnits(total, STABLE_DECIMALS)}
+                        ${Number(formatUnits(total, STABLE_DECIMALS)).toLocaleString()}
                       </td>
                       <td className="py-3 px-3 text-center">
                         <div className="flex items-center justify-center gap-2">
