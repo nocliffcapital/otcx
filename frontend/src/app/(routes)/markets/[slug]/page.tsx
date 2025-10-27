@@ -330,8 +330,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   };
 
   const handleMintTestTokens = async () => {
-    // Use the deployed test token address (0x217D...)
-    const testTokenAddress = "0x217D17025173E51871aA40848e8657A3EC8d64cb" as `0x${string}`;
+    // Use the mock token address from environment variables
+    const testTokenAddress = (process.env.NEXT_PUBLIC_MOCK_TOKEN || '') as `0x${string}`;
+    
+    if (!testTokenAddress) {
+      toast.error("Configuration error", "Mock token address not configured");
+      return;
+    }
     
     try {
       setMinting(true);

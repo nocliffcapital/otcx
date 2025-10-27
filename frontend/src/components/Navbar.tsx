@@ -147,15 +147,13 @@ export function Navbar() {
                       <Lightbulb className="w-4 h-4" />
                       How It Works
                     </Link>
-                    <a 
-                      href="https://docs.otcx.fun"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Link 
+                      href="/docs"
                       className="flex items-center gap-2 px-4 py-3 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all border-t border-zinc-800"
                     >
                       <FileText className="w-4 h-4" />
                       Docs
-                    </a>
+                    </Link>
                   </div>
                 )}
               </div>
@@ -382,16 +380,14 @@ export function Navbar() {
                 <Lightbulb className="w-4 h-4" />
                 How It Works
               </Link>
-              <a 
-                href="https://docs.otcx.fun" 
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link 
+                href="/docs" 
                 onClick={() => setShowMobileMenu(false)}
                 className="px-4 py-2 rounded-lg text-sm font-medium transition-colors text-zinc-400 hover:text-zinc-100 flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" />
                 Docs
-              </a>
+              </Link>
               {isOwner && (
                 <Link 
                   href="/admin" 

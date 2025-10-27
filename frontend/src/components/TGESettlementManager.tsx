@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useState, useEffect } from "react";
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
 import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Badge } from "./ui/Badge";
-import { Clock, PlayCircle, Plus, CheckCircle, AlertTriangle } from "lucide-react";
+import { Clock, PlayCircle, Plus, CheckCircle, AlertTriangle, XCircle, CheckSquare, Square } from "lucide-react";
 import { useToast } from "./Toast";
 
 interface Order {
@@ -28,8 +28,13 @@ interface Order {
   proof?: string; // For Points projects: seller submits proof of token transfer
 }
 
-// V3 Status Names
-const STATUS_NAMES = ["OPEN", "FUNDED", "TGE_ACTIVATED", "SETTLED", "DEFAULTED", "CANCELED"];
+interface ProofStatus {
+  accepted: boolean;
+  acceptedAt?: bigint;
+}
+
+// V3 Status Names (V4: status at different index due to allowedTaker field)
+const STATUS_NAMES = ["OPEN", "FUNDED", "SETTLED", "DEFAULTED", "CANCELED"];
 
 export function TGESettlementManager({ orders, assetType, projectName }: { orders: Order[]; assetType: string; projectName?: string }) {
   const [selectedOrder, setSelectedOrder] = useState<bigint | null>(null);
@@ -39,6 +44,11 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
   const [extensionHours, setExtensionHours] = useState<4 | 24>(4);
   const [showIndividualOrders, setShowIndividualOrders] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showProofManager, setShowProofManager] = useState(true);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<bigint>>(new Set());
+  const [proofStatuses, setProofStatuses] = useState<Record<string, ProofStatus>>({});
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectingOrderId, setRejectingOrderId] = useState<bigint | null>(null);
   
   // Both Points and Tokens need TGE activation when the token launches
   // Points: seller sends tokens directly to buyer, then submits proof for admin to verify
@@ -48,20 +58,65 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
   const { writeContract, data: hash, isPending, isError, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   const toast = useToast();
+  const publicClient = usePublicClient();
+
+  // Read POINTS_SENTINEL from contract
+  const { data: pointsSentinel } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "POINTS_SENTINEL",
+  }) as { data: `0x${string}` | undefined };
+
+  // Fetch proof acceptance statuses for all orders with proofs
+  useEffect(() => {
+    const fetchProofStatuses = async () => {
+      if (!publicClient) return;
+      
+      const ordersWithProofs = orders.filter(o => o.proof);
+      const statuses: Record<string, ProofStatus> = {};
+      
+      for (const order of ordersWithProofs) {
+        try {
+          const accepted = await publicClient.readContract({
+            address: ORDERBOOK_ADDRESS,
+            abi: ESCROW_ORDERBOOK_ABI,
+            functionName: "proofAccepted",
+            args: [order.id],
+          }) as boolean;
+          
+          let acceptedAt: bigint | undefined;
+          if (accepted) {
+            acceptedAt = await publicClient.readContract({
+              address: ORDERBOOK_ADDRESS,
+              abi: ESCROW_ORDERBOOK_ABI,
+              functionName: "proofAcceptedAt",
+              args: [order.id],
+            }) as bigint;
+          }
+          
+          statuses[order.id.toString()] = { accepted, acceptedAt };
+        } catch (error) {
+          console.error(`Failed to fetch proof status for order ${order.id}:`, error);
+        }
+      }
+      
+      setProofStatuses(statuses);
+    };
+    
+    fetchProofStatuses();
+  }, [orders, publicClient, isSuccess]); // Refetch after successful transactions
 
   // Show all orders - let admin decide which to activate
-  // V3 Status: 0=OPEN, 1=FUNDED, 2=TGE_ACTIVATED, 3=SETTLED, 4=DEFAULTED, 5=CANCELED
+  // V4 Status: 0=OPEN, 1=FUNDED, 2=SETTLED, 3=DEFAULTED, 4=CANCELED
   const fundedOrders = orders.filter((o) => o.status === 1); // Only FUNDED orders for batch activation
-  const eligibleOrders = orders.filter((o) => o.status <= 2); // OPEN, FUNDED, or already TGE_ACTIVATED
-  const tgeOrders = orders.filter((o) => o.status === 2); // Already activated
+  const ordersWithProofs = orders.filter((o) => o.status === 1 && o.proof); // FUNDED with proof submitted
+  const ordersWithAcceptedProofs = ordersWithProofs.filter((o) => proofStatuses[o.id.toString()]?.accepted);
+  const ordersWithPendingProofs = ordersWithProofs.filter((o) => !proofStatuses[o.id.toString()]?.accepted);
+  const eligibleOrders = orders.filter((o) => o.status <= 1); // OPEN or FUNDED
 
   const handleBatchActivateTGE = () => {
-    // For Points projects without on-chain tokens, allow empty address
-    // We'll use a placeholder address (0x0...dead) to indicate off-chain settlement
+    // For Points projects without on-chain tokens, we use POINTS_SENTINEL for off-chain settlement
     const isOffChainSettlement = isPointsProject && !batchTokenAddress;
-    const tokenAddr = isOffChainSettlement 
-      ? "0x000000000000000000000000000000000000dead" 
-      : batchTokenAddress;
 
     if (!isOffChainSettlement && (!batchTokenAddress || !batchTokenAddress.match(/^0x[a-fA-F0-9]{40}$/))) {
       toast.error("Invalid token address", "Please enter a valid token address (0x...) or leave empty for off-chain settlement (Points only)");
@@ -85,11 +140,14 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
   };
 
   const confirmBatchActivate = () => {
-    // POINTS_SENTINEL = address(uint160(uint256(keccak256("otcX.POINTS_SENTINEL.v4"))))
-    const POINTS_SENTINEL = "0x602EE57D45A64a39E996Fa8c78B3BC88B4D107E2";
+    if (!pointsSentinel) {
+      toast.error("Contract not ready", "Please wait for contract data to load");
+      return;
+    }
+    
     const isOffChainSettlement = isPointsProject && !batchTokenAddress;
     const tokenAddr = isOffChainSettlement 
-      ? POINTS_SENTINEL 
+      ? pointsSentinel 
       : batchTokenAddress;
     
     // Parse and validate conversion ratio
@@ -134,19 +192,6 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
     return;
   };
 
-  const handleExtendSettlement = (orderId: bigint, hours: 4 | 24) => {
-    if (!confirm(`Extend settlement for order #${orderId} by ${hours} hours?`)) {
-      return;
-    }
-
-    writeContract({
-      address: ORDERBOOK_ADDRESS,
-      abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "extendSettlement",
-      args: [orderId, BigInt(hours)],
-    });
-  };
-
   const handleManualSettle = (orderId: bigint) => {
     if (!confirm(`Manually settle order #${orderId}?\nThis should only be used for Points after off-chain verification.`)) {
       return;
@@ -155,11 +200,86 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
     writeContract({
       address: ORDERBOOK_ADDRESS,
       abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "manualSettle",
+      functionName: "settleOrderManual",
       args: [orderId],
     });
   };
 
+  // Toggle order selection for batch operations
+  const toggleOrderSelection = (orderId: bigint) => {
+    const newSelection = new Set(selectedOrderIds);
+    if (newSelection.has(orderId)) {
+      newSelection.delete(orderId);
+    } else {
+      newSelection.add(orderId);
+    }
+    setSelectedOrderIds(newSelection);
+  };
+
+  // Select/deselect all orders
+  const toggleSelectAll = () => {
+    if (selectedOrderIds.size === ordersWithPendingProofs.length) {
+      setSelectedOrderIds(new Set());
+    } else {
+      setSelectedOrderIds(new Set(ordersWithPendingProofs.map(o => o.id)));
+    }
+  };
+
+  // Batch accept proofs
+  const handleBatchAcceptProofs = () => {
+    if (selectedOrderIds.size === 0) {
+      toast.error("No orders selected", "Please select at least one order");
+      return;
+    }
+
+    const orderIdsArray = Array.from(selectedOrderIds);
+    
+    toast.info("Accepting proofs", `Processing ${orderIdsArray.length} order(s)...`);
+    
+    writeContract({
+      address: ORDERBOOK_ADDRESS,
+      abi: ESCROW_ORDERBOOK_ABI,
+      functionName: "acceptProofBatch",
+      args: [orderIdsArray],
+    });
+
+    // Clear selection after submission
+    setSelectedOrderIds(new Set());
+  };
+
+  // Individual accept proof
+  const handleAcceptProof = (orderId: bigint) => {
+    toast.info("Accepting proof", `Order #${orderId}`);
+    
+    writeContract({
+      address: ORDERBOOK_ADDRESS,
+      abi: ESCROW_ORDERBOOK_ABI,
+      functionName: "acceptProof",
+      args: [orderId],
+    });
+  };
+
+  // Individual reject proof
+  const handleRejectProof = (orderId: bigint, reason: string) => {
+    if (!reason || reason.trim().length === 0) {
+      toast.error("Reason required", "Please provide a reason for rejection");
+      return;
+    }
+
+    toast.info("Rejecting proof", `Order #${orderId}`);
+    
+    writeContract({
+      address: ORDERBOOK_ADDRESS,
+      abi: ESCROW_ORDERBOOK_ABI,
+      functionName: "rejectProof",
+      args: [orderId, reason],
+    });
+
+    setRejectingOrderId(null);
+    setRejectReason("");
+  };
+
+  // Batch settle accepted orders
   const formatDeadline = (deadline: bigint) => {
     if (deadline === 0n) return "N/A";
     const date = new Date(Number(deadline) * 1000);
@@ -175,14 +295,18 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
   };
 
   return (
-    <Card className="border-violet-800/30 bg-violet-950/10">
-      <div className="flex items-center gap-3 mb-6">
+    <Card className="border-violet-800/30 bg-violet-950/10 max-h-[85vh] overflow-y-auto">
+      <div className="flex items-center gap-3 mb-6 sticky top-0 bg-violet-950/10 backdrop-blur-sm z-10 pb-4 border-b border-violet-800/30">
         <Clock className="w-6 h-6 text-violet-400" />
-        <div>
+        <div className="flex-1">
           <h3 className="text-lg font-bold text-violet-400">
-            TGE Settlement Management {projectName && `- ${projectName}`}
+            {isPointsProject ? "Points TGE Management" : "TGE Settlement Management"} {projectName && `- ${projectName}`}
           </h3>
-          <p className="text-sm text-zinc-400">Activate TGE when the token launches</p>
+          <p className="text-sm text-zinc-400">
+            {isPointsProject 
+              ? "Workflow: Activate TGE → Sellers Submit Proofs → Admin Approves → Anyone Settles Permissionlessly" 
+              : "Activate TGE when the token launches"}
+          </p>
         </div>
       </div>
 
@@ -212,10 +336,12 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
       <div className="mb-6 p-6 bg-gradient-to-br from-green-950/30 to-violet-950/30 border border-green-800/30 rounded-lg">
         <h4 className="text-lg font-bold text-green-400 mb-2 flex items-center gap-2">
           <PlayCircle className="w-5 h-5" />
-          Activate Project TGE
+          {isPointsProject ? "Step 1: Activate Project TGE" : "Activate Project TGE"}
         </h4>
         <p className="text-sm text-zinc-400 mb-4">
-          Set global TGE flag for this project. All {fundedOrders.length} funded order(s) will become settleable.
+          {isPointsProject 
+            ? `Activate TGE for ${fundedOrders.length} funded order(s). Sellers will then have 4 hours to submit proofs.`
+            : `Set global TGE flag for this project. All ${fundedOrders.length} funded order(s) will become settleable.`}
         </p>
         
         {fundedOrders.length === 0 ? (
@@ -281,15 +407,257 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
         )}
       </div>
 
-      {/* Individual Orders - Advanced/Exception Cases */}
-      <div className="mb-6">
-        <button
-          onClick={() => setShowIndividualOrders(!showIndividualOrders)}
-          className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-300 transition-colors mb-3"
-        >
-          <span className="text-lg">{showIndividualOrders ? "▼" : "▶"}</span>
-          <span>Individual Orders (Advanced) - {eligibleOrders.length} order(s)</span>
-        </button>
+      {/* Step 2 Placeholder: Waiting for proofs (Points Projects) */}
+      {isPointsProject && fundedOrders.length > 0 && ordersWithProofs.length === 0 && (
+        <div className="mb-6 p-6 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+          <div className="flex items-center gap-2 text-lg font-bold text-zinc-400 mb-2">
+            <Clock className="w-6 h-6" />
+            <span>Step 2: Waiting for Sellers to Submit Proofs</span>
+          </div>
+          <p className="text-sm text-zinc-500">
+            {fundedOrders.length} order(s) funded. Sellers must deliver tokens off-chain and submit proof (IPFS hash or transaction proof) before the deadline.
+          </p>
+        </div>
+      )}
+
+      {/* V4: Proof Management Section (Points Projects Only) */}
+      {isPointsProject && ordersWithProofs.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-lg font-bold text-violet-400 mb-4">
+            <CheckCircle className="w-6 h-6" />
+            <span>Step 3: Proof Management - {ordersWithProofs.length} proof(s) submitted</span>
+          </div>
+
+          <div className="space-y-6 p-6 bg-gradient-to-br from-purple-950/30 to-cyan-950/30 border border-purple-800/30 rounded-lg">
+            {/* Summary Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-yellow-950/20 border-yellow-500/30 p-4">
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-8 h-8 text-yellow-400" />
+                    <div>
+                      <div className="text-xs text-yellow-300/70">Pending Review</div>
+                      <div className="text-2xl font-bold text-yellow-300">{ordersWithPendingProofs.length}</div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="bg-green-950/20 border-green-500/30 p-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="w-8 h-8 text-green-400" />
+                    <div>
+                      <div className="text-xs text-green-300/70">Accepted</div>
+                      <div className="text-2xl font-bold text-green-300">{ordersWithAcceptedProofs.length}</div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="bg-purple-950/20 border-purple-500/30 p-4">
+                  <div className="flex items-center gap-3">
+                    <PlayCircle className="w-8 h-8 text-purple-400" />
+                    <div>
+                      <div className="text-xs text-purple-300/70">Selected</div>
+                      <div className="text-2xl font-bold text-purple-300">{selectedOrderIds.size}</div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Batch Actions */}
+              {ordersWithPendingProofs.length > 0 && (
+                <div className="flex flex-wrap gap-3 p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                  <Button
+                    onClick={toggleSelectAll}
+                    variant="custom"
+                    className="bg-zinc-700 hover:bg-zinc-600 text-white"
+                  >
+                    {selectedOrderIds.size === ordersWithPendingProofs.length ? (
+                      <>
+                        <Square className="w-4 h-4 mr-2" />
+                        Deselect All
+                      </>
+                    ) : (
+                      <>
+                        <CheckSquare className="w-4 h-4 mr-2" />
+                        Select All ({ordersWithPendingProofs.length})
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    onClick={handleBatchAcceptProofs}
+                    disabled={selectedOrderIds.size === 0 || isPending || isConfirming}
+                    variant="custom"
+                    className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Accept Selected ({selectedOrderIds.size})
+                  </Button>
+                </div>
+              )}
+
+              {/* Pending Proofs List */}
+              {ordersWithPendingProofs.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-bold text-yellow-400 mb-3 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Pending Review ({ordersWithPendingProofs.length})
+                  </h5>
+                  <div className="space-y-3">
+                    {ordersWithPendingProofs.map((order) => (
+                      <div key={order.id.toString()} className="p-4 bg-zinc-900/70 rounded-lg border border-yellow-500/30">
+                        <div className="flex items-start gap-4">
+                          {/* Checkbox */}
+                          <button
+                            onClick={() => toggleOrderSelection(order.id)}
+                            className="mt-1 p-1 hover:bg-zinc-800 rounded transition-colors"
+                          >
+                            {selectedOrderIds.has(order.id) ? (
+                              <CheckSquare className="w-5 h-5 text-purple-400" />
+                            ) : (
+                              <Square className="w-5 h-5 text-zinc-500" />
+                            )}
+                          </button>
+
+                          {/* Order Details */}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-sm font-bold text-white">Order #{order.id.toString()}</span>
+                              <Badge className="bg-yellow-600">Pending Review</Badge>
+                            </div>
+                            
+                            <div className="p-3 bg-purple-900/30 border border-purple-500/30 rounded mb-3">
+                              <div className="text-xs font-semibold text-purple-300 mb-1">Submitted Proof:</div>
+                              <p className="text-xs text-purple-200 font-mono break-all">{order.proof}</p>
+                            </div>
+
+                            {/* Actions */}
+                            {rejectingOrderId === order.id ? (
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="Reason for rejection..."
+                                  value={rejectReason}
+                                  onChange={(e) => setRejectReason(e.target.value)}
+                                  className="flex-1 text-sm"
+                                />
+                                <Button
+                                  onClick={() => handleRejectProof(order.id, rejectReason)}
+                                  disabled={!rejectReason || isPending}
+                                  variant="custom"
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                >
+                                  Confirm
+                                </Button>
+                                <Button
+                                  onClick={() => {
+                                    setRejectingOrderId(null);
+                                    setRejectReason("");
+                                  }}
+                                  variant="custom"
+                                  className="bg-zinc-700 hover:bg-zinc-600 text-white"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() => handleAcceptProof(order.id)}
+                                  disabled={isPending || isConfirming}
+                                  variant="custom"
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-1" />
+                                  Accept Proof
+                                </Button>
+                                <Button
+                                  onClick={() => setRejectingOrderId(order.id)}
+                                  disabled={isPending || isConfirming}
+                                  variant="custom"
+                                  className="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30"
+                                >
+                                  <XCircle className="w-4 h-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Accepted Proofs List */}
+              {ordersWithAcceptedProofs.length > 0 && (
+                <div>
+                  <div className="mb-3">
+                    <h5 className="text-sm font-bold text-green-400 flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Step 4: Permissionless Settlement ({ordersWithAcceptedProofs.length} ready)
+                    </h5>
+                    <div className="p-3 bg-purple-900/20 border border-purple-500/30 rounded-lg">
+                      <div className="flex items-start gap-2 text-xs text-purple-300">
+                        <AlertTriangle className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium mb-1">🎉 Fully Permissionless!</p>
+                          <p className="text-purple-400/80">
+                            Once proofs are accepted, <strong>anyone</strong> can settle these orders by calling the contract directly.
+                            Buyers/sellers can settle themselves—no need to wait for admin action!
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {ordersWithAcceptedProofs.map((order) => {
+                      const status = proofStatuses[order.id.toString()];
+                      return (
+                        <div key={order.id.toString()} className="p-4 bg-zinc-900/70 rounded-lg border border-green-500/30">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-sm font-bold text-white">Order #{order.id.toString()}</span>
+                                <Badge className="bg-green-600">✓ Accepted</Badge>
+                                {status?.acceptedAt && (
+                                  <span className="text-xs text-zinc-500">
+                                    {new Date(Number(status.acceptedAt) * 1000).toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
+                              
+                              <div className="p-3 bg-green-900/20 border border-green-500/30 rounded">
+                                <div className="text-xs font-semibold text-green-300 mb-1">Verified Proof:</div>
+                                <p className="text-xs text-green-200 font-mono break-all">{order.proof}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+            {ordersWithProofs.length === 0 && (
+              <div className="text-center py-8 text-zinc-500">
+                No proofs submitted yet. Sellers must submit proof after delivering tokens.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Individual Orders - Advanced/Exception Cases (Hidden for Points projects - use batch operations) */}
+      {!isPointsProject && (
+        <div className="mb-6">
+          <button
+            onClick={() => setShowIndividualOrders(!showIndividualOrders)}
+            className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-300 transition-colors mb-3"
+          >
+            <span className="text-lg">{showIndividualOrders ? "▼" : "▶"}</span>
+            <span>Individual Orders (Advanced) - {eligibleOrders.length} order(s)</span>
+          </button>
         
         {showIndividualOrders && (
           <div className="pl-6 border-l-2 border-zinc-800">
@@ -365,94 +733,12 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
             )}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
-      {/* Active TGE Orders - Can Extend */}
-      <div>
-        <h4 className="text-md font-bold text-zinc-300 mb-3 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4" />
-          Active Settlement Windows ({tgeOrders.length})
-        </h4>
-        {tgeOrders.length === 0 ? (
-          <p className="text-sm text-zinc-500">No active settlement windows</p>
-        ) : (
-          <div className="space-y-3">
-            {tgeOrders.map((order) => (
-              <div key={order.id.toString()} className="p-4 bg-zinc-900/50 rounded-lg border border-orange-800/30">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-bold text-zinc-300">Order #{order.id.toString()}</span>
-                      <Badge className="bg-orange-600">TGE ACTIVE</Badge>
-                      {order.tokensDeposited && (
-                        <Badge className="bg-green-600">TOKENS DEPOSITED</Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-orange-400 font-medium">
-                      {formatDeadline(order.settlementDeadline)}
-                    </p>
-                  </div>
-                </div>
-
-                {!order.tokensDeposited && (
-                  <div className="space-y-3">
-                    {/* Extension buttons for all projects */}
-                    <div className="flex gap-3">
-                      <Button
-                        onClick={() => handleExtendSettlement(order.id, 4)}
-                        disabled={isPending || isConfirming}
-                        variant="custom"
-                        className="bg-cyan-600 hover:bg-cyan-700 border border-cyan-500/30"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        +4 Hours
-                      </Button>
-                      <Button
-                        onClick={() => handleExtendSettlement(order.id, 24)}
-                        disabled={isPending || isConfirming}
-                        variant="custom"
-                        className="bg-violet-600 hover:bg-violet-700 border border-violet-500/30"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        +24 Hours
-                      </Button>
-                    </div>
-                    
-                    {/* Manual settlement for Points projects */}
-                    {isPointsProject && (
-                      <div className="space-y-2">
-                        <div className="p-3 bg-purple-900/20 border border-purple-500/30 rounded">
-                          <div className="flex items-center gap-2 mb-2">
-                            <AlertTriangle className="w-4 h-4 text-purple-400" />
-                            <p className="text-xs font-semibold text-purple-300">
-                              {order.proof ? "Submitted Proof" : "Waiting for seller to submit proof"}
-                            </p>
-                          </div>
-                          {order.proof && (
-                            <p className="text-xs text-purple-200 bg-purple-950/50 p-2 rounded font-mono break-all">
-                              {order.proof}
-                            </p>
-                          )}
-                        </div>
-                        <Button
-                          onClick={() => handleManualSettle(order.id)}
-                          disabled={isPending || isConfirming || !order.proof}
-                          variant="custom"
-                          className="w-full bg-purple-600 hover:bg-purple-700 border border-purple-500/30"
-                          title={order.proof ? "Verify proof and settle" : "Seller must submit proof first"}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          {order.proof ? "Verify & Settle" : "Awaiting Proof"}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* V4 Note: No separate "Active Settlement Windows" section needed */}
+      {/* In V4, orders stay as FUNDED during settlement. Project-level deadline is managed via extendSettlementDeadline(projectId) */}
+      {/* Proof management section above handles all Points settlement workflows */}
 
       {/* Confirmation Modal */}
       {showConfirmModal && (

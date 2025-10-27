@@ -8,6 +8,13 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
+ * @notice Minimal interface for ProjectRegistryV2
+ */
+interface IProjectRegistry {
+    function isActive(bytes32 projectId) external view returns (bool);
+}
+
+/**
  * @title EscrowOrderBookV4
  * @author otcX
  * @notice Pre-TGE OTC trading with collateralized escrow and fee system
@@ -64,6 +71,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     IERC20 public immutable stable;
     uint8 public immutable stableDecimals;
     address public immutable feeCollector;
+    IProjectRegistry public immutable registry;
     uint256 public immutable MAX_ORDER_VALUE;               // 1M in stable decimals
     
     // Fee Configuration (adjustable by owner)
@@ -96,6 +104,10 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     // Points projects: proof submission
     mapping(uint256 => string) public settlementProof;
     mapping(uint256 => uint64) public proofSubmittedAt;
+    
+    // Points projects: proof acceptance (owner must explicitly approve before settlement)
+    mapping(uint256 => bool) public proofAccepted;
+    mapping(uint256 => uint64) public proofAcceptedAt;
 
     // ========== EVENTS ==========
     
@@ -106,6 +118,8 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     event OrderCanceled(uint256 indexed id, uint256 fee);
     event OrderDefaulted(uint256 indexed id, address compensated, uint256 amount);
     event ProofSubmitted(uint256 indexed id, address seller, string proof);
+    event ProofAccepted(uint256 indexed id, address indexed admin);
+    event ProofRejected(uint256 indexed id, address indexed admin, string reason);
     event SettlementExtended(bytes32 indexed projectId, uint64 newDeadline);
     event FeeCollected(bytes32 indexed projectId, address token, uint256 amount);
     event SettlementFeeUpdated(uint64 oldRate, uint64 newRate);
@@ -124,6 +138,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     error InvalidAmount();
     error InvalidPrice();
     error InvalidAddress();
+    error InvalidProject();
     error OrderNotFound();
     error InvalidStatus();
     error TGENotActivated();
@@ -151,12 +166,13 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
 
     // ========== CONSTRUCTOR ==========
     
-    constructor(address stableToken, address _feeCollector) {
-        if (stableToken == address(0) || _feeCollector == address(0)) revert InvalidAddress();
+    constructor(address stableToken, address _feeCollector, address _registry) {
+        if (stableToken == address(0) || _feeCollector == address(0) || _registry == address(0)) revert InvalidAddress();
         
         stable = IERC20(stableToken);
         stableDecimals = IERC20(stableToken).decimals();
         feeCollector = _feeCollector;
+        registry = IProjectRegistry(_registry);
         MAX_ORDER_VALUE = 1_000_000 * (10 ** stableDecimals);  // 1M in stable decimals
         
         // Auto-approve the deployment stable (USDC for now)
@@ -300,6 +316,9 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (!projectTgeActivated[projectId]) revert TGENotActivated();
         if (extensionHours != 4 && extensionHours != 24) revert InvalidAmount();
         
+        // Prevent extending after deadline (defaults should be final)
+        if (block.timestamp > projectSettlementDeadline[projectId]) revert DeadlinePassed();
+        
         uint64 extension = uint64(extensionHours * 1 hours);
         projectSettlementDeadline[projectId] += extension;
         
@@ -385,6 +404,9 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (unitPrice == 0) revert InvalidPrice();
         if (projectTgeActivated[projectId]) revert TGEAlreadyActivated();
         
+        // Validate project exists and is active in Registry
+        if (!registry.isActive(projectId)) revert InvalidProject();
+        
         // Validate collateral is whitelisted (currently USDC, can add USDT later)
         if (!_approvedCollateral.contains(address(stable))) revert CollateralNotApproved();
         
@@ -395,8 +417,11 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         // Collateral requirement
         uint256 collateral = totalValue;  // Both parties: 100% collateral
         
-        // Transfer collateral
+        // Transfer collateral (with balance-delta check to prevent fee-on-transfer token issues)
+        uint256 balBefore = stable.balanceOf(address(this));
         address(stable).safeTransferFrom(msg.sender, address(this), collateral);
+        uint256 balAfter = stable.balanceOf(address(this));
+        if (balAfter - balBefore != collateral) revert InvalidAmount();
         
         uint256 orderId = nextId++;
         
@@ -437,8 +462,11 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         uint256 totalValue = (order.amount * order.unitPrice) / 1e18;
         uint256 collateral = totalValue;  // Both sides post 100% collateral
         
-        // Transfer collateral from taker
+        // Transfer collateral from taker (with balance-delta check to prevent fee-on-transfer token issues)
+        uint256 balBefore = stable.balanceOf(address(this));
         address(stable).safeTransferFrom(msg.sender, address(this), collateral);
+        uint256 balAfter = stable.balanceOf(address(this));
+        if (balAfter - balBefore != collateral) revert InvalidAmount();
         
         // Update order state
         if (order.isSell) {
@@ -460,6 +488,10 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         Order storage order = orders[orderId];
         if (order.maker != msg.sender) revert NotAuthorized();
         if (order.status != Status.OPEN && order.status != Status.FUNDED) revert InvalidStatus();
+        
+        // Prevent cancellation after proof is accepted (prevents rugpull on Points projects)
+        // Seller may have already delivered tokens off-chain once admin accepted proof
+        if (proofAccepted[orderId]) revert InvalidStatus();
         
         uint256 cancellationFee = 0;
         uint256 refund;
@@ -552,8 +584,11 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         order.status = Status.SETTLED;
         
         // INTERACTIONS: External calls
-        // Seller must deposit actual token amount (with conversion ratio applied)
+        // Seller must deposit actual token amount (with balance-delta check to prevent fee-on-transfer token issues)
+        uint256 tokenBalBefore = IERC20(tokenAddress).balanceOf(address(this));
         tokenAddress.safeTransferFrom(seller, address(this), actualTokenAmount);
+        uint256 tokenBalAfter = IERC20(tokenAddress).balanceOf(address(this));
+        if (tokenBalAfter - tokenBalBefore != actualTokenAmount) revert InvalidAmount();
         
         // Transfer tokens to buyer (minus fee)
         tokenAddress.safeTransfer(buyer, actualTokenAmount - tokenFee);
@@ -585,19 +620,92 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         emit ProofSubmitted(orderId, msg.sender, proof);
     }
 
-    /// @notice Admin manually settles Points project order after verifying proof
+    /// @notice Owner accepts the seller's proof for a Points order
+    /// @param orderId The order ID
+    /// @dev Acceptance must occur before the settlement deadline
+    function acceptProof(uint256 orderId) external onlyOwner {
+        Order storage order = orders[orderId];
+        if (order.status != Status.FUNDED) revert InvalidStatus();
+        if (!projectTgeActivated[order.projectId]) revert TGENotActivated();
+        if (bytes(settlementProof[orderId]).length == 0) revert InvalidStatus(); // no proof submitted
+
+        // Enforce acceptance occurs within the settlement window
+        if (block.timestamp > projectSettlementDeadline[order.projectId]) revert DeadlinePassed();
+
+        proofAccepted[orderId] = true;
+        proofAcceptedAt[orderId] = uint64(block.timestamp);
+
+        emit ProofAccepted(orderId, msg.sender);
+    }
+
+    /// @notice Owner accepts multiple proofs in a single transaction (batch operation)
+    /// @param orderIds Array of order IDs to accept
+    /// @dev After acceptance, anyone can permissionlessly settle each order via settleOrderManual()
+    function acceptProofBatch(uint256[] calldata orderIds) external onlyOwner {
+        uint256 length = orderIds.length;
+        if (length == 0) revert InvalidAmount();
+        
+        for (uint256 i = 0; i < length; i++) {
+            uint256 orderId = orderIds[i];
+            Order storage order = orders[orderId];
+            
+            // Skip invalid orders instead of reverting (allows partial batch success)
+            if (order.status != Status.FUNDED) continue;
+            if (!projectTgeActivated[order.projectId]) continue;
+            if (bytes(settlementProof[orderId]).length == 0) continue;
+            
+            // Enforce acceptance occurs within the settlement window
+            if (block.timestamp > projectSettlementDeadline[order.projectId]) continue;
+            
+            proofAccepted[orderId] = true;
+            proofAcceptedAt[orderId] = uint64(block.timestamp);
+            
+            emit ProofAccepted(orderId, msg.sender);
+        }
+    }
+
+    /// @notice Owner rejects the seller's proof (optionally provide reason)
+    /// @param orderId The order ID
+    /// @param reason Rejection reason (for transparency)
+    /// @dev Rejection does not close the order - seller may re-submit proof
+    function rejectProof(uint256 orderId, string calldata reason) external onlyOwner {
+        Order storage order = orders[orderId];
+        if (order.status != Status.FUNDED) revert InvalidStatus();
+        if (!projectTgeActivated[order.projectId]) revert TGENotActivated();
+        if (bytes(settlementProof[orderId]).length == 0) revert InvalidStatus(); // no proof submitted
+
+        // Reset proof acceptance if it was previously accepted
+        proofAccepted[orderId] = false;
+
+        emit ProofRejected(orderId, msg.sender, reason);
+    }
+
+    /// @notice Permissionlessly settles Points project order after admin accepts proof
     /// @param orderId The order to settle
-    /// @dev For Points projects, the conversion ratio is informational only (off-chain transfer)
-    /// The admin verifies that seller transferred actualTokenAmount = (order.amount * conversionRatio) / 1e18
-    function settleOrderManual(uint256 orderId) external onlyOwner nonReentrant {
+    /// @dev Can be called by ANYONE once proof is accepted (fully trustless after admin approval)
+    /// For Points projects, the conversion ratio is informational only (off-chain transfer)
+    function settleOrderManual(uint256 orderId) external nonReentrant {
         Order storage order = orders[orderId];
         if (order.status != Status.FUNDED) revert InvalidStatus();
         if (!projectTgeActivated[order.projectId]) revert TGENotActivated();
         if (bytes(settlementProof[orderId]).length == 0) revert InvalidStatus();
         
+        // Require explicit owner acceptance of proof (prevents unauthorized settlement)
+        if (!proofAccepted[orderId]) revert NotAuthorized();
+        
+        // Permissionless: Anyone can trigger settlement once proof is accepted
+        // No need for batch operations - each party settles when ready
+        
+        // Ensure settlement happens before deadline (prevents owner from overriding buyer's right to handleDefault)
+        if (block.timestamp > projectSettlementDeadline[order.projectId]) revert DeadlinePassed();
+        
+        // This function is for Points projects ONLY (token projects use settleOrder with on-chain delivery)
+        address tokenAddress = projectTokenAddress[order.projectId];
+        if (tokenAddress != POINTS_SENTINEL) revert InvalidStatus();
+        
         // Note: For Points projects, conversion ratio is already applied off-chain
         // Seller should have transferred: (order.amount * projectConversionRatio[projectId]) / 1e18 tokens
-        // Admin verifies this before calling settleOrderManual
+        // Admin verifies this before calling acceptProof, then anyone can settle permissionlessly
         
         // Calculate fee: 0.5% of total collateral (no token to capture for Points)
         uint256 totalCollateral = order.buyerFunds + order.sellerCollateral;
@@ -611,6 +719,11 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         
         // EFFECTS: Update state before interactions
         order.status = Status.SETTLED;
+        
+        // Clean up proof state (tidiness + gas refund)
+        delete proofAccepted[orderId];
+        delete proofAcceptedAt[orderId];
+        delete settlementProof[orderId];
         
         // INTERACTIONS: External calls
         // Distribute collateral minus fee

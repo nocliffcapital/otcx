@@ -81,19 +81,34 @@ export default function AdminPage() {
     setLoadingProjects(true);
     
     try {
-      // V3: getActiveProjects returns all projects (both active and inactive)
-      const rawProjects = await publicClient.readContract({
+      // V4: Get all project IDs (includes both active and inactive projects)
+      const projectIds = await publicClient.readContract({
         address: REGISTRY_ADDRESS,
         abi: PROJECT_REGISTRY_ABI,
-        functionName: "getActiveProjects",
-      }) as any[];
+        functionName: "getAllProjectIds",
+      }) as `0x${string}`[];
       
-      // V3: Contract doesn't return slug, need to derive it from name or fetch from metadata
-      // For now, we'll derive slug from name (lowercase, no spaces)
-      const allProjects: Project[] = rawProjects.map((proj: any) => ({
-        ...proj,
-        slug: proj.name.toLowerCase().replace(/\s+/g, '-'),
-      }));
+      console.log('📋 Project IDs:', projectIds);
+      
+      // Fetch each project individually
+      const projectPromises = projectIds.map(async (id) => {
+        const project = await publicClient.readContract({
+          address: REGISTRY_ADDRESS,
+          abi: PROJECT_REGISTRY_ABI,
+          functionName: "getProject",
+          args: [id],
+        }) as any;
+        
+        // Derive slug from name (lowercase, no spaces, no special chars)
+        const slug = project.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        
+        return {
+          ...project,
+          slug,
+        };
+      });
+      
+      const allProjects = await Promise.all(projectPromises);
       
       console.log('✅ Projects loaded:', allProjects);
       setProjects(allProjects);
@@ -478,6 +493,39 @@ export default function AdminPage() {
       abi: PROJECT_REGISTRY_ABI,
       functionName: "setProjectStatus",
       args: [projectId, !currentStatus],
+    });
+  };
+
+  // V4: Handle updating token address for Points projects that converted to tokens
+  const handleUpdateTokenAddress = (projectId: `0x${string}`, projectName: string) => {
+    const newTokenAddress = prompt(
+      `Enter the new token address for ${projectName}:\n\n` +
+      `⚠️ This function is for Points projects that have converted to on-chain tokens.\n` +
+      `The token contract must be deployed on-chain.`,
+      ""
+    );
+    
+    if (!newTokenAddress) return;
+    
+    // Validate address format
+    if (!isAddress(newTokenAddress)) {
+      toast.error("Invalid address", "Please enter a valid Ethereum address");
+      return;
+    }
+    
+    const confirmed = confirm(
+      `Update token address for ${projectName}?\n\n` +
+      `New Address: ${newTokenAddress}\n\n` +
+      `This will allow the project to use token-based settlement instead of proof-based settlement.`
+    );
+    
+    if (!confirmed) return;
+    
+    writeContract({
+      address: REGISTRY_ADDRESS,
+      abi: PROJECT_REGISTRY_ABI,
+      functionName: "updateTokenAddress",
+      args: [projectId, getAddress(newTokenAddress)],
     });
   };
 
@@ -1590,13 +1638,28 @@ export default function AdminPage() {
 
                               {/* Token Address */}
                               <td className="py-4 px-4">
-                                {project.tokenAddress && project.tokenAddress !== '0x0000000000000000000000000000000000000000' ? (
-                                  <span className="text-xs text-zinc-500 font-mono">
-                                    {project.tokenAddress.slice(0, 6)}...{project.tokenAddress.slice(-4)}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-zinc-600">—</span>
-                                )}
+                                <div className="flex flex-col gap-1">
+                                  {project.tokenAddress && project.tokenAddress !== '0x0000000000000000000000000000000000000000' ? (
+                                    <span className="text-xs text-zinc-500 font-mono">
+                                      {project.tokenAddress.slice(0, 6)}...{project.tokenAddress.slice(-4)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-zinc-600">—</span>
+                                  )}
+                                  {/* Show "Update" button for Points projects */}
+                                  {project.isPoints && (
+                                    <Button
+                                      onClick={() => handleUpdateTokenAddress(project.id, project.name)}
+                                      variant="custom"
+                                      className="bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 mt-0.5"
+                                      disabled={isPending || isConfirming}
+                                    >
+                                      {project.tokenAddress && project.tokenAddress !== '0x0000000000000000000000000000000000000000' 
+                                        ? "Update" 
+                                        : "Add Token"}
+                                    </Button>
+                                  )}
+                                </div>
                               </td>
 
                               {/* Status Toggle */}

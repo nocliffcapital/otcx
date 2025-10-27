@@ -15,15 +15,16 @@ contract DeployV4 is Script {
         
         // Existing contracts on Sepolia
         address mockUSDC = 0xd5d56a9Cd59550c6D95569620F7eb89C1E4c9101;
-        address registry = 0x7fdBE0DEA92E1e246276DCb50c6d7Dc910563D22; // Fresh empty registry (just deployed)
+        address registry = 0xC62C6A9f7dC9BaE298e93D3e5301065578a2343c; // Latest Registry V2 with improvements
         address feeCollector = 0x61fEDd6BC4ef1ab11cf8b6CC8F9b4Faeb41B6f55; // Your address
         
         vm.startBroadcast(deployerPrivateKey);
 
-        // Deploy new EscrowOrderBookV4 with conversion ratio support
+        // Deploy new EscrowOrderBookV4 with Registry integration
         EscrowOrderBookV4 orderbook = new EscrowOrderBookV4(
             mockUSDC,
-            feeCollector
+            feeCollector,
+            registry
         );
 
         vm.stopBroadcast();

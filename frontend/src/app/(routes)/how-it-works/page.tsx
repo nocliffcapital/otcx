@@ -69,9 +69,7 @@ export default function HowItWorksPage() {
           A trustless, on-chain escrow system for pre-TGE token trading
         </p>
         <a
-          href="https://docs.otcx.fun"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="/docs"
           className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 hover:border-cyan-500/50 rounded-lg transition-all group"
         >
           <FileText className="w-4 h-4 text-cyan-400" />
@@ -886,50 +884,6 @@ export default function HowItWorksPage() {
             </p>
           </div>
         </div>
-      </Card>
-
-      {/* Disclaimer */}
-      <Card className="bg-red-950/20 border-red-800/50">
-        <div className="flex items-start gap-3 mb-3">
-          <AlertTriangle className="w-6 h-6 text-red-400 mt-1" />
-          <h2 className="text-xl font-bold text-red-400">Important Disclaimer</h2>
-        </div>
-        <p className="text-sm text-zinc-300 leading-relaxed mb-3">
-          otcX is an experimental decentralized trading protocol. By using this platform, you acknowledge that:
-        </p>
-        <ul className="space-y-1.5 text-sm text-zinc-400">
-          <li className="flex items-start gap-2">
-            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
-            <span>You are trading at your own risk</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
-            <span>Pre-TGE tokens may never materialize or have value</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
-            <span>Smart contracts may contain bugs or vulnerabilities</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
-            <span>There is no central authority to resolve disputes</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
-            <span>You may lose all funds locked in the contract</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
-            <span>This is not financial advice</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <div className="w-1 h-1 bg-red-400 rounded-full mt-2"></div>
-            <span>You are responsible for complying with your local laws and regulations</span>
-          </li>
-        </ul>
-        <p className="text-sm text-red-400 mt-4 font-semibold">
-          USE AT YOUR OWN RISK. DO YOUR OWN RESEARCH.
-        </p>
       </Card>
         </>
       )}

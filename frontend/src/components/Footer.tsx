@@ -46,9 +46,7 @@ export function Footer() {
             
             {/* Docs */}
             <a
-              href="https://docs.otcx.fun"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/docs"
               className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-100 transition-colors"
               title="Documentation"
             >

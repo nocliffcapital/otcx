@@ -70,15 +70,15 @@ export default function ProjectsPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({});
 
-  // V3: getActiveProjects returns full structs with metadataURI
-  // No need to fetch individually - metadata is on IPFS
+  // V4: getActiveProjects returns only active projects with full metadata
+  // Inactive projects are filtered out on-chain for efficiency
   useEffect(() => {
     if (!projectsData) {
       return;
     }
     
     try {
-      // V3: Projects from getActiveProjects already have all on-chain data
+      // V4: Projects from getActiveProjects have all on-chain data
       // metadataURI points to IPFS for logo, description, twitter, website
       const mappedProjects = (projectsData as any[]).map((proj) => {
         return {
@@ -368,8 +368,8 @@ export default function ProjectsPage() {
                     </p>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       {globalStats.totalTrades} Completed Trades
-                    </p>
-                  </div>
+            </p>
+          </div>
                 </div>
               </div>
             </Card>
@@ -388,8 +388,8 @@ export default function ProjectsPage() {
                     </p>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       {globalStats.liveMarkets} Live Markets
-                    </p>
-                  </div>
+              </p>
+            </div>
                 </div>
               </div>
             </Card>
@@ -408,8 +408,8 @@ export default function ProjectsPage() {
                     </p>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       {projects.filter(p => projectTgeStatus[p.slug]).length > 0 ? 'Active settlements' : 'No active settlements'}
-                    </p>
-                  </div>
+              </p>
+            </div>
                 </div>
               </div>
             </Card>
@@ -478,7 +478,7 @@ export default function ProjectsPage() {
               </button>
             )}
           </div>
-          
+
           <Link href="/request">
             <button className="px-4 py-2 text-sm font-medium text-zinc-400 border border-zinc-700 rounded-lg whitespace-nowrap transition-colors hover:bg-zinc-800 hover:text-white hover:border-zinc-600">
               + Request Project
@@ -497,22 +497,22 @@ export default function ProjectsPage() {
             >
               All
             </Button>
-            <Button
+              <Button
               size="sm"
-              variant="custom"
+                variant="custom"
               onClick={() => setAssetFilter("Tokens")}
               className={assetFilter === "Tokens" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
-            >
+              >
               Tokens
-            </Button>
-            <Button
+              </Button>
+              <Button
               size="sm"
-              variant="custom"
+                variant="custom"
               onClick={() => setAssetFilter("Points")}
               className={assetFilter === "Points" ? "bg-purple-600 hover:bg-purple-700" : "bg-zinc-800 hover:bg-zinc-700"}
-            >
+              >
               Points
-            </Button>
+              </Button>
           </div>
 
           {/* View Toggle */}
@@ -762,7 +762,7 @@ export default function ProjectsPage() {
                     )}
                   </button>
                 </th>
-                <th className="py-3 px-4"></th> {/* Arrow */}
+                <th className="py-3 px-4"></th>
               </tr>
             </thead>
             <tbody>
@@ -774,7 +774,7 @@ export default function ProjectsPage() {
                         <svg className="w-10 h-10 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                         </svg>
-                      </div>
+              </div>
                       <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
                         No Active Projects
                       </h3>
@@ -786,7 +786,7 @@ export default function ProjectsPage() {
                           + Request a Project
                         </button>
                       </Link>
-                    </div>
+            </div>
                   </td>
                 </tr>
               ) : filteredProjects.length === 0 ? (
@@ -796,7 +796,7 @@ export default function ProjectsPage() {
                       <SearchX className="w-16 h-16 text-zinc-600 mb-4" />
                       <p className="text-zinc-400 text-lg mb-2">No projects match your search</p>
                       <p className="text-zinc-500 text-sm">Try searching for something else</p>
-                    </div>
+            </div>
                   </td>
                 </tr>
               ) : (
@@ -818,7 +818,7 @@ export default function ProjectsPage() {
                           className="w-full h-full object-cover"
                           fallbackText={project.name.charAt(0).toUpperCase()}
                         />
-                      </div>
+          </div>
                     </td>
                     {/* Token Name */}
                     <td className="py-4 px-4">

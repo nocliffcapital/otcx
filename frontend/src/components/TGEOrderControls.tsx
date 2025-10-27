@@ -55,6 +55,21 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
     args: [order.id],
   });
 
+  // V4: Read if proof has been accepted by admin
+  const { data: proofAccepted } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "proofAccepted",
+    args: [order.id],
+  });
+
+  const { data: proofAcceptedAt } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "proofAcceptedAt",
+    args: [order.id],
+  });
+
   // V4: Read project-level settlement deadline
   const { data: projectDeadline } = useReadContract({
     address: ORDERBOOK_ADDRESS,
@@ -78,6 +93,13 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
     functionName: "projectConversionRatio",
     args: [order.projectToken as `0x${string}`],
   });
+
+  // Read POINTS_SENTINEL from contract
+  const { data: pointsSentinel } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "POINTS_SENTINEL",
+  }) as { data: `0x${string}` | undefined };
 
   // For backward compatibility with V2/V3
   const actualTokenAddress = projectTokenAddress;
@@ -123,10 +145,8 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
   }, [isError, error, toast]);
 
   // V4: Determine project type from token address read from contract
-  // POINTS_SENTINEL = address(uint160(uint256(keccak256("otcX.POINTS_SENTINEL.v4"))))
-  const POINTS_SENTINEL = "0x602EE57D45A64a39E996Fa8c78B3BC88B4D107E2";
-  const isPointsProject = projectTokenAddress && 
-    (projectTokenAddress as string).toLowerCase() === POINTS_SENTINEL.toLowerCase();
+  const isPointsProject = projectTokenAddress && pointsSentinel && 
+    (projectTokenAddress as string).toLowerCase() === (pointsSentinel as string).toLowerCase();
   const isTokenProject = projectTokenAddress && !isPointsProject;
 
   const isSeller = address && order.seller && address.toLowerCase() === order.seller.toLowerCase();
@@ -225,12 +245,12 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
   };
 
   const handleManualSettle = () => {
-    toast.info("✅ Manually Settling", "Please confirm the transaction in your wallet");
+    toast.info("✅ Settling Order", "Please confirm the transaction in your wallet");
 
     writeContract({
       address: ORDERBOOK_ADDRESS,
       abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "manualSettle",
+      functionName: "settleOrderManual",
       args: [order.id],
     });
   };
@@ -359,12 +379,12 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
         </div>
       )}
 
-      {/* Proof Display - Show to Admin */}
-      {isOwner && submittedProof && (submittedProof as string).length > 0 && isInSettlement && (
+      {/* Proof Display - Show to Admin (pending review) */}
+      {isOwner && submittedProof && (submittedProof as string).length > 0 && !proofAccepted && isInSettlement && (
         <div className="bg-purple-950/30 border border-purple-800/30 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="w-4 h-4 text-purple-400" />
-            <span className="text-xs font-bold text-purple-400">Proof Submitted</span>
+            <AlertCircle className="w-4 h-4 text-purple-400" />
+            <span className="text-xs font-bold text-purple-400">⏳ Proof Pending Review</span>
             {proofTimestamp && (
               <span className="text-xs text-zinc-500">
                 {new Date(Number(proofTimestamp) * 1000).toLocaleString()}
@@ -374,15 +394,41 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
           <div className="bg-zinc-900/50 rounded p-2 mb-2">
             <p className="text-xs text-zinc-300 break-all">{submittedProof as string}</p>
           </div>
+          <p className="text-xs text-zinc-400 mb-2">
+            ⚠️ Go to Admin panel to accept/reject this proof. After acceptance, anyone can settle.
+          </p>
+        </div>
+      )}
+
+      {/* Proof Accepted - Anyone Can Settle (Admin view) */}
+      {isOwner && proofAccepted && isInSettlement && (
+        <div className="bg-green-950/30 border border-green-800/30 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle className="w-4 h-4 text-green-400" />
+            <span className="text-xs font-bold text-green-400">✅ Proof Accepted - Ready to Settle</span>
+            {proofAcceptedAt && (
+              <span className="text-xs text-zinc-500">
+                {new Date(Number(proofAcceptedAt) * 1000).toLocaleString()}
+              </span>
+            )}
+          </div>
+          {submittedProof && (
+            <div className="bg-zinc-900/50 rounded p-2 mb-2">
+              <p className="text-xs text-zinc-300 break-all">{submittedProof as string}</p>
+            </div>
+          )}
           <Button
             onClick={handleManualSettle}
             variant="custom"
-            className="bg-purple-600 hover:bg-purple-700 border border-purple-500/30 text-xs h-8 w-full"
+            className="bg-green-600 hover:bg-green-700 border border-green-500/30 text-xs h-8 w-full"
             disabled={isPending || isConfirming}
           >
             <CheckCircle className="w-3 h-3 mr-1" />
-            Verify & Settle
+            Settle Order (Permissionless)
           </Button>
+          <p className="text-xs text-green-400 mt-2">
+            ℹ️ Buyer can also settle this themselves - it's permissionless after acceptance!
+          </p>
         </div>
       )}
 
@@ -483,7 +529,7 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
       )}
 
       {/* Buyer Views Proof (POINTS ONLY) */}
-      {isBuyer && isPointsProject && isInSettlement && submittedProof && (submittedProof as string).length > 0 && (
+      {isBuyer && isPointsProject && isInSettlement && submittedProof && (submittedProof as string).length > 0 && !proofAccepted && (
         <div className="bg-blue-950/30 border border-blue-800/30 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-4 h-4 text-blue-400" />
@@ -493,7 +539,39 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
             <p className="text-xs text-zinc-300 break-all font-mono">{submittedProof as string}</p>
           </div>
           <p className="text-xs text-zinc-400 mt-2">
-            ⏳ Waiting for admin to verify and settle this order
+            ⏳ Waiting for admin to verify and accept proof
+          </p>
+        </div>
+      )}
+
+      {/* Buyer Can Settle Permissionlessly (POINTS ONLY) - Proof Accepted! */}
+      {isBuyer && isPointsProject && isInSettlement && proofAccepted && (
+        <div className="bg-green-950/30 border border-green-800/30 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle className="w-4 h-4 text-green-400" />
+            <span className="text-xs font-bold text-green-400">✅ Proof Accepted by Admin</span>
+            {proofAcceptedAt && (
+              <span className="text-xs text-zinc-500">
+                {new Date(Number(proofAcceptedAt) * 1000).toLocaleString()}
+              </span>
+            )}
+          </div>
+          {submittedProof && (
+            <div className="bg-zinc-900/50 rounded p-2 mb-2">
+              <p className="text-xs text-zinc-300 break-all font-mono">{submittedProof as string}</p>
+            </div>
+          )}
+          <Button
+            onClick={handleManualSettle}
+            variant="custom"
+            className="bg-green-600 hover:bg-green-700 border border-green-500/30 text-xs h-8 w-full"
+            disabled={isPending || isConfirming}
+          >
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Settle Order (Permissionless)
+          </Button>
+          <p className="text-xs text-green-400 mt-2">
+            🎉 You can settle this order yourself - no need to wait for admin!
           </p>
         </div>
       )}
