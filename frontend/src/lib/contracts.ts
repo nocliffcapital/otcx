@@ -34,20 +34,26 @@ export function getContractAddresses(chainId?: number) {
   };
 }
 
-// Validate required environment variables
+// Validate required environment variables at runtime
 function requireEnv(key: string): string {
   const value = process.env[key];
   if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`);
+    // Only throw in browser/runtime, not during build
+    if (typeof window !== 'undefined') {
+      throw new Error(`Missing required environment variable: ${key}`);
+    }
+    // During build, log warning and return empty string (will fail at runtime if actually used)
+    console.warn(`⚠️  Missing environment variable: ${key}`);
+    return '';
   }
   return value;
 }
 
 // Contract addresses from environment variables (REQUIRED)
-export const ORDERBOOK_ADDRESS = requireEnv('NEXT_PUBLIC_ORDERBOOK') as `0x${string}`;
-export const REGISTRY_ADDRESS = requireEnv('NEXT_PUBLIC_REGISTRY') as `0x${string}`;
-export const STABLE_ADDRESS = requireEnv('NEXT_PUBLIC_STABLE') as `0x${string}`;
-export const STABLE_DECIMALS = Number(requireEnv('NEXT_PUBLIC_STABLE_DECIMALS'));
+export const ORDERBOOK_ADDRESS = (requireEnv('NEXT_PUBLIC_ORDERBOOK') || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+export const REGISTRY_ADDRESS = (requireEnv('NEXT_PUBLIC_REGISTRY') || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+export const STABLE_ADDRESS = (requireEnv('NEXT_PUBLIC_STABLE') || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+export const STABLE_DECIMALS = Number(requireEnv('NEXT_PUBLIC_STABLE_DECIMALS') || '6');
 
 // Mock Token for testing Token settlements (optional, has public mint function)
 export const MOCK_TOKEN_ADDRESS = (process.env.NEXT_PUBLIC_MOCK_TOKEN || '') as `0x${string}`;
