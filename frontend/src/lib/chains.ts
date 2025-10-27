@@ -31,11 +31,11 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     name: 'Sepolia Testnet',
     shortName: 'Sepolia',
     rpcUrl: process.env.NEXT_PUBLIC_SEPOLIA_RPC || 'https://sepolia.infura.io/v3/',
-    orderbook: '0x1560B643159F2184B9b416D822fAc1A05769af2F', // V4 orderbook with 100% collateral (FRESH DEPLOYMENT)
-    registry: '0x7fdBE0DEA92E1e246276DCb50c6d7Dc910563D22', // Fresh empty registry (ZERO PROJECTS)
-    stable: '0xd5d56a9Cd59550c6D95569620F7eb89C1E4c9101',
+    orderbook: (process.env.NEXT_PUBLIC_ORDERBOOK || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+    registry: (process.env.NEXT_PUBLIC_REGISTRY || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+    stable: (process.env.NEXT_PUBLIC_STABLE || '0x0000000000000000000000000000000000000000') as `0x${string}`,
     stableSymbol: 'USDC',
-    stableDecimals: 6,
+    stableDecimals: Number(process.env.NEXT_PUBLIC_STABLE_DECIMALS || 6),
     explorer: 'https://sepolia.etherscan.io',
     nativeCurrency: {
       name: 'Sepolia ETH',

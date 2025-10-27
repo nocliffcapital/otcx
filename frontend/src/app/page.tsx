@@ -222,12 +222,22 @@ export default function ProjectsPage() {
             ? parseFloat(formatUnits(filledOrders[0].unitPrice, STABLE_DECIMALS))
             : null;
 
-          // Calculate total volume (amount * price for all matched orders)
-          const totalVolume = filledOrders.reduce((sum, order) => {
+          // Calculate total volume from filled orders (actual trades)
+          const filledVolume = filledOrders.reduce((sum, order) => {
             const amount = parseFloat(formatUnits(order.amount, 18));
             const price = parseFloat(formatUnits(order.unitPrice, STABLE_DECIMALS));
             return sum + (amount * price);
           }, 0);
+          
+          // Calculate potential volume from open orders
+          const openVolume = openOrders.reduce((sum, order) => {
+            const amount = parseFloat(formatUnits(order.amount, 18));
+            const price = parseFloat(formatUnits(order.unitPrice, STABLE_DECIMALS));
+            return sum + (amount * price);
+          }, 0);
+          
+          // Total volume = filled + open orders
+          const totalVolume = filledVolume + openVolume;
 
           stats[project.slug] = {
             lowestAsk,
@@ -344,7 +354,7 @@ export default function ProjectsPage() {
         {/* Top Stats Cards */}
         {!loadingStats && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-            {/* 24h Volume */}
+            {/* Total Volume */}
             <Card className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -352,12 +362,12 @@ export default function ProjectsPage() {
                     <DollarSign className="w-6 h-6 text-zinc-400" />
                   </div>
                   <div>
-                    <h3 className="text-xs text-zinc-400 uppercase tracking-wide mb-1">Pre-market 24h Vol</h3>
+                    <h3 className="text-xs text-zinc-400 uppercase tracking-wide mb-1">Total Volume</h3>
                     <p className="text-2xl font-bold text-white">
                       ${globalStats.total24hVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </p>
                     <p className="text-xs text-zinc-500 mt-0.5">
-                      {globalStats.totalTrades} Total Trades
+                      {globalStats.totalTrades} Completed Trades
                     </p>
                   </div>
                 </div>
@@ -728,7 +738,7 @@ export default function ProjectsPage() {
                 </th>
                 <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Best Ask</th>
                 <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Best Bid</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider whitespace-nowrap">24h Volume</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider whitespace-nowrap">Trades</th>
                 <th className="text-right py-3 px-4 whitespace-nowrap">
                   <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                     Total Volume
@@ -862,11 +872,11 @@ export default function ProjectsPage() {
                         <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
-                    {/* 24h Volume */}
+                    {/* Trades */}
                     <td className="py-4 px-4 text-right">
                       {!loadingStats && stats ? (
                         <span className="font-semibold text-zinc-400">
-                          ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          {stats.tradeCount}
                         </span>
                       ) : (
                         <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>

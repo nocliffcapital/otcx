@@ -11,11 +11,20 @@ A decentralized platform for trading token allocations before Token Generation E
 ### Frontend Development
 ```bash
 cd frontend
+
+# Copy environment template and fill in values
+cp env.example.txt .env.local
+
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
 
 Visit `http://localhost:3000`
+
+**⚠️ Important**: You MUST set up `.env.local` with contract addresses before running the app.
 
 ### Smart Contract Development
 ```bash
@@ -128,16 +137,26 @@ forge script script/DeployV4.s.sol --rpc-url sepolia --broadcast --verify
 ### Deploy Frontend (Netlify)
 Connected to GitHub `main` branch for automatic deployments.
 
-**Required Environment Variables:**
-```
-NEXT_PUBLIC_ORDERBOOK=0x...
-NEXT_PUBLIC_STABLE=0x...
-NEXT_PUBLIC_REGISTRY=0x...
+**⚠️ Required Environment Variables (NO HARDCODED FALLBACKS):**
+```bash
+# Contract Addresses (REQUIRED)
+NEXT_PUBLIC_ORDERBOOK=0x1560B643159F2184B9b416D822fAc1A05769af2F
+NEXT_PUBLIC_REGISTRY=0x7fdBE0DEA92E1e246276DCb50c6d7Dc910563D22
+NEXT_PUBLIC_STABLE=0xd5d56a9Cd59550c6D95569620F7eb89C1E4c9101
 NEXT_PUBLIC_STABLE_DECIMALS=6
-NEXT_PUBLIC_RPC=https://ethereum-sepolia-rpc.publicnode.com
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=...
-PINATA_JWT=...
+
+# Optional
+NEXT_PUBLIC_MOCK_TOKEN=0xfd61aE399C5F9A2e90292395A37F9C87b5f08084
+
+# Pinata (REQUIRED for IPFS)
+PINATA_JWT=your_jwt_here
+PINATA_GATEWAY=your_gateway_url_here
+
+# Ethos (OPTIONAL - for reputation)
+NEXT_PUBLIC_ETHOS_API_KEY=your_api_key_here
 ```
+
+**Note**: All contract addresses are now pulled from environment variables with NO hardcoded fallbacks. The app will throw an error if these are not set.
 
 ---
 
