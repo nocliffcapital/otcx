@@ -8,7 +8,7 @@ import { BalanceDisplay } from "./BalanceDisplay";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, STABLE_ADDRESS, MOCK_TOKEN_ADDRESS, ERC20_ABI } from "@/lib/contracts";
 import { useState, useRef } from "react";
-import { ChevronDown, Settings, Menu, X } from "lucide-react";
+import { ChevronDown, Settings, Menu, X, Lock, LayoutDashboard, Calculator, BookOpen, Lightbulb, FileText } from "lucide-react";
 import { parseUnits } from "viem";
 
 export function Navbar() {
@@ -87,43 +87,36 @@ export function Navbar() {
             </Link>
             <div className="hidden md:flex items-center gap-2">
               <Link 
-                href="/markets" 
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  pathname === '/markets' 
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
-                }`}
-              >
-                Markets
-              </Link>
-              <Link 
                 href="/private-order" 
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/private-order' 
-                    ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30' 
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                    ? 'text-white' 
+                    : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
+                <Lock className="w-4 h-4" />
                 Private
               </Link>
               <Link 
                 href="/dashboard" 
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/dashboard' 
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                    ? 'text-white' 
+                    : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
+                <LayoutDashboard className="w-4 h-4" />
                 Dashboard
               </Link>
               <Link 
                 href="/calculator" 
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/calculator' 
-                    ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/30' 
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                    ? 'text-white' 
+                    : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
+                <Calculator className="w-4 h-4" />
                 Calculator
               </Link>
               
@@ -134,12 +127,13 @@ export function Navbar() {
                 onMouseLeave={handleMouseLeave}
               >
                 <button 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
                     pathname === '/how-it-works' || pathname === '/docs'
-                      ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/30' 
-                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                      ? 'text-white' 
+                      : 'text-zinc-400 hover:text-zinc-100'
                   }`}
                 >
+                  <BookOpen className="w-4 h-4" />
                   Resources
                   <ChevronDown className="w-4 h-4" />
                 </button>
@@ -148,16 +142,18 @@ export function Navbar() {
                   <div className="absolute top-full left-0 mt-2 w-48 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl overflow-hidden z-50">
                     <Link 
                       href="/how-it-works"
-                      className="block px-4 py-3 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all"
+                      className="flex items-center gap-2 px-4 py-3 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all"
                     >
+                      <Lightbulb className="w-4 h-4" />
                       How It Works
                     </Link>
                     <a 
                       href="https://docs.otcx.fun"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block px-4 py-3 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all border-t border-zinc-800"
+                      className="flex items-center gap-2 px-4 py-3 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all border-t border-zinc-800"
                     >
+                      <FileText className="w-4 h-4" />
                       Docs
                     </a>
                   </div>
@@ -168,10 +164,10 @@ export function Navbar() {
               {isOwner && (
                 <Link 
                   href="/admin" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                     pathname === '/admin' 
-                      ? 'bg-violet-600/20 text-violet-400 border border-violet-500/30' 
-                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                      ? 'text-white' 
+                      : 'text-zinc-400 hover:text-zinc-100'
                   }`}
                 >
                   <Settings className="w-4 h-4" />
@@ -218,7 +214,7 @@ export function Navbar() {
                         <button
                           onClick={openConnectModal}
                           type="button"
-                          className="px-4 py-1.5 text-sm bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700 text-white font-medium rounded-lg border border-zinc-800 shadow-md transition-all hover:shadow-lg"
+                          className="px-4 py-1.5 text-sm bg-cyan-600 hover:bg-cyan-700 text-white font-medium rounded-lg border border-cyan-500/50 transition-all"
                         >
                           Connect Wallet
                         </button>
@@ -317,7 +313,7 @@ export function Navbar() {
                 <button
                   onClick={openConnectModal}
                   type="button"
-                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700 text-white font-medium rounded-lg border border-zinc-800 transition-all"
+                  className="px-3 py-1.5 text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-medium rounded-lg border border-cyan-500/50 transition-all"
                 >
                   Connect
                 </button>
@@ -339,58 +335,51 @@ export function Navbar() {
           <div className="md:hidden mt-4 pb-4 border-t border-zinc-800/50 pt-4">
             <div className="flex flex-col gap-2">
               <Link 
-                href="/markets" 
-                onClick={() => setShowMobileMenu(false)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  pathname === '/markets' 
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
-                }`}
-              >
-                Markets
-              </Link>
-              <Link 
                 href="/private-order" 
                 onClick={() => setShowMobileMenu(false)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/private-order' 
-                    ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30' 
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                    ? 'text-white' 
+                    : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
+                <Lock className="w-4 h-4" />
                 Private Order
               </Link>
               <Link 
                 href="/dashboard" 
                 onClick={() => setShowMobileMenu(false)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/dashboard' 
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                    ? 'text-white' 
+                    : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
+                <LayoutDashboard className="w-4 h-4" />
                 Dashboard
               </Link>
               <Link 
                 href="/calculator" 
                 onClick={() => setShowMobileMenu(false)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/calculator' 
-                    ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/30' 
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                    ? 'text-white' 
+                    : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
+                <Calculator className="w-4 h-4" />
                 Calculator
               </Link>
               <Link 
                 href="/how-it-works" 
                 onClick={() => setShowMobileMenu(false)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/how-it-works' 
-                    ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/30' 
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                    ? 'text-white' 
+                    : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
+                <Lightbulb className="w-4 h-4" />
                 How It Works
               </Link>
               <a 
@@ -398,18 +387,19 @@ export function Navbar() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setShowMobileMenu(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors text-zinc-400 hover:text-zinc-100 flex items-center gap-2"
               >
+                <FileText className="w-4 h-4" />
                 Docs
               </a>
               {isOwner && (
                 <Link 
                   href="/admin" 
                   onClick={() => setShowMobileMenu(false)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                     pathname === '/admin' 
-                      ? 'bg-violet-600/20 text-violet-400 border border-violet-500/30' 
-                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'
+                      ? 'text-white' 
+                      : 'text-zinc-400 hover:text-zinc-100'
                   }`}
                 >
                   <Settings className="w-4 h-4" />

@@ -244,8 +244,8 @@ export default function MyOrdersPage() {
   return (
     <div className="relative min-h-screen">
       {/* Corner accents */}
-      <div className="fixed top-16 left-0 w-24 h-24 border-t-2 border-l-2 border-cyan-500/20 pointer-events-none"></div>
-      <div className="fixed top-16 right-0 w-24 h-24 border-t-2 border-r-2 border-violet-500/20 pointer-events-none"></div>
+      <div className="fixed top-16 left-0 w-24 h-24 border-t-2 border-l-2 border-zinc-700/20 pointer-events-none"></div>
+      <div className="fixed top-16 right-0 w-24 h-24 border-t-2 border-r-2 border-zinc-700/20 pointer-events-none"></div>
 
       <div className="relative mx-auto max-w-7xl px-4 py-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3">
@@ -262,31 +262,19 @@ export default function MyOrdersPage() {
             {/* Current Settlements (In Settlement - TGE Activated) */}
             <Card className={`p-4 transition-all ${
               stats.inSettlement > 0
-                ? "border-yellow-500/50 bg-yellow-950/30 shadow-lg shadow-yellow-500/20 ring-2 ring-yellow-500/30 animate-pulse"
-                : "border-blue-500/30 bg-blue-950/20"
+                ? "border-zinc-600 ring-2 ring-zinc-600/30 animate-pulse"
+                : ""
             }`}>
               <div className="flex items-start gap-3">
-                <div className={`p-2 rounded-lg ${
-                  stats.inSettlement > 0
-                    ? "bg-yellow-500/30"
-                    : "bg-blue-500/20"
-                }`}>
-                  <Clock className={`w-6 h-6 ${
-                    stats.inSettlement > 0
-                      ? "text-yellow-400"
-                      : "text-blue-400"
-                  }`} />
+                <div className="p-2 rounded-lg bg-zinc-800/50">
+                  <Clock className="w-6 h-6 text-zinc-400" />
                 </div>
                 <div className="flex-1">
-                  <h3 className={`text-sm font-semibold mb-1 ${
-                    stats.inSettlement > 0
-                      ? "text-yellow-400"
-                      : "text-blue-400"
-                  }`}>Current Settlements</h3>
+                  <h3 className="text-sm font-semibold mb-1 text-white">Current Settlements</h3>
                   {stats.inSettlement > 0 ? (
                     <p className="text-xs text-zinc-200 font-medium">
-                      <AlertCircle className="w-3 h-3 inline mr-1 text-yellow-400" />
-                      You have <span className="font-bold text-yellow-300 text-sm">{stats.inSettlement}</span> order(s) requiring action!
+                      <AlertCircle className="w-3 h-3 inline mr-1 text-zinc-400" />
+                      You have <span className="font-bold text-white text-sm">{stats.inSettlement}</span> order(s) requiring action!
                     </p>
                   ) : (
                     <p className="text-xs text-zinc-400">No orders in settlement</p>
@@ -296,17 +284,17 @@ export default function MyOrdersPage() {
             </Card>
 
             {/* Completed Settlements (Settled) */}
-            <Card className="p-4 border-green-500/30 bg-green-950/20">
+            <Card className="p-4">
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-green-500/20 rounded-lg">
-                  <CheckCircle2 className="w-6 h-6 text-green-400" />
+                <div className="p-2 bg-zinc-800/50 rounded-lg">
+                  <CheckCircle2 className="w-6 h-6 text-zinc-400" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-green-400 mb-1">Completed Settlements</h3>
+                  <h3 className="text-sm font-semibold text-white mb-1">Completed Settlements</h3>
                   {stats.settled > 0 ? (
                     <p className="text-xs text-zinc-300">
                       <CheckCircle2 className="w-3 h-3 inline mr-1" />
-                      You have <span className="font-bold text-green-400">{stats.settled}</span> completed settlement(s)
+                      You have <span className="font-bold text-white">{stats.settled}</span> completed settlement(s)
                     </p>
                   ) : (
                     <p className="text-xs text-zinc-400">No completed settlements</p>
@@ -321,26 +309,26 @@ export default function MyOrdersPage() {
         {address && !loading && orders.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
             {/* Total Orders */}
-            <Card className="p-2 border-cyan-500/30 bg-cyan-950/10">
+            <Card className="p-2">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-cyan-500/20 rounded-lg flex-shrink-0">
-                  <FileText className="w-4 h-4 text-cyan-400" />
+                <div className="p-1.5 bg-zinc-800/50 rounded-lg flex-shrink-0">
+                  <FileText className="w-4 h-4 text-zinc-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-cyan-400 leading-none text-left">{stats.total}</div>
+                  <div className="text-lg font-bold text-white leading-none text-left">{stats.total}</div>
                   <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Total Orders</div>
                 </div>
               </div>
             </Card>
             
             {/* Total Volume */}
-            <Card className="p-2 border-violet-500/30 bg-violet-950/10">
+            <Card className="p-2">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-violet-500/20 rounded-lg flex-shrink-0">
-                  <DollarSign className="w-4 h-4 text-violet-400" />
+                <div className="p-1.5 bg-zinc-800/50 rounded-lg flex-shrink-0">
+                  <DollarSign className="w-4 h-4 text-zinc-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-violet-400 leading-none text-left">
+                  <div className="text-lg font-bold text-white leading-none text-left">
                     ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
                   <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Total Volume</div>
@@ -349,65 +337,65 @@ export default function MyOrdersPage() {
             </Card>
 
             {/* Buy Orders */}
-            <Card className="p-2 border-green-500/30 bg-green-950/10">
+            <Card className="p-2">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-green-500/20 rounded-lg flex-shrink-0">
-                  <ArrowUpRight className="w-4 h-4 text-green-400" />
+                <div className="p-1.5 bg-zinc-800/50 rounded-lg flex-shrink-0">
+                  <ArrowUpRight className="w-4 h-4 text-zinc-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-green-400 leading-none text-left">{stats.buyOrders}</div>
+                  <div className="text-lg font-bold text-white leading-none text-left">{stats.buyOrders}</div>
                   <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Buy Orders</div>
                 </div>
               </div>
             </Card>
 
             {/* Sell Orders */}
-            <Card className="p-2 border-red-500/30 bg-red-950/10">
+            <Card className="p-2">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-red-500/20 rounded-lg flex-shrink-0">
-                  <ArrowDownRight className="w-4 h-4 text-red-400" />
+                <div className="p-1.5 bg-zinc-800/50 rounded-lg flex-shrink-0">
+                  <ArrowDownRight className="w-4 h-4 text-zinc-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-red-400 leading-none text-left">{stats.sellOrders}</div>
+                  <div className="text-lg font-bold text-white leading-none text-left">{stats.sellOrders}</div>
                   <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Sell Orders</div>
                 </div>
               </div>
             </Card>
             
             {/* Active Orders */}
-            <Card className="p-2 border-cyan-500/30 bg-cyan-950/10">
+            <Card className="p-2">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-cyan-500/20 rounded-lg flex-shrink-0">
-                  <Clock className="w-4 h-4 text-cyan-400" />
+                <div className="p-1.5 bg-zinc-800/50 rounded-lg flex-shrink-0">
+                  <Clock className="w-4 h-4 text-zinc-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-cyan-400 leading-none text-left">{stats.active}</div>
+                  <div className="text-lg font-bold text-white leading-none text-left">{stats.active}</div>
                   <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Active</div>
                 </div>
               </div>
             </Card>
             
             {/* In Settlement */}
-            <Card className="p-2 border-violet-500/30 bg-violet-950/10">
+            <Card className="p-2">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-violet-500/20 rounded-lg flex-shrink-0">
-                  <TrendingUp className="w-4 h-4 text-violet-400" />
+                <div className="p-1.5 bg-zinc-800/50 rounded-lg flex-shrink-0">
+                  <TrendingUp className="w-4 h-4 text-zinc-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-violet-400 leading-none text-left">{stats.inSettlement}</div>
+                  <div className="text-lg font-bold text-white leading-none text-left">{stats.inSettlement}</div>
                   <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Settlement</div>
                 </div>
               </div>
             </Card>
             
             {/* Settled */}
-            <Card className="p-2 border-green-500/30 bg-green-950/10">
+            <Card className="p-2">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-green-500/20 rounded-lg flex-shrink-0">
-                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                <div className="p-1.5 bg-zinc-800/50 rounded-lg flex-shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-zinc-400" />
                 </div>
                 <div className="flex flex-col justify-center min-h-[28px]">
-                  <div className="text-lg font-bold text-green-400 leading-none text-left">{stats.settled}</div>
+                  <div className="text-lg font-bold text-white leading-none text-left">{stats.settled}</div>
                   <div className="text-[9px] text-zinc-400 leading-none mt-0.5 text-left">Settled</div>
                 </div>
               </div>
@@ -423,7 +411,7 @@ export default function MyOrdersPage() {
 
         {address && loading && (
           <Card className="p-6 text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto mb-4" />
+            <Loader2 className="w-8 h-8 animate-spin text-zinc-400 mx-auto mb-4" />
             <p className="text-zinc-400">Loading your orders...</p>
           </Card>
         )}
