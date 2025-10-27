@@ -130,13 +130,13 @@ export default function ProjectsPage() {
         for (let i = 1n; i < nextId; i++) {
           const orderPromise = (async (orderId: bigint) => {
             try {
-              // V3 Order struct: id, maker, buyer, seller, projectId, amount, unitPrice, buyerFunds, sellerCollateral, settlementDeadline, isSell, status
+              // V4 Order struct: id, maker, buyer, seller, projectId, amount, unitPrice, buyerFunds, sellerCollateral, settlementDeadline, isSell, allowedTaker, status
               const orderData = await publicClient.readContract({
                 address: ORDERBOOK_ADDRESS,
                 abi: ESCROW_ORDERBOOK_ABI,
                 functionName: "orders",
                 args: [orderId],
-              }) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, number];
+              }) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, `0x${string}`, number];
 
               allOrders.push({
                 id: orderData[0],
@@ -144,7 +144,7 @@ export default function ProjectsPage() {
                 amount: orderData[5],
                 unitPrice: orderData[6],
                 isSell: orderData[10],
-                status: orderData[11],  // V3: status is at index 11 (removed tokensDeposited)
+                status: orderData[12],  // V4: status is at index 12 (after allowedTaker at index 11)
               });
             } catch (err) {
               console.error(`Failed to fetch order ${orderId}:`, err);
@@ -196,7 +196,7 @@ export default function ProjectsPage() {
             o.projectToken.toLowerCase() === projectId.toLowerCase()
           );
           
-          // V3: OPEN orders (status 0) - these show in the orderbook
+          // V4: OPEN orders (status 0) - these show in the orderbook
           const openOrders = allProjectOrders.filter(o => o.status === 0);
           
           // V3: "Filled" orders for volume/price calculation = FUNDED (1), TGE_ACTIVATED (2), SETTLED (3)
