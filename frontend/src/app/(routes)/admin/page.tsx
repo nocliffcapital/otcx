@@ -1638,7 +1638,7 @@ export default function AdminPage() {
 
                               {/* Token Address */}
                               <td className="py-4 px-4">
-                                <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
                                   {project.tokenAddress && project.tokenAddress !== '0x0000000000000000000000000000000000000000' ? (
                                     <span className="text-xs text-zinc-500 font-mono">
                                       {project.tokenAddress.slice(0, 6)}...{project.tokenAddress.slice(-4)}
@@ -1646,18 +1646,18 @@ export default function AdminPage() {
                                   ) : (
                                     <span className="text-xs text-zinc-600">—</span>
                                   )}
-                                  {/* Show "Update" button for Points projects */}
+                                  {/* Show edit icon for Points projects */}
                                   {project.isPoints && (
-                                    <Button
+                                    <button
                                       onClick={() => handleUpdateTokenAddress(project.id, project.name)}
-                                      variant="custom"
-                                      className="bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 mt-0.5"
+                                      className="p-1 rounded hover:bg-amber-600/20 text-amber-400 transition-colors disabled:opacity-50"
                                       disabled={isPending || isConfirming}
+                                      title={project.tokenAddress && project.tokenAddress !== '0x0000000000000000000000000000000000000000' 
+                                        ? "Update token address" 
+                                        : "Add token address"}
                                     >
-                                      {project.tokenAddress && project.tokenAddress !== '0x0000000000000000000000000000000000000000' 
-                                        ? "Update" 
-                                        : "Add Token"}
-                                    </Button>
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
                                   )}
                                 </div>
                               </td>
