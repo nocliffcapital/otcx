@@ -520,11 +520,6 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           <p className={`text-sm font-semibold text-zinc-300`}>
             {spread !== null ? `${spread.toFixed(2)}%` : "—"}
           </p>
-          {spread !== null && (
-            <p className="text-[9px] text-zinc-500 mt-0.5">
-              {spread < 5 ? "Tight" : spread < 15 ? "Moderate" : "Wide"}
-            </p>
-          )}
         </div>
         <div>
           <p className="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
