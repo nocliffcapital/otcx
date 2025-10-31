@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Badge } from "./ui/Badge";
-import { Lock, Copy, Check, AlertCircle, User, Loader2 } from "lucide-react";
+import { Lock, Copy, Check, AlertCircle, User, Loader2, Info } from "lucide-react";
 import { parseUnits, formatUnits, isAddress } from "viem";
 import { useToast } from "./Toast";
-import { STABLE_DECIMALS } from "@/lib/contracts";
+import { STABLE_DECIMALS, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
+import { usePublicClient } from "wagmi";
 
 interface PrivateOrderCreatorProps {
   projectId: `0x${string}`;
@@ -37,12 +38,38 @@ export function PrivateOrderCreator({
   const [allowedTaker, setAllowedTaker] = useState("");
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [minOrderValue, setMinOrderValue] = useState<bigint>(100_000_000n); // Default $100
   const toast = useToast();
+  const publicClient = usePublicClient();
 
   const isValidAddress = allowedTaker && isAddress(allowedTaker);
   const total = amount && unitPrice 
     ? (parseFloat(amount) * parseFloat(unitPrice)).toFixed(2)
     : "0.00";
+  
+  const totalValue = amount && unitPrice 
+    ? parseFloat(amount) * parseFloat(unitPrice)
+    : 0;
+  const minValue = Number(minOrderValue) / 1e6; // Convert to USDC
+  const isBelowMinimum = totalValue > 0 && totalValue < minValue;
+
+  // Fetch minimum order value on mount
+  useEffect(() => {
+    const fetchMinOrderValue = async () => {
+      if (!publicClient) return;
+      try {
+        const min = await publicClient.readContract({
+          address: ORDERBOOK_ADDRESS,
+          abi: ESCROW_ORDERBOOK_ABI,
+          functionName: "minOrderValue",
+        }) as bigint;
+        setMinOrderValue(min);
+      } catch (error) {
+        console.error("Failed to fetch min order value:", error);
+      }
+    };
+    fetchMinOrderValue();
+  }, [publicClient]);
 
   const handleCreate = async () => {
     if (!amount || !unitPrice || !allowedTaker || !isValidAddress) {
@@ -96,11 +123,11 @@ export function PrivateOrderCreator({
   };
 
   return (
-    <Card className="border-purple-500/30 bg-purple-950/10">
+    <Card>
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
-          <Lock className="w-4 h-4 text-purple-400" />
-          <h3 className="text-base font-bold text-purple-400">Order Details</h3>
+          <Lock className="w-4 h-4 text-zinc-300" />
+          <h3 className="text-base font-bold text-zinc-100">Order Details</h3>
         </div>
         <p className="text-xs text-zinc-400">
           Specify order details and recipient address
@@ -118,22 +145,16 @@ export function PrivateOrderCreator({
               <Button
                 onClick={() => setSide("SELL")}
                 variant="custom"
-                className={`flex-1 h-9 text-sm font-semibold transition-all ${
-                  side === "SELL"
-                    ? "bg-red-600 hover:bg-red-700 text-white"
-                    : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
-                }`}
+                className={`flex-1 h-9 text-sm font-semibold border ${side === 'SELL' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
+                style={{ borderColor: side === 'SELL' ? 'rgba(239,68,68,0.5)' : '#2b2b30' }}
               >
                 SELL
               </Button>
               <Button
                 onClick={() => setSide("BUY")}
                 variant="custom"
-                className={`flex-1 h-9 text-sm font-semibold transition-all ${
-                  side === "BUY"
-                    ? "bg-green-600 hover:bg-green-700 text-white"
-                    : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
-                }`}
+                className={`flex-1 h-9 text-sm font-semibold border ${side === 'BUY' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
+                style={{ borderColor: side === 'BUY' ? 'rgba(34,197,94,0.5)' : '#2b2b30' }}
               >
                 BUY
               </Button>
@@ -203,19 +224,46 @@ export function PrivateOrderCreator({
           </div>
 
           {/* Total */}
-          <div className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-800">
+          <div className={`p-3 rounded border ${
+            isBelowMinimum 
+              ? "bg-red-950/30 border-red-500/50" 
+              : ""}
+          }`} style={!isBelowMinimum ? { backgroundColor: '#121218', borderColor: '#2b2b30' } : {}}>
             <div className="flex justify-between items-center text-sm">
               <span className="text-zinc-400">Total Value:</span>
-              <span className="font-semibold text-white">${total} USDC</span>
+              <span className={`font-semibold ${isBelowMinimum ? "text-red-400" : "text-white"}`}>
+                ${total} USDC
+              </span>
             </div>
+            {isBelowMinimum && (
+              <div className="flex items-center gap-1.5 mt-2 text-xs text-red-400">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Minimum order value is ${minValue.toFixed(2)} USDC</span>
+              </div>
+            )}
           </div>
 
+          {/* Minimum Order Info */}
+          {!isBelowMinimum && totalValue === 0 && (
+            <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+              <div className="flex gap-2">
+                <Info className="w-4 h-4 text-zinc-300 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-zinc-300">
+                  <p className="font-semibold text-zinc-100 mb-1">Minimum Order</p>
+                  <p>
+                    Orders must be at least <span className="font-semibold text-white">${minValue.toFixed(2)} USDC</span> to prevent dust.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Info Box */}
-          <div className="p-3 bg-purple-950/30 border border-purple-500/30 rounded-lg">
+          <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             <div className="flex gap-2">
-              <User className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+              <User className="w-4 h-4 text-zinc-300 flex-shrink-0 mt-0.5" />
               <div className="text-xs text-zinc-300">
-                <p className="font-semibold text-purple-400 mb-1">Private Order</p>
+                <p className="font-semibold text-zinc-100 mb-1">Private Order</p>
                 <p>
                   Only the specified address will be able to take this order. 
                   This order will not appear in the public orderbook.
@@ -227,9 +275,10 @@ export function PrivateOrderCreator({
           {/* Create Button */}
           <Button
             onClick={handleCreate}
-            disabled={!amount || !unitPrice || !isValidAddress || isCreating}
+            disabled={!amount || !unitPrice || !isValidAddress || isCreating || isBelowMinimum}
             variant="custom"
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-semibold h-10 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full font-mono h-10 text-sm disabled:opacity-50 disabled:cursor-not-allowed border"
+            style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
           >
             {isCreating ? (
               <>
@@ -291,7 +340,8 @@ export function PrivateOrderCreator({
           <Button
             onClick={handleReset}
             variant="custom"
-            className="w-full bg-zinc-800 hover:bg-zinc-700 h-10 text-sm"
+            className="w-full h-10 text-sm border"
+            style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
           >
             Create Another Private Order
           </Button>

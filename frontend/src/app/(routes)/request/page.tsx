@@ -42,24 +42,26 @@ export default function RequestProjectPage() {
 
   if (submitted) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-16">
-        <Card className="text-center py-12">
+      <div className="relative min-h-screen" style={{ backgroundColor: '#06060c' }}>
+        <div className="relative mx-auto max-w-2xl px-4 py-16">
+          <Card className="text-center py-12">
           <div className="text-6xl mb-4">✅</div>
-          <h1 className="text-3xl font-bold mb-3 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold mb-3 text-white">
             Request Submitted!
           </h1>
           <p className="text-zinc-400 mb-6">
             Thank you for your project request. We'll review it and get back to you soon.
           </p>
           <div className="flex gap-4 justify-center">
-            <Link href="/markets">
-              <Button variant="custom" className="bg-blue-600 hover:bg-blue-700">
+            <Link href="/">
+              <Button variant="custom" className="border" style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}>
                 Browse Markets
               </Button>
             </Link>
             <Button
               variant="custom"
-              className="bg-zinc-800 hover:bg-zinc-700"
+              className="border"
+              style={{ backgroundColor: '#121218', borderColor: '#2b2b30', color: 'white' }}
               onClick={() => {
                 setSubmitted(false);
                 setFormData({
@@ -78,23 +80,23 @@ export default function RequestProjectPage() {
             </Button>
           </div>
         </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3">
-          <FileText className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
-          <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-            Request a Project
-          </span>
-        </h1>
-        <p className="text-lg text-zinc-400">
-          Want to see a specific pre-TGE project listed? Fill out the form below.
-        </p>
-      </div>
+    <div className="relative min-h-screen" style={{ backgroundColor: '#06060c' }}>
+      <div className="relative mx-auto max-w-7xl px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3">
+            <FileText className="w-8 h-8 md:w-10 md:h-10 text-zinc-300" />
+            <span className="text-white">REQUEST PROJECT</span>
+          </h1>
+          <p className="text-lg text-zinc-400">
+            Want to see a specific pre-TGE project listed? Fill out the form below.
+          </p>
+        </div>
 
       <Card>
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -126,7 +128,8 @@ export default function RequestProjectPage() {
                 required
                 value={formData.assetType}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                className="w-full px-4 py-3 rounded text-white focus:outline-none font-mono text-sm"
+                style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
               >
                 <option value="Tokens">Tokens</option>
                 <option value="Points">Points</option>
@@ -154,15 +157,16 @@ export default function RequestProjectPage() {
             <label htmlFor="description" className="block text-sm font-medium text-zinc-300 mb-2">
               Project Description
             </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Brief description of the project..."
-              className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all resize-none"
-            />
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Brief description of the project..."
+                className="w-full px-4 py-3 rounded text-white placeholder-zinc-500 focus:outline-none font-mono text-sm resize-none"
+                style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
+              />
           </div>
 
           {/* Twitter & Website URLs */}
@@ -208,7 +212,8 @@ export default function RequestProjectPage() {
                 required
                 value={formData.contactMethod}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                className="w-full px-4 py-3 rounded text-white focus:outline-none font-mono text-sm"
+                style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
               >
                 <option value="Email">Email</option>
                 <option value="Telegram">Telegram</option>
@@ -253,7 +258,8 @@ export default function RequestProjectPage() {
               type="submit"
               disabled={submitting}
               variant="custom"
-              className="w-full md:w-auto md:px-12 bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700"
+              className="w-full md:w-auto md:px-12 border font-mono"
+              style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
             >
               {submitting ? "Submitting..." : "Submit Request"}
             </Button>
@@ -262,17 +268,18 @@ export default function RequestProjectPage() {
       </Card>
 
       {/* Info Box */}
-      <Card className="mt-6 bg-cyan-900/20 border-cyan-500/30">
+      <Card className="mt-6">
         <div className="flex gap-3">
-          <Info className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+          <Info className="w-5 h-5 text-zinc-300 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-cyan-400 mb-1">Note</h3>
+            <h3 className="font-semibold text-zinc-100 mb-1">Note</h3>
             <p className="text-sm text-zinc-400">
               Project listings are reviewed by the platform admin. If approved, the project will be added to the on-chain registry and become available for trading.
             </p>
           </div>
         </div>
       </Card>
+      </div>
     </div>
   );
 }

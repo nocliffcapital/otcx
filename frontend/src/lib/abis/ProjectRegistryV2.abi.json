@@ -553,11 +553,6 @@
         "name": "tokenAddress",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "active",
-        "type": "bool",
-        "internalType": "bool"
       }
     ],
     "outputs": [],

@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { formatUnits } from "viem";
 import { STABLE_DECIMALS } from "@/lib/contracts";
-import { Button } from "./ui/Button";
 
 interface Order {
   id: bigint;
@@ -137,39 +136,51 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
       {/* Compact Header: Time Range + Stats in one row */}
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         {/* Time Range Selector */}
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="custom"
+        <div className="flex gap-2 font-mono">
+          <button
             onClick={() => setTimeRange("24h")}
-            className={timeRange === "24h" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
+            className={`px-4 py-2 text-xs font-medium rounded border transition-all ${
+              timeRange === "24h"
+                ? "bg-zinc-700 text-zinc-300 border-zinc-500" 
+                : "text-zinc-400 hover:border-zinc-700"
+            }`}
+            style={timeRange !== "24h" ? { backgroundColor: '#121218', borderColor: '#2b2b30' } : {}}
           >
             24H
-          </Button>
-          <Button
-            size="sm"
-            variant="custom"
+          </button>
+          <button
             onClick={() => setTimeRange("7d")}
-            className={timeRange === "7d" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
+            className={`px-4 py-2 text-xs font-medium rounded border transition-all ${
+              timeRange === "7d"
+                ? "bg-zinc-700 text-zinc-300 border-zinc-500" 
+                : "text-zinc-400 hover:border-zinc-700"
+            }`}
+            style={timeRange !== "7d" ? { backgroundColor: '#121218', borderColor: '#2b2b30' } : {}}
           >
             7D
-          </Button>
-          <Button
-            size="sm"
-            variant="custom"
+          </button>
+          <button
             onClick={() => setTimeRange("1m")}
-            className={timeRange === "1m" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
+            className={`px-4 py-2 text-xs font-medium rounded border transition-all ${
+              timeRange === "1m"
+                ? "bg-zinc-700 text-zinc-300 border-zinc-500" 
+                : "text-zinc-400 hover:border-zinc-700"
+            }`}
+            style={timeRange !== "1m" ? { backgroundColor: '#121218', borderColor: '#2b2b30' } : {}}
           >
             1M
-          </Button>
-          <Button
-            size="sm"
-            variant="custom"
+          </button>
+          <button
             onClick={() => setTimeRange("all")}
-            className={timeRange === "all" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
+            className={`px-4 py-2 text-xs font-medium rounded border transition-all ${
+              timeRange === "all"
+                ? "bg-zinc-700 text-zinc-300 border-zinc-500" 
+                : "text-zinc-400 hover:border-zinc-700"
+            }`}
+            style={timeRange !== "all" ? { backgroundColor: '#121218', borderColor: '#2b2b30' } : {}}
           >
-            All
-          </Button>
+            ALL
+          </button>
         </div>
 
         {/* Compact Stats */}

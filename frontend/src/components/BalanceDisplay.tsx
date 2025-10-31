@@ -29,7 +29,7 @@ export function BalanceDisplay() {
   const usdcAmount = usdcBalance ? parseFloat(formatUnits(usdcBalance as bigint, 6)) : 0;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800/50 rounded-lg border border-zinc-800">
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded border h-[38px]" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
       {/* ETH Balance */}
       <div className="flex items-center gap-1.5">
         <div className="w-4 h-4">
@@ -44,22 +44,22 @@ export function BalanceDisplay() {
           </svg>
         </div>
         <div className="flex flex-col">
-          <span className="text-[9px] text-zinc-500 leading-none">ETH</span>
-          <span className="text-xs font-semibold text-zinc-100 leading-tight">
+          <span className="text-[9px] text-zinc-500 leading-none font-mono">ETH</span>
+          <span className="text-xs font-semibold text-zinc-100 leading-tight font-mono">
             {ethAmount.toFixed(4)}
           </span>
         </div>
       </div>
 
       {/* Divider */}
-      <div className="w-px h-6 bg-zinc-700"></div>
+      <div className="w-px h-6" style={{ backgroundColor: '#2b2b30' }}></div>
 
       {/* USDC Balance */}
       <div className="flex items-center gap-1.5">
         <UsdcIcon size={16} />
         <div className="flex flex-col">
-          <span className="text-[9px] text-zinc-500 leading-none">USDC</span>
-          <span className="text-xs font-semibold text-zinc-100 leading-tight">
+          <span className="text-[9px] text-zinc-500 leading-none font-mono">USDC</span>
+          <span className="text-xs font-semibold text-zinc-100 leading-tight font-mono">
             {usdcAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>

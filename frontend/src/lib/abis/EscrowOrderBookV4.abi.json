@@ -61,19 +61,6 @@
   },
   {
     "type": "function",
-    "name": "MAX_ORDER_VALUE",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "MAX_SETTLEMENT_WINDOW",
     "inputs": [],
     "outputs": [
@@ -147,19 +134,6 @@
         "name": "conversionRatio",
         "type": "uint256",
         "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "approveCollateral",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -283,19 +257,6 @@
   },
   {
     "type": "function",
-    "name": "getApprovedCollateral",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "getConversionRatio",
     "inputs": [
       {
@@ -347,19 +308,26 @@
   },
   {
     "type": "function",
-    "name": "isCollateralApproved",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
+    "name": "maxOrderValue",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "minOrderValue",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -736,19 +704,6 @@
   },
   {
     "type": "function",
-    "name": "removeCollateral",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "renounceOwnership",
     "inputs": [],
     "outputs": [],
@@ -769,6 +724,19 @@
         "name": "newFeeBps",
         "type": "uint64",
         "internalType": "uint64"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMinOrderValue",
+    "inputs": [
+      {
+        "name": "newMinValue",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -961,38 +929,6 @@
   },
   {
     "type": "event",
-    "name": "CollateralApproved",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "decimals",
-        "type": "uint8",
-        "indexed": false,
-        "internalType": "uint8"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "CollateralRemoved",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "ConversionRatioUpdated",
     "inputs": [
       {
@@ -1034,6 +970,25 @@
       },
       {
         "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MinOrderValueUpdated",
+    "inputs": [
+      {
+        "name": "oldValue",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "newValue",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -1406,16 +1361,6 @@
   },
   {
     "type": "error",
-    "name": "CollateralAlreadyApproved",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "CollateralNotApproved",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "ContractNotPaused",
     "inputs": []
   },
@@ -1492,6 +1437,11 @@
   {
     "type": "error",
     "name": "OrderNotFound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OrderValueTooLow",
     "inputs": []
   },
   {

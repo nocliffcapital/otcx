@@ -11,9 +11,9 @@ import { useToast } from "@/components/Toast";
 import { ProjectImage } from "@/components/ProjectImage";
 import { parseUnits, formatUnits } from "viem";
 import { STABLE_DECIMALS, STABLE_ADDRESS, ERC20_ABI, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
-import { useReadContract } from "wagmi";
+import { useReadContract, useBlockNumber } from "wagmi";
 import { PriceChart } from "@/components/PriceChart";
-import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle, DollarSign, ArrowDown, ArrowUp, Percent, Activity, Clock, User, Loader2 } from "lucide-react";
+import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle, DollarSign, ArrowDown, ArrowUp, Percent, Activity, Clock, User, Loader2, AlertCircle, Terminal, Database, Cpu } from "lucide-react";
 import Link from "next/link";
 import ReputationBadge from "@/components/ReputationBadge";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
@@ -58,6 +58,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     functionName: "paused",
   });
   const isOrderbookPaused = isPausedData === true;
+  const { data: blockNumber } = useBlockNumber({ watch: true });
   
   // Check if TGE has been activated for this project
   const { data: projectTgeActivated } = useReadContract({
@@ -89,6 +90,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       enabled: !!address,
       refetchInterval: 5000,
     },
+  });
+  
+  // Fetch minimum order value
+  const { data: minOrderValue } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "minOrderValue",
   });
   
   // Helper function to ensure URL has protocol
@@ -143,6 +151,8 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   }, [project?.metadataURI]);
 
   const total = Number(amount || 0) * Number(unitPrice || 0);
+  const minValue = minOrderValue ? Number(minOrderValue) / 1e6 : 100; // Convert to USDC, default $100
+  const isBelowMinimum = total > 0 && total < minValue;
 
   // Filter orders: OPEN (0) orders for orderbook, FUNDED (1) for filled section
   // Debug logging
@@ -359,99 +369,100 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      {/* Polished Project Header */}
-      <div className="mb-8 bg-gradient-to-b from-zinc-900/40 to-transparent rounded-2xl p-6 border border-zinc-800/50">
-        <div className="flex items-start justify-between gap-8">
-          {/* Left Side: Project Info */}
-          <div className="flex-1 space-y-3">
-            {/* Logo */}
-            <div className="flex items-start">
+      {/* Terminal-style header */}
+      <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex-shrink-0">
               <ProjectImage 
                 metadataURI={project?.metadataURI}
                 imageType="logo"
-                className="h-12 w-auto max-w-[220px] object-contain object-left"
+                className="h-8 w-auto max-w-[180px] sm:max-w-[200px] md:h-10 md:max-w-[250px] object-contain"
                 fallbackText={project?.name || slug.toUpperCase()}
               />
             </div>
-            
-            {/* Title and Subtitle in one line */}
             <div>
-              <p className="text-sm text-zinc-400">
-                <span className="font-semibold text-white">{project?.name || slug.toUpperCase()}</span> - Pre-TGE OTC Trading
+              <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/markets/{slug}</span>
+              <p className="text-xs font-bold text-zinc-300/70 whitespace-nowrap sm:whitespace-normal">
+                {(project?.name || slug.toUpperCase())} • Pre-TGE OTC Trading
               </p>
-            </div>
-            
-            {/* Metadata Pills */}
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                project?.isPoints === false
-                  ? 'bg-blue-500/15 text-blue-300 ring-1 ring-blue-500/30' 
-                  : 'bg-violet-500/15 text-violet-300 ring-1 ring-violet-500/30'
-              }`}>
-                {project?.isPoints === false ? 'Tokens' : 'Points'}
-              </div>
-              
-              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                isOrderbookPaused 
-                  ? 'bg-red-500/15 text-red-300 ring-1 ring-red-500/30' 
-                  : 'bg-green-500/15 text-green-300 ring-1 ring-green-500/30'
-              }`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${
-                  isOrderbookPaused ? 'bg-red-400 animate-pulse' : 'bg-green-400'
-                }`} />
-                {isOrderbookPaused ? 'Trading Suspended' : 'Trading Live'}
-              </div>
-              
               {/* Social Links */}
-              {metadata?.twitterUrl && (
-                <a
-                  href={ensureHttps(metadata.twitterUrl)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-blue-400 ring-1 ring-zinc-700/50 hover:ring-blue-500/30 transition-all"
-                >
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                  Twitter
-                </a>
-              )}
-              
-              {metadata?.websiteUrl && (
-                <a
-                  href={ensureHttps(metadata.websiteUrl)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-green-400 ring-1 ring-zinc-700/50 hover:ring-green-500/30 transition-all"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                  </svg>
-                  Website
-                </a>
-              )}
+              {(metadata?.twitterUrl || metadata?.websiteUrl) && (
+                <div className="flex items-center gap-2.5 flex-wrap mt-1">
+                {metadata?.twitterUrl && (
+                  <a
+                    href={ensureHttps(metadata.twitterUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-medium text-zinc-400 hover:text-zinc-300 transition-all"
+                    style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                    Twitter
+                  </a>
+                )}
+                
+                {metadata?.websiteUrl && (
+                  <a
+                    href={ensureHttps(metadata.websiteUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-medium text-zinc-400 hover:text-zinc-300 transition-all"
+                    style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    Website
+                  </a>
+                )}
+              </div>
+            )}
             </div>
           </div>
-          
-          {/* Right Side: Reputation Badge */}
-          {metadata?.twitterUrl && project?.name && (
-            <ProjectReputationBadge 
-              twitterUrl={metadata.twitterUrl}
-              projectName={project.name}
-              variant="prominent"
-            />
-          )}
+          <div className="flex flex-col gap-2 items-end sm:items-end">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className={`inline-flex items-center px-3 py-1.5 rounded border ${
+                project?.isPoints === false
+                  ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' 
+                  : 'bg-purple-500/20 text-purple-400 border-purple-500/50'
+              }`}>
+                <span className="text-xs font-semibold">{project?.isPoints === false ? 'Tokens' : 'Points'}</span>
+              </div>
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+                isOrderbookPaused 
+                  ? 'bg-red-950/30 border-red-500/50' 
+                  : 'bg-green-950/30 border-green-500/50'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
+                }`} />
+                <span className={`text-xs font-mono font-semibold ${
+                  isOrderbookPaused ? 'text-red-400' : 'text-green-400'
+                }`}>
+                  {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+              <span className="hidden sm:inline">BLOCK #{blockNumber?.toString() || '...'}</span>
+              <span className="sm:hidden">#{blockNumber?.toString() || '...'}</span>
+              <Cpu className="w-3 h-3" />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Market Info Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6 p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-lg">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6 p-4 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
         <div>
           <p className="text-[10px] text-zinc-500 uppercase mb-1 flex items-center gap-1">
             <DollarSign className="w-3 h-3" />
             Last Price
           </p>
-          <p className="text-sm font-semibold text-blue-400">
+          <p className="text-sm font-semibold text-zinc-300">
             {lastPrice ? `$${lastPrice.toFixed(2)}` : "—"}
           </p>
         </div>
@@ -460,7 +471,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             <ArrowDown className="w-3 h-3" />
             Current Ask
           </p>
-          <p className="text-sm font-semibold text-red-400">
+          <p className="text-sm font-semibold text-zinc-300">
             {lowestAsk ? `$${lowestAsk.toFixed(2)}` : "—"}
           </p>
         </div>
@@ -469,7 +480,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             <ArrowUp className="w-3 h-3" />
             Current Bid
           </p>
-          <p className="text-sm font-semibold text-green-400">
+          <p className="text-sm font-semibold text-zinc-300">
             {highestBid ? `$${highestBid.toFixed(2)}` : "—"}
           </p>
         </div>
@@ -478,11 +489,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             <Percent className="w-3 h-3" />
             Spread
           </p>
-          <p className={`text-sm font-semibold ${
-            spread === null ? 'text-zinc-400' : 
-            spread < 5 ? 'text-green-400' : 
-            spread < 15 ? 'text-yellow-400' : 'text-red-400'
-          }`}>
+          <p className={`text-sm font-semibold text-zinc-300`}>
             {spread !== null ? `${spread.toFixed(2)}%` : "—"}
           </p>
           {spread !== null && (
@@ -496,7 +503,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             <Activity className="w-3 h-3" />
             Mid Market
           </p>
-          <p className="text-sm font-semibold text-cyan-400">
+          <p className="text-sm font-semibold text-zinc-300">
             {midMarket ? `$${midMarket.toFixed(2)}` : "—"}
           </p>
         </div>
@@ -547,20 +554,14 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         {/* Price Chart - Left (2 columns) */}
         <Card className="lg:col-span-2">
           <h2 className="font-semibold mb-3 text-sm flex items-center gap-2">
-            <LineChart className="w-4 h-4 text-cyan-400" />
+            <LineChart className="w-4 h-4 text-zinc-300" />
             Price History
           </h2>
           <PriceChart orders={orders} allOrders={allOrders} />
         </Card>
 
         {/* Create Order - Right (1 column, thinner) */}
-        <div className={`rounded-xl border-2 transition-colors ${
-          isTgeActivated 
-            ? "border-zinc-700/30 bg-zinc-900/30 opacity-50" 
-            : side === "SELL" 
-              ? "border-red-500/30 bg-zinc-900/50" 
-              : "border-green-500/30 bg-zinc-900/50"
-        }`}>
+        <div className="rounded border transition-colors" style={{ backgroundColor: '#121218', borderColor: '#2b2b30', opacity: isTgeActivated ? 0.6 : 1 }}>
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-sm flex items-center gap-2">
@@ -611,20 +612,20 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
               {/* Buy/Sell Toggle - Buy on left, Sell on right */}
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => setSide("BUY")}
-                  variant="custom"
-                  className={`flex-1 ${side === "BUY" ? "bg-green-600 hover:bg-green-700" : "bg-zinc-800 hover:bg-zinc-700"}`}
-                  disabled={creating || isTgeActivated}
+                  onClick={() => setSide("BUY")} 
+                  variant="custom" 
+                  className={`flex-1 border ${side === 'BUY' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
+                  style={{ borderColor: side === 'BUY' ? 'rgba(34,197,94,0.5)' : '#2b2b30' }}
                 >
-                  Buy
+                  BUY
                 </Button>
                 <Button 
-                  onClick={() => setSide("SELL")}
-                  variant="custom"
-                  className={`flex-1 ${side === "SELL" ? "bg-red-600 hover:bg-red-700" : "bg-zinc-800 hover:bg-zinc-700"}`}
-                  disabled={creating || isTgeActivated}
+                  onClick={() => setSide("SELL")} 
+                  variant="custom" 
+                  className={`flex-1 border ${side === 'SELL' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
+                  style={{ borderColor: side === 'SELL' ? 'rgba(239,68,68,0.5)' : '#2b2b30' }}
                 >
-                  Sell
+                  SELL
                 </Button>
               </div>
 
@@ -667,14 +668,14 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                     </span>
                   )}
                 </div>
-                <div className="w-full rounded-md px-3 py-2 bg-zinc-800/50 border border-cyan-500/30 text-sm font-medium text-cyan-400">
+                <div className="w-full rounded px-3 py-2 text-sm font-medium" style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid', color: '#d4d4d8' }}>
                   ${total === 0 ? '0.00' : total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <p className="text-[10px] text-zinc-500 mt-1">{side === "SELL" ? "Seller" : "Buyer"} locks ${total === 0 ? '0.00' : total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               
               {/* You Will Receive Info */}
-              <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800">
+              <div className="rounded p-3 border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 <p className="text-[10px] text-zinc-400 mb-1.5">When your order fills:</p>
                 {total > 0 && amount ? (
                   <div className="space-y-1">
@@ -703,6 +704,16 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                 )}
               </div>
 
+              {/* Minimum Order Warning */}
+              {isBelowMinimum && (
+                <div className="p-2.5 bg-red-950/30 border border-red-500/50 rounded-lg">
+                  <div className="flex items-center gap-1.5 text-xs text-red-400">
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>Order value must be at least ${minValue.toFixed(2)} USDC</span>
+                  </div>
+                </div>
+              )}
+
               {/* Create Button - Moved to bottom */}
               {!address ? (
                 <div>
@@ -712,12 +723,9 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                 <div>
                   <button
                     onClick={handleCreate} 
-                    disabled={creating || !address || !amount || !unitPrice || !project || isTgeActivated}
-                    className={`w-full rounded-md border text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 ${
-                      side === "SELL" 
-                        ? "bg-red-600 hover:bg-red-700 border-red-500/50" 
-                        : "bg-green-600 hover:bg-green-700 border-green-500/50"
-                    }`}
+                    disabled={creating || !address || !amount || !unitPrice || !project || isTgeActivated || isBelowMinimum}
+                    className="w-full rounded text-sm font-mono transition-colors disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 border"
+                    style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
                   >
                     {creating ? (
                       <>
@@ -746,9 +754,9 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           <h2 className="font-semibold mb-3 flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4 text-green-400" />
-              Buy Orders (Users Buying)
+              buy_orders
             </span>
-            <Badge className="bg-green-600 text-xs">{buyOrders.length}</Badge>
+            <Badge className="bg-zinc-700 text-xs text-zinc-300">{buyOrders.length}</Badge>
           </h2>
           
           {loading && <p className="text-xs text-zinc-400">Loading...</p>}
@@ -765,12 +773,12 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="text-left py-3 px-3 text-zinc-400 font-medium">Price</th>
-                    <th className="text-center py-3 px-3 text-zinc-400 font-medium">Amount</th>
-                    <th className="text-center py-3 px-3 text-zinc-400 font-medium">Total</th>
-                    <th className="text-center py-3 px-3 text-zinc-400 font-medium">Collateral</th>
-                    <th className="text-center py-3 px-3 text-zinc-400 font-medium">Maker</th>
+                  <tr className="border-b" style={{ borderColor: '#2b2b30' }}>
+                    <th className="text-left py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">price</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">amount</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">total</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">collateral</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">maker</th>
                     <th className="text-center py-3 px-3 text-zinc-400 font-medium"></th>
                   </tr>
                 </thead>
@@ -789,7 +797,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                     const totalCollateral = parseFloat(buyerCollateral) + parseFloat(sellerCollateral);
 
                     return (
-                      <tr key={order.id.toString()} className="border-b border-zinc-800/50 hover:bg-zinc-900/30 transition-colors">
+                      <tr key={order.id.toString()} className="border-b transition-colors" style={{ borderColor: '#2b2b30' }}>
                         <td className="py-3 px-3 font-medium text-zinc-100">
                           ${Number(formatUnits(order.unitPrice, STABLE_DECIMALS)).toLocaleString()}
                         </td>
@@ -820,7 +828,8 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               variant="custom"
                               onClick={() => handleTakeBuy(order)}
                               disabled={!!actionLoading}
-                              className="bg-red-600 hover:bg-red-700 text-xs h-7 px-3"
+                              className="text-xs h-7 px-3 border"
+                              style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
                             >
                               {actionLoading === order.id.toString() ? (
                                 <>
@@ -849,9 +858,9 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           <h2 className="font-semibold mb-3 flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
               <Package className="w-4 h-4 text-red-400" />
-              Sell Orders (Users Selling)
+              sell_orders
             </span>
-            <Badge className="bg-red-600 text-xs">{sellOrders.length}</Badge>
+            <Badge className="bg-zinc-700 text-xs text-zinc-300">{sellOrders.length}</Badge>
           </h2>
           
           {loading && <p className="text-xs text-zinc-400">Loading...</p>}
@@ -868,12 +877,12 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="text-left py-3 px-3 text-zinc-400 font-medium">Price</th>
-                    <th className="text-center py-3 px-3 text-zinc-400 font-medium">Amount</th>
-                    <th className="text-center py-3 px-3 text-zinc-400 font-medium">Total</th>
-                    <th className="text-center py-3 px-3 text-zinc-400 font-medium">Collateral</th>
-                    <th className="text-center py-3 px-3 text-zinc-400 font-medium">Maker</th>
+                  <tr className="border-b" style={{ borderColor: '#2b2b30' }}>
+                    <th className="text-left py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">price</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">amount</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">total</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">collateral</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">maker</th>
                     <th className="text-center py-3 px-3 text-zinc-400 font-medium"></th>
                   </tr>
                 </thead>
@@ -895,7 +904,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                     const depthPercentage = maxSellOrder > 0 ? (orderSize / maxSellOrder) * 100 : 0;
 
                     return (
-                      <tr key={order.id.toString()} className="border-b border-zinc-800/50 hover:bg-zinc-900/30 transition-colors">
+                      <tr key={order.id.toString()} className="border-b transition-colors" style={{ borderColor: '#2b2b30' }}>
                         <td className="py-3 px-3 font-medium text-zinc-100">
                           ${Number(formatUnits(order.unitPrice, STABLE_DECIMALS)).toLocaleString()}
                         </td>
@@ -926,7 +935,8 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               variant="custom"
                               onClick={() => handleTakeSell(order)}
                               disabled={!!actionLoading}
-                              className="bg-green-600 hover:bg-green-700 text-xs h-7 px-3"
+                              className="text-xs h-7 px-3 border"
+                              style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
                             >
                               {actionLoading === order.id.toString() ? (
                                 <>
@@ -952,13 +962,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       </div>
 
       {/* Filled Orders Section */}
-      <Card className="mt-4">
+        <Card className="mt-4">
         <h2 className="font-semibold mb-3 flex items-center justify-between text-sm">
           <span className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-blue-400" />
-            Filled Orders
+            <CheckCircle className="w-4 h-4 text-zinc-300" />
+            filled_orders
           </span>
-          <Badge className="bg-blue-600 text-xs">{filledOrders.length}</Badge>
+          <Badge className="bg-zinc-700 text-xs text-zinc-300">{filledOrders.length}</Badge>
         </h2>
         
         {loading && <p className="text-xs text-zinc-400">Loading...</p>}
@@ -1002,9 +1012,9 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                     : (order.buyer && order.buyer.toLowerCase() !== zeroAddress.toLowerCase() ? order.buyer : order.maker);
                   
                   return (
-                    <tr key={order.id.toString()} className="border-b border-zinc-800/50 hover:bg-zinc-900/30 transition-colors">
+                    <tr key={order.id.toString()} className="border-b transition-colors" style={{ borderColor: '#2b2b30' }}>
                       <td className="py-3 px-3">
-                        <Badge className={order.isSell ? "bg-red-600/20 text-red-400 text-xs" : "bg-green-600/20 text-green-400 text-xs"}>
+                        <Badge className="bg-zinc-700 text-zinc-300 text-xs">
                           {order.isSell ? "SELL" : "BUY"}
                         </Badge>
                       </td>

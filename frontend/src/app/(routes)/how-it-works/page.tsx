@@ -15,9 +15,12 @@ import {
   Zap,
   BookOpen,
   Lock,
-  Globe
+  Globe,
+  Terminal,
+  Database,
+  Cpu
 } from "lucide-react";
-import { usePublicClient } from "wagmi";
+import { usePublicClient, useBlockNumber, useReadContract } from "wagmi";
 import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 
 export default function HowItWorksPage() {
@@ -25,6 +28,20 @@ export default function HowItWorksPage() {
   const [settlementFee, setSettlementFee] = useState<string>("0.5");
   const [cancellationFee, setCancellationFee] = useState<string>("0.1");
   const publicClient = usePublicClient();
+  const { data: blockNumber } = useBlockNumber({ watch: true });
+
+  // Check if orderbook is paused
+  const { data: isOrderbookPaused } = useReadContract({
+    address: ORDERBOOK_ADDRESS as `0x${string}`,
+    abi: [{
+      name: "paused",
+      type: "function",
+      stateMutability: "view",
+      inputs: [],
+      outputs: [{ type: "bool" }],
+    }],
+    functionName: "paused",
+  });
 
   useEffect(() => {
     const fetchFees = async () => {
@@ -57,23 +74,59 @@ export default function HowItWorksPage() {
   }, [publicClient]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div style={{ backgroundColor: '#06060c', minHeight: '100vh' }}>
+      <div className="mx-auto max-w-7xl px-4 py-8">
+      {/* Terminal-style header */}
+      <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-8 h-8 text-zinc-300 flex-shrink-0" />
+            <div>
+              <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/documentation/how-it-works</span>
+              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                HOW_OTCX_WORKS
+              </h1>
+              <p className="text-xs text-zinc-300/70 mt-1">
+                Protocol Overview • Escrow System Guide
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 items-end">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-zinc-300">
+                {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+              </span>
+              <Database className="w-3 h-3 text-zinc-300" />
+            </div>
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+              isOrderbookPaused 
+                ? 'bg-red-950/30 border-red-500/50' 
+                : 'bg-green-950/30 border-green-500/50'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
+              }`} />
+              <span className={`text-xs font-mono font-semibold ${
+                isOrderbookPaused ? 'text-red-400' : 'text-green-400'
+              }`}>
+                {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+              <span>BLOCK #{blockNumber?.toString() || '...'}</span>
+              <Cpu className="w-3 h-3" />
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3">
-          <BookOpen className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
-          <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-            How otcX Works
-          </span>
-        </h1>
-        <p className="text-lg text-zinc-400 mb-4">
-          A trustless, on-chain escrow system for pre-TGE token trading
-        </p>
-        <a
+          <a
           href="/docs"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 hover:border-cyan-500/50 rounded-lg transition-all group"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded border transition-all group"
+          style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}
         >
-          <FileText className="w-4 h-4 text-cyan-400" />
-          <span className="text-zinc-300 group-hover:text-cyan-400 transition-colors">
+          <FileText className="w-4 h-4 text-zinc-300" />
+          <span className="text-zinc-300 group-hover:text-zinc-100 transition-colors">
             For a more comprehensive overview of the platform, please visit the docs page
           </span>
           <svg
@@ -86,7 +139,7 @@ export default function HowItWorksPage() {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-zinc-400 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all"
+            className="text-zinc-400 group-hover:text-zinc-100 group-hover:translate-x-0.5 transition-all"
           >
             <path d="M5 12h14" />
             <path d="m12 5 7 7-7 7" />
@@ -96,70 +149,70 @@ export default function HowItWorksPage() {
 
       {/* Tabs */}
       <div className="mb-6">
-        <div className="flex items-center gap-2 border-b border-zinc-800">
+        <div className="flex items-center gap-2 border-b" style={{ borderColor: '#2b2b30' }}>
           <button
             onClick={() => setActiveTab("overview")}
-            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+            className={`px-4 py-2 text-xs font-mono font-medium transition-all relative ${
               activeTab === "overview"
-                ? "text-cyan-400"
+                ? "text-zinc-300"
                 : "text-zinc-400 hover:text-zinc-300"
             }`}
           >
-            Overview & Assets
+            OVERVIEW & ASSETS
             {activeTab === "overview" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: '#2b2b30' }}></div>
             )}
           </button>
           <button
             onClick={() => setActiveTab("process")}
-            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+            className={`px-4 py-2 text-xs font-mono font-medium transition-all relative ${
               activeTab === "process"
-                ? "text-cyan-400"
+                ? "text-zinc-300"
                 : "text-zinc-400 hover:text-zinc-300"
             }`}
           >
-            The Process
+            THE PROCESS
             {activeTab === "process" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: '#2b2b30' }}></div>
             )}
           </button>
           <button
             onClick={() => setActiveTab("private")}
-            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+            className={`px-4 py-2 text-xs font-mono font-medium transition-all relative ${
               activeTab === "private"
-                ? "text-cyan-400"
+                ? "text-zinc-300"
                 : "text-zinc-400 hover:text-zinc-300"
             }`}
           >
-            Private vs Public
+            PRIVATE VS PUBLIC
             {activeTab === "private" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: '#2b2b30' }}></div>
             )}
           </button>
           <button
             onClick={() => setActiveTab("risks")}
-            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+            className={`px-4 py-2 text-xs font-mono font-medium transition-all relative ${
               activeTab === "risks"
-                ? "text-cyan-400"
+                ? "text-zinc-300"
                 : "text-zinc-400 hover:text-zinc-300"
             }`}
           >
-            Risks & Best Practices
+            RISKS & BEST PRACTICES
             {activeTab === "risks" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: '#2b2b30' }}></div>
             )}
           </button>
           <button
             onClick={() => setActiveTab("faq")}
-            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+            className={`px-4 py-2 text-xs font-mono font-medium transition-all relative ${
               activeTab === "faq"
-                ? "text-cyan-400"
+                ? "text-zinc-300"
                 : "text-zinc-400 hover:text-zinc-300"
             }`}
           >
             FAQ
             {activeTab === "faq" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: '#2b2b30' }}></div>
             )}
           </button>
         </div>
@@ -168,9 +221,9 @@ export default function HowItWorksPage() {
       {/* Overview Tab */}
       {activeTab === "overview" && (
         <>
-      <Card className="mb-6 border-cyan-900/30 bg-gradient-to-br from-cyan-950/10 to-violet-950/10">
+      <Card className="mb-6">
         <div className="flex items-start gap-3 mb-4">
-          <FileText className="w-6 h-6 text-cyan-400 mt-1" />
+          <FileText className="w-6 h-6 text-zinc-300 mt-1" />
           <h2 className="text-2xl font-bold">Overview</h2>
         </div>
         <p className="text-zinc-300 leading-relaxed mb-4">
@@ -178,8 +231,8 @@ export default function HowItWorksPage() {
           through a fully decentralized escrow system. Both buyers and sellers lock collateral on-chain 
           to ensure mutual trust and accountability.
         </p>
-        <div className="bg-cyan-950/30 border border-cyan-800/50 rounded-lg p-4">
-          <p className="text-sm text-cyan-300">
+        <div className="border rounded-lg p-4" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+          <p className="text-sm text-zinc-300">
             <strong>Key Innovation:</strong> Unlike traditional OTC desks, otcX requires both parties 
             to lock funds in a smart contract, creating economic incentives for honest behavior.
           </p>
@@ -189,18 +242,18 @@ export default function HowItWorksPage() {
       {/* Asset Types */}
       <Card className="mb-6">
         <div className="flex items-start gap-3 mb-4">
-          <Coins className="w-6 h-6 text-violet-400 mt-1" />
+          <Coins className="w-6 h-6 text-zinc-300 mt-1" />
           <h2 className="text-2xl font-bold">Asset Types</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Tokens */}
-          <div className="bg-blue-950/30 border border-blue-800/50 rounded-lg p-4">
+          <div className="border rounded-lg p-4" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             <div className="flex items-center gap-2 mb-3">
-              <Badge className="bg-blue-600">Tokens</Badge>
-              <Zap className="w-4 h-4 text-blue-400" />
+              <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/50">Tokens</Badge>
+              <Zap className="w-4 h-4 text-zinc-300" />
             </div>
-            <h3 className="text-lg font-semibold mb-2 text-blue-400">On-Chain Settlement</h3>
+            <h3 className="text-lg font-semibold mb-2 text-zinc-100">On-Chain Settlement</h3>
             <p className="text-sm text-zinc-400 mb-3">
               For projects with confirmed TGE token contracts, settlement happens automatically on-chain.
             </p>
@@ -225,12 +278,12 @@ export default function HowItWorksPage() {
           </div>
 
           {/* Points */}
-          <div className="bg-purple-950/30 border border-purple-800/50 rounded-lg p-4">
+          <div className="border rounded-lg p-4" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             <div className="flex items-center gap-2 mb-3">
-              <Badge className="bg-purple-600">Points</Badge>
-              <Users className="w-4 h-4 text-purple-400" />
+              <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/50">Points</Badge>
+              <Users className="w-4 h-4 text-zinc-300" />
             </div>
-            <h3 className="text-lg font-semibold mb-2 text-purple-400">Proof-Based Settlement</h3>
+            <h3 className="text-lg font-semibold mb-2 text-zinc-100">Proof-Based Settlement</h3>
             <p className="text-sm text-zinc-400 mb-3">
               For off-chain points (loyalty, rewards), seller submits proof for admin verification.
             </p>
@@ -263,7 +316,7 @@ export default function HowItWorksPage() {
         <>
       <Card className="mb-6">
         <div className="flex items-start gap-3 mb-4">
-          <Zap className="w-6 h-6 text-cyan-400 mt-1" />
+          <Zap className="w-6 h-6 text-zinc-300 mt-1" />
           <h2 className="text-2xl font-bold">The Process</h2>
         </div>
         
@@ -271,7 +324,7 @@ export default function HowItWorksPage() {
           {/* Step 1 */}
           <div className="flex gap-4">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-cyan-600 to-violet-600 rounded-lg flex items-center justify-center font-bold text-sm">
+              <div className="w-8 h-8 rounded border flex items-center justify-center font-bold text-sm text-zinc-300" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 1
               </div>
             </div>
@@ -287,7 +340,7 @@ export default function HowItWorksPage() {
           {/* Step 2 */}
           <div className="flex gap-4">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-cyan-600 to-violet-600 rounded-lg flex items-center justify-center font-bold text-sm">
+              <div className="w-8 h-8 rounded border flex items-center justify-center font-bold text-sm text-zinc-300" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 2
               </div>
             </div>
@@ -302,8 +355,8 @@ export default function HowItWorksPage() {
                   <span className="text-zinc-400"><strong className="text-red-400">Seller:</strong> Locks collateral equal to trade value in USDC</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-1 h-1 bg-green-400 rounded-full"></div>
-                  <span className="text-zinc-400"><strong className="text-green-400">Buyer:</strong> Locks the full purchase price in USDC</span>
+                  <div className="w-1 h-1 bg-zinc-400 rounded-full"></div>
+                  <span className="text-zinc-400"><strong className="text-zinc-100">Buyer:</strong> Locks the full purchase price in USDC</span>
                 </div>
               </div>
             </div>
@@ -312,7 +365,7 @@ export default function HowItWorksPage() {
           {/* Step 3 */}
           <div className="flex gap-4">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-cyan-600 to-violet-600 rounded-lg flex items-center justify-center font-bold text-sm">
+              <div className="w-8 h-8 rounded border flex items-center justify-center font-bold text-sm text-zinc-300" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 3
               </div>
             </div>
@@ -322,17 +375,17 @@ export default function HowItWorksPage() {
                 Depending on asset type:
               </p>
               <div className="space-y-2">
-                <div className="bg-blue-950/30 border border-blue-800/50 rounded-lg p-3">
+                <div className="border rounded-lg p-3" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                   <div className="flex items-center gap-2 mb-1">
-                    <Badge className="bg-blue-600 text-[10px]">Tokens</Badge>
+                    <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/50 text-[10px]">Tokens</Badge>
                   </div>
                   <p className="text-xs text-zinc-400">
                     Seller deposits actual tokens to smart contract during TGE window. Buyer claims tokens directly from contract.
                   </p>
                 </div>
-                <div className="bg-purple-950/30 border border-purple-800/50 rounded-lg p-3">
+                <div className="border rounded-lg p-3" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                   <div className="flex items-center gap-2 mb-1">
-                    <Badge className="bg-purple-600 text-[10px]">Points</Badge>
+                    <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/50 text-[10px]">Points</Badge>
                   </div>
                   <p className="text-xs text-zinc-400">
                     Seller transfers points off-chain (via platform UI), then submits proof (screenshot, tx hash) for admin verification.
@@ -345,7 +398,7 @@ export default function HowItWorksPage() {
           {/* Step 4 */}
           <div className="flex gap-4">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-cyan-600 to-violet-600 rounded-lg flex items-center justify-center font-bold text-sm">
+              <div className="w-8 h-8 rounded border flex items-center justify-center font-bold text-sm text-zinc-300" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 4
               </div>
             </div>
@@ -372,8 +425,8 @@ export default function HowItWorksPage() {
                   <span className="text-zinc-400">Trade complete ✓</span>
                 </div>
               </div>
-              <div className="mt-3 p-2 bg-cyan-950/20 border border-cyan-800/30 rounded-lg">
-                <p className="text-xs text-cyan-300">
+              <div className="mt-3 p-2 border rounded-lg" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+                <p className="text-xs text-zinc-300">
                   💡 <strong>Fee Split:</strong> The 0.5% settlement fee is applied to both sides - buyer pays 0.5% in stablecoins, seller pays 0.5% in project tokens.
                 </p>
               </div>
@@ -384,7 +437,7 @@ export default function HowItWorksPage() {
 
       <Card className="mb-6">
         <div className="flex items-start gap-3 mb-4">
-          <Shield className="w-6 h-6 text-cyan-400 mt-1" />
+          <Shield className="w-6 h-6 text-zinc-300 mt-1" />
           <h2 className="text-2xl font-bold">Default Protection</h2>
         </div>
         <p className="text-zinc-300 mb-4 text-sm">
@@ -400,16 +453,16 @@ export default function HowItWorksPage() {
             </p>
           </div>
 
-          <div className="bg-orange-950/30 border border-orange-800/50 rounded-lg p-4">
-            <h3 className="text-base font-semibold mb-2 text-orange-400">Seller Defaults (Tokens)</h3>
+          <div className="border rounded-lg p-4" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+            <h3 className="text-base font-semibold mb-2 text-zinc-100">Seller Defaults (Tokens)</h3>
             <p className="text-sm text-zinc-400">
               If TGE deadline expires without seller depositing tokens, buyer can claim seller&apos;s collateral (2x their payment back).
             </p>
           </div>
         </div>
 
-        <div className="mt-4 bg-cyan-950/30 border border-cyan-800/50 rounded-lg p-4">
-          <p className="text-sm text-cyan-300">
+        <div className="mt-4 border rounded-lg p-4" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+          <p className="text-sm text-zinc-300">
             <strong>⚖️ Economic Incentive:</strong> Since both parties have &ldquo;skin in the game,&rdquo; it&apos;s economically 
             irrational to default. Honest behavior is always more profitable than scamming.
           </p>
@@ -421,22 +474,22 @@ export default function HowItWorksPage() {
       {/* Private vs Public Tab */}
       {activeTab === "private" && (
         <>
-      <Card className="mb-6 border-purple-900/30 bg-gradient-to-br from-purple-950/10 to-cyan-950/10">
+      <Card className="mb-6">
         <div className="flex items-start gap-3 mb-4">
-          <Lock className="w-6 h-6 text-purple-400 mt-1" />
+          <Lock className="w-6 h-6 text-zinc-300 mt-1" />
           <h2 className="text-2xl font-bold">Private vs Public Orders</h2>
         </div>
         <p className="text-zinc-300 leading-relaxed mb-6">
-          otcX offers two types of orders: <strong className="text-purple-400">Private Orders</strong> and <strong className="text-cyan-400">Public Orders</strong>. 
+          otcX offers two types of orders: <strong className="text-zinc-100">Private Orders</strong> and <strong className="text-zinc-100">Public Orders</strong>. 
           Each serves different use cases and provides different levels of visibility and control.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Public Orders */}
-          <div className="bg-cyan-950/30 border border-cyan-800/50 rounded-lg p-5">
+          <div className="border rounded-lg p-5" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             <div className="flex items-center gap-2 mb-4">
-              <Globe className="w-5 h-5 text-cyan-400" />
-              <h3 className="text-xl font-semibold text-cyan-400">Public Orders</h3>
+              <Globe className="w-5 h-5 text-zinc-300" />
+              <h3 className="text-xl font-semibold text-zinc-100">Public Orders</h3>
             </div>
             
             <p className="text-sm text-zinc-400 mb-4">
@@ -477,18 +530,18 @@ export default function HowItWorksPage() {
               </div>
             </div>
 
-            <div className="mt-4 p-3 bg-cyan-950/50 border border-cyan-800/30 rounded-lg">
-              <p className="text-xs text-cyan-300">
+            <div className="mt-4 p-3 border rounded-lg" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+              <p className="text-xs text-zinc-300">
                 <strong>Best for:</strong> Traders looking for quick fills, market makers, and anyone comfortable with public visibility
               </p>
             </div>
           </div>
 
           {/* Private Orders */}
-          <div className="bg-purple-950/30 border border-purple-800/50 rounded-lg p-5">
+          <div className="border rounded-lg p-5" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             <div className="flex items-center gap-2 mb-4">
-              <Lock className="w-5 h-5 text-purple-400" />
-              <h3 className="text-xl font-semibold text-purple-400">Private Orders</h3>
+              <Lock className="w-5 h-5 text-zinc-300" />
+              <h3 className="text-xl font-semibold text-zinc-100">Private Orders</h3>
             </div>
             
             <p className="text-sm text-zinc-400 mb-4">
@@ -529,8 +582,8 @@ export default function HowItWorksPage() {
               </div>
             </div>
 
-            <div className="mt-4 p-3 bg-purple-950/50 border border-purple-800/30 rounded-lg">
-              <p className="text-xs text-purple-300">
+            <div className="mt-4 p-3 border rounded-lg" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+              <p className="text-xs text-zinc-300">
                 <strong>Best for:</strong> OTC deals, pre-negotiated trades, privacy-conscious users, and specific counterparty agreements
               </p>
             </div>
@@ -541,7 +594,7 @@ export default function HowItWorksPage() {
       {/* How Private Orders Work */}
       <Card className="mb-6">
         <div className="flex items-start gap-3 mb-4">
-          <Zap className="w-6 h-6 text-purple-400 mt-1" />
+          <Zap className="w-6 h-6 text-zinc-300 mt-1" />
           <h2 className="text-2xl font-bold">How Private Orders Work</h2>
         </div>
         
@@ -549,14 +602,14 @@ export default function HowItWorksPage() {
           {/* Step 1 */}
           <div className="flex gap-4">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-cyan-600 rounded-lg flex items-center justify-center font-bold text-sm">
+              <div className="w-8 h-8 rounded border flex items-center justify-center font-bold text-sm text-zinc-300" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 1
               </div>
             </div>
             <div className="flex-1">
               <h3 className="text-base font-semibold mb-2">Create Private Order</h3>
               <p className="text-zinc-400 text-sm">
-                Navigate to the <strong className="text-purple-400">Private Orders</strong> page, select your project, 
+                Navigate to the <strong className="text-zinc-100">Private Orders</strong> page, select your project, 
                 enter the order details, and specify the wallet address of your intended counterparty.
               </p>
             </div>
@@ -565,7 +618,7 @@ export default function HowItWorksPage() {
           {/* Step 2 */}
           <div className="flex gap-4">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-cyan-600 rounded-lg flex items-center justify-center font-bold text-sm">
+              <div className="w-8 h-8 rounded border flex items-center justify-center font-bold text-sm text-zinc-300" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 2
               </div>
             </div>
@@ -576,15 +629,15 @@ export default function HowItWorksPage() {
               </p>
               <div className="space-y-1 text-sm ml-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-1 h-1 bg-purple-400 rounded-full"></div>
+                  <div className="w-1 h-1 bg-zinc-400 rounded-full"></div>
                   <span className="text-zinc-400">Telegram, Discord, or other messaging apps</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-1 h-1 bg-purple-400 rounded-full"></div>
+                  <div className="w-1 h-1 bg-zinc-400 rounded-full"></div>
                   <span className="text-zinc-400">Email (though less secure)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-1 h-1 bg-purple-400 rounded-full"></div>
+                  <div className="w-1 h-1 bg-zinc-400 rounded-full"></div>
                   <span className="text-zinc-400">Any secure communication channel</span>
                 </div>
               </div>
@@ -594,7 +647,7 @@ export default function HowItWorksPage() {
           {/* Step 3 */}
           <div className="flex gap-4">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-cyan-600 rounded-lg flex items-center justify-center font-bold text-sm">
+              <div className="w-8 h-8 rounded border flex items-center justify-center font-bold text-sm text-zinc-300" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 3
               </div>
             </div>
@@ -610,7 +663,7 @@ export default function HowItWorksPage() {
           {/* Step 4 */}
           <div className="flex gap-4">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-cyan-600 rounded-lg flex items-center justify-center font-bold text-sm">
+              <div className="w-8 h-8 rounded border flex items-center justify-center font-bold text-sm text-zinc-300" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 4
               </div>
             </div>
@@ -628,7 +681,7 @@ export default function HowItWorksPage() {
       {/* Key Differences */}
       <Card className="mb-6">
         <div className="flex items-start gap-3 mb-4">
-          <Shield className="w-6 h-6 text-cyan-400 mt-1" />
+          <Shield className="w-6 h-6 text-zinc-300 mt-1" />
           <h2 className="text-2xl font-bold">Key Differences</h2>
         </div>
         
@@ -637,8 +690,8 @@ export default function HowItWorksPage() {
             <thead>
               <tr className="border-b border-zinc-800">
                 <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Feature</th>
-                <th className="text-left py-3 px-4 text-cyan-400 font-semibold">Public Orders</th>
-                <th className="text-left py-3 px-4 text-purple-400 font-semibold">Private Orders</th>
+                <th className="text-left py-3 px-4 text-zinc-100 font-semibold">Public Orders</th>
+                <th className="text-left py-3 px-4 text-zinc-100 font-semibold">Private Orders</th>
               </tr>
             </thead>
             <tbody>
@@ -816,7 +869,7 @@ export default function HowItWorksPage() {
         <>
       <Card className="mb-6">
         <div className="flex items-start gap-3 mb-4">
-          <HelpCircle className="w-6 h-6 text-cyan-400 mt-1" />
+          <HelpCircle className="w-6 h-6 text-zinc-300 mt-1" />
           <h2 className="text-2xl font-bold">Frequently Asked Questions</h2>
         </div>
         
@@ -859,12 +912,12 @@ export default function HowItWorksPage() {
             </p>
             <ul className="space-y-1 text-xs text-zinc-400 ml-4">
               <li className="flex items-start gap-2">
-                <div className="w-1 h-1 bg-cyan-400 rounded-full mt-1.5"></div>
-                <span><strong className="text-cyan-400">Settlement Fee:</strong> Currently {settlementFee}% from both buyer and seller when the trade settles</span>
+                <div className="w-1 h-1 bg-zinc-400 rounded-full mt-1.5"></div>
+                <span><strong className="text-zinc-100">Settlement Fee:</strong> Currently {settlementFee}% from both buyer and seller when the trade settles</span>
               </li>
               <li className="flex items-start gap-2">
-                <div className="w-1 h-1 bg-orange-400 rounded-full mt-1.5"></div>
-                <span><strong className="text-orange-400">Cancellation Fee:</strong> Currently {cancellationFee}% if you cancel an order (discourages spam)</span>
+                <div className="w-1 h-1 bg-zinc-400 rounded-full mt-1.5"></div>
+                <span><strong className="text-zinc-100">Cancellation Fee:</strong> Currently {cancellationFee}% if you cancel an order (discourages spam)</span>
               </li>
               <li className="flex items-start gap-2">
                 <div className="w-1 h-1 bg-zinc-500 rounded-full mt-1.5"></div>
@@ -931,6 +984,7 @@ export default function HowItWorksPage() {
           USE AT YOUR OWN RISK. DO YOUR OWN RESEARCH.
         </p>
       </Card>
+      </div>
     </div>
   );
 }

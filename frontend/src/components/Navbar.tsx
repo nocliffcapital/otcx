@@ -8,7 +8,7 @@ import { BalanceDisplay } from "./BalanceDisplay";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, STABLE_ADDRESS, MOCK_TOKEN_ADDRESS, ERC20_ABI } from "@/lib/contracts";
 import { useState, useRef } from "react";
-import { ChevronDown, Settings, Menu, X, Lock, LayoutDashboard, Calculator, BookOpen, Lightbulb, FileText } from "lucide-react";
+import { ChevronDown, Settings, Menu, X, Lock, LayoutDashboard, Percent, BookOpen, Lightbulb, FileText } from "lucide-react";
 import { parseUnits } from "viem";
 
 export function Navbar() {
@@ -78,7 +78,7 @@ export function Navbar() {
   const isOwner = isConnected && address && owner && address.toLowerCase() === (owner as string).toLowerCase();
   
   return (
-    <nav className="border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-50 shadow-lg">
+    <nav className="border-b backdrop-blur-xl sticky top-0 z-50 shadow-lg" style={{ borderColor: '#2b2b30', backgroundColor: '#121218' }}>
       <div className="mx-auto max-w-7xl px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-8">
@@ -88,36 +88,36 @@ export function Navbar() {
             <div className="hidden md:flex items-center gap-2">
               <Link 
                 href="/private-order" 
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                className={`px-4 py-2 rounded text-xs font-mono font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/private-order' 
                     ? 'text-white' 
                     : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
                 <Lock className="w-4 h-4" />
-                Private
+                PRIVATE
               </Link>
               <Link 
                 href="/dashboard" 
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                className={`px-4 py-2 rounded text-xs font-mono font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/dashboard' 
                     ? 'text-white' 
                     : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
                 <LayoutDashboard className="w-4 h-4" />
-                Dashboard
+                DASHBOARD
               </Link>
               <Link 
                 href="/calculator" 
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                className={`px-4 py-2 rounded text-xs font-mono font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/calculator' 
                     ? 'text-white' 
                     : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
-                <Calculator className="w-4 h-4" />
-                Calculator
+                <Percent className="w-4 h-4" />
+                CALCULATOR
               </Link>
               
               {/* Resources dropdown */}
@@ -127,32 +127,39 @@ export function Navbar() {
                 onMouseLeave={handleMouseLeave}
               >
                 <button 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  className={`px-4 py-2 rounded text-xs font-mono font-medium transition-colors flex items-center gap-1.5 ${
                     pathname === '/how-it-works' || pathname === '/docs'
                       ? 'text-white' 
                       : 'text-zinc-400 hover:text-zinc-100'
                   }`}
                 >
                   <BookOpen className="w-4 h-4" />
-                  Resources
+                  RESOURCES
                   <ChevronDown className="w-4 h-4" />
                 </button>
                 
                 {showResourcesDropdown && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl overflow-hidden z-50">
+                  <div className="absolute top-full left-0 mt-2 w-48 rounded shadow-xl overflow-hidden z-50" style={{ backgroundColor: '#121218', border: '1px solid #2b2b30' }}>
                     <Link 
                       href="/how-it-works"
-                      className="flex items-center gap-2 px-4 py-3 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all"
+                      className="flex items-center gap-2 px-4 py-3 text-xs font-mono text-zinc-400 hover:text-zinc-100 transition-all"
+                      style={{ 
+                        borderBottom: '1px solid #2b2b30'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2b2b30'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <Lightbulb className="w-4 h-4" />
-                      How It Works
+                      HOW IT WORKS
                     </Link>
                     <Link 
                       href="/docs"
-                      className="flex items-center gap-2 px-4 py-3 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all border-t border-zinc-800"
+                      className="flex items-center gap-2 px-4 py-3 text-xs font-mono text-zinc-400 hover:text-zinc-100 transition-all"
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2b2b30'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <FileText className="w-4 h-4" />
-                      Docs
+                      DOCS
                     </Link>
                   </div>
                 )}
@@ -162,14 +169,14 @@ export function Navbar() {
               {isOwner && (
                 <Link 
                   href="/admin" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                  className={`px-4 py-2 rounded text-xs font-mono font-medium transition-colors flex items-center gap-2 ${
                     pathname === '/admin' 
                       ? 'text-white' 
                       : 'text-zinc-400 hover:text-zinc-100'
                   }`}
                 >
                   <Settings className="w-4 h-4" />
-                  Admin
+                  ADMIN
                 </Link>
               )}
             </div>
@@ -209,13 +216,14 @@ export function Navbar() {
                   {(() => {
                     if (!connected) {
                       return (
-                        <button
-                          onClick={openConnectModal}
-                          type="button"
-                          className="px-4 py-1.5 text-sm bg-cyan-600 hover:bg-cyan-700 text-white font-medium rounded-lg border border-cyan-500/50 transition-all"
-                        >
-                          Connect Wallet
-                        </button>
+                  <button
+                    onClick={openConnectModal}
+                    type="button"
+                    className="px-4 py-1.5 text-sm text-white font-medium rounded border transition-all font-mono h-[38px]"
+                    style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
+                  >
+                    CONNECT WALLET
+                  </button>
                       );
                     }
 
@@ -224,9 +232,10 @@ export function Navbar() {
                         <button
                           onClick={openChainModal}
                           type="button"
-                          className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg border border-zinc-800 transition-all"
+                          className="px-6 py-1.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded border transition-all font-mono h-[38px]"
+                          style={{ borderColor: '#2b2b30' }}
                         >
-                          Wrong network
+                          WRONG NETWORK
                         </button>
                       );
                     }
@@ -257,7 +266,10 @@ export function Navbar() {
                         <button
                           onClick={openChainModal}
                           type="button"
-                          className="px-4 py-2 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-100 font-medium rounded-lg border border-zinc-700 transition-all flex items-center gap-2 text-sm"
+                          className="px-4 py-1.5 text-zinc-300 font-medium rounded border transition-all flex items-center gap-2 text-sm font-mono hover:text-white h-[38px]"
+                          style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2b2b30'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#121218'}
                         >
                           {chain.hasIcon && (
                             <div
@@ -284,7 +296,10 @@ export function Navbar() {
                         <button
                           onClick={openAccountModal}
                           type="button"
-                          className="px-4 py-2 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-100 font-medium rounded-lg border border-zinc-700 transition-all text-sm"
+                          className="px-4 py-1.5 text-zinc-300 font-medium rounded border transition-all text-sm font-mono hover:text-white h-[38px]"
+                          style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2b2b30'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#121218'}
                         >
                           {account.displayName}
                         </button>
@@ -308,13 +323,14 @@ export function Navbar() {
               const ready = mounted && authenticationStatus !== 'loading';
               
               return (
-                <button
-                  onClick={openConnectModal}
-                  type="button"
-                  className="px-3 py-1.5 text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-medium rounded-lg border border-cyan-500/50 transition-all"
-                >
-                  Connect
-                </button>
+              <button
+                onClick={openConnectModal}
+                type="button"
+                className="px-3 py-1.5 text-xs text-white font-medium rounded border transition-all font-mono h-[38px]"
+                style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
+              >
+                CONNECT
+              </button>
               );
             }}
             </ConnectButton.Custom>
@@ -330,76 +346,76 @@ export function Navbar() {
         
         {/* Mobile menu */}
         {showMobileMenu && (
-          <div className="md:hidden mt-4 pb-4 border-t border-zinc-800/50 pt-4">
+          <div className="md:hidden mt-4 pb-4 border-t pt-4" style={{ borderColor: '#2b2b30' }}>
             <div className="flex flex-col gap-2">
               <Link 
                 href="/private-order" 
                 onClick={() => setShowMobileMenu(false)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                className={`px-4 py-2 rounded text-xs font-mono font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/private-order' 
                     ? 'text-white' 
                     : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
                 <Lock className="w-4 h-4" />
-                Private Order
+                PRIVATE ORDER
               </Link>
               <Link 
                 href="/dashboard" 
                 onClick={() => setShowMobileMenu(false)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                className={`px-4 py-2 rounded text-xs font-mono font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/dashboard' 
                     ? 'text-white' 
                     : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
                 <LayoutDashboard className="w-4 h-4" />
-                Dashboard
+                DASHBOARD
               </Link>
               <Link 
                 href="/calculator" 
                 onClick={() => setShowMobileMenu(false)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                className={`px-4 py-2 rounded text-xs font-mono font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/calculator' 
                     ? 'text-white' 
                     : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
-                <Calculator className="w-4 h-4" />
-                Calculator
+                <Percent className="w-4 h-4" />
+                CALCULATOR
               </Link>
               <Link 
                 href="/how-it-works" 
                 onClick={() => setShowMobileMenu(false)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                className={`px-4 py-2 rounded text-xs font-mono font-medium transition-colors flex items-center gap-2 ${
                   pathname === '/how-it-works' 
                     ? 'text-white' 
                     : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
                 <Lightbulb className="w-4 h-4" />
-                How It Works
+                HOW IT WORKS
               </Link>
               <Link 
                 href="/docs" 
                 onClick={() => setShowMobileMenu(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors text-zinc-400 hover:text-zinc-100 flex items-center gap-2"
+                className="px-4 py-2 rounded text-xs font-mono font-medium transition-colors text-zinc-400 hover:text-zinc-100 flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" />
-                Docs
+                DOCS
               </Link>
               {isOwner && (
                 <Link 
                   href="/admin" 
                   onClick={() => setShowMobileMenu(false)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                  className={`px-4 py-2 rounded text-xs font-mono font-medium transition-colors flex items-center gap-2 ${
                     pathname === '/admin' 
                       ? 'text-white' 
                       : 'text-zinc-400 hover:text-zinc-100'
                   }`}
                 >
                   <Settings className="w-4 h-4" />
-                  Admin
+                  ADMIN
                 </Link>
               )}
             </div>

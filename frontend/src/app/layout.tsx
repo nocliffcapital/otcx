@@ -28,9 +28,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
         
         {/* Favicons */}
-        <link rel="icon" type="image/png" sizes="32x32" href="https://dweb.link/ipfs/bafkreibkhmzwv2yt5vbyvf4ptl4fc44hte2hmumjaap6oo55l65xquvxre" />
-        <link rel="icon" type="image/png" sizes="16x16" href="https://dweb.link/ipfs/bafkreibkhmzwv2yt5vbyvf4ptl4fc44hte2hmumjaap6oo55l65xquvxre" />
-        <link rel="shortcut icon" href="https://dweb.link/ipfs/bafkreibkhmzwv2yt5vbyvf4ptl4fc44hte2hmumjaap6oo55l65xquvxre" />
+        <link rel="icon" type="image/png" sizes="32x32" href="https://dweb.link/ipfs/bafkreigl53kuhbw5tvj5emburifd7fkgzj5ibzqgv3xh67oervnmp3qnx4" />
+        <link rel="icon" type="image/png" sizes="16x16" href="https://dweb.link/ipfs/bafkreigl53kuhbw5tvj5emburifd7fkgzj5ibzqgv3xh67oervnmp3qnx4" />
+        <link rel="shortcut icon" href="https://dweb.link/ipfs/bafkreigl53kuhbw5tvj5emburifd7fkgzj5ibzqgv3xh67oervnmp3qnx4" />
         
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         
@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta property="og:url" content="https://otcx.trade" />
         <meta property="og:title" content="otcX - Decentralized OTC Marketplace" />
         <meta property="og:description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
-        <meta property="og:image" content="https://dweb.link/ipfs/bafkreial2uizk25jdkkmjwftasl7wmqwkfiyicqwpjngqjlrinvbqbxrzu" />
+        <meta property="og:image" content="https://dweb.link/ipfs/bafkreigl53kuhbw5tvj5emburifd7fkgzj5ibzqgv3xh67oervnmp3qnx4" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="otcX - Decentralized OTC Trading Platform" />
@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="twitter:url" content="https://otcx.trade" />
         <meta name="twitter:title" content="otcX - Decentralized OTC Marketplace" />
         <meta name="twitter:description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
-        <meta name="twitter:image" content="https://dweb.link/ipfs/bafkreial2uizk25jdkkmjwftasl7wmqwkfiyicqwpjngqjlrinvbqbxrzu" />
+        <meta name="twitter:image" content="https://dweb.link/ipfs/bafkreigl53kuhbw5tvj5emburifd7fkgzj5ibzqgv3xh67oervnmp3qnx4" />
         <meta name="twitter:image:alt" content="otcX - Decentralized OTC Trading Platform" />
       </head>
       <body className={`min-h-screen bg-gradient-to-b from-zinc-950 to-black text-zinc-100 ${spaceGrotesk.variable} font-sans relative`}>
@@ -59,6 +59,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         
         {/* Cursor spotlight effect */}
         <CursorSpotlight />
+        
+        {/* Global SVG gradient for icons */}
+        <svg width="0" height="0" style={{ position: 'absolute' }}>
+          <defs>
+            <linearGradient id="icon-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style={{ stopColor: '#22d3ee' }} />
+              <stop offset="100%" style={{ stopColor: '#a78bfa' }} />
+            </linearGradient>
+          </defs>
+        </svg>
         
         <div className="relative z-10 pb-20">
           <WagmiProvider config={wagmiConfig}>

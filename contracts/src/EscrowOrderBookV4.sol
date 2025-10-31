@@ -5,7 +5,6 @@ import {IERC20} from "./interfaces/IERC20.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {ReentrancyGuard} from "solady/utils/ReentrancyGuard.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @notice Minimal interface for ProjectRegistryV2
@@ -37,7 +36,6 @@ interface IProjectRegistry {
  */
 contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     using SafeTransferLib for address;
-    using EnumerableSet for EnumerableSet.AddressSet;
     
     // ========== TYPES ==========
     
@@ -72,7 +70,10 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     uint8 public immutable stableDecimals;
     address public immutable feeCollector;
     IProjectRegistry public immutable registry;
-    uint256 public immutable MAX_ORDER_VALUE;               // 1M in stable decimals
+    uint256 public immutable maxOrderValue;                 // 1M in stable decimals
+    
+    // Mutable limits
+    uint256 public minOrderValue;                           // Default $100 in stable decimals
     
     // Fee Configuration (adjustable by owner)
     uint64 public settlementFeeBps = 50;        // 0.5% commission fee (split between stable + token)
@@ -90,9 +91,6 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     uint256 public nextId = 1;
     mapping(uint256 => Order) public orders;
     bool public paused;
-    
-    // Collateral whitelist (future: support USDC + USDT)
-    EnumerableSet.AddressSet private _approvedCollateral;
     
     // Project-level TGE management (V4: no per-order tracking!)
     mapping(bytes32 => bool) public projectTgeActivated;
@@ -125,8 +123,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     event SettlementFeeUpdated(uint64 oldRate, uint64 newRate);
     event CancellationFeeUpdated(uint64 oldRate, uint64 newRate);
     event ConversionRatioUpdated(bytes32 indexed projectId, uint256 oldRatio, uint256 newRatio);
-    event CollateralApproved(address indexed token, uint8 decimals);
-    event CollateralRemoved(address indexed token);
+    event MinOrderValueUpdated(uint256 oldValue, uint256 newValue);
     event Paused(address indexed account);
     event Unpaused(address indexed account);
 
@@ -148,9 +145,8 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     error TransferFailed();
     error ExceedsMaxValue();
     error FeeTooHigh();
-    error CollateralNotApproved();
-    error CollateralAlreadyApproved();
     error GracePeriodExpired();
+    error OrderValueTooLow();
 
     // ========== MODIFIERS ==========
     
@@ -173,10 +169,8 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         stableDecimals = IERC20(stableToken).decimals();
         feeCollector = _feeCollector;
         registry = IProjectRegistry(_registry);
-        MAX_ORDER_VALUE = 1_000_000 * (10 ** stableDecimals);  // 1M in stable decimals
-        
-        // Auto-approve the deployment stable (USDC for now)
-        _approvedCollateral.add(stableToken);
+        maxOrderValue = 1_000_000 * (10 ** stableDecimals);  // 1M in stable decimals
+        minOrderValue = 100 * (10 ** stableDecimals);        // $100 minimum (prevents zero-fee dust orders)
         
         _initializeOwner(msg.sender);
     }
@@ -213,46 +207,14 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         emit CancellationFeeUpdated(oldFee, newFeeBps);
     }
 
-    /// @notice Approve a new collateral token (e.g., USDT)
-    /// @param token The collateral token address
-    function approveCollateral(address token) external onlyOwner {
-        if (token == address(0)) revert InvalidAddress();
-        if (_approvedCollateral.contains(token)) revert CollateralAlreadyApproved();
-        
-        // Validate it's a real ERC20 with code
-        if (token.code.length == 0) revert InvalidAddress();
-        
-        // Get decimals for validation
-        try IERC20(token).decimals() returns (uint8 decimals) {
-            _approvedCollateral.add(token);
-            emit CollateralApproved(token, decimals);
-        } catch {
-            revert InvalidAddress();
-        }
-    }
-
-    /// @notice Remove a collateral token from whitelist
-    /// @param token The collateral token address
-    /// @dev Does not affect existing orders, only prevents new orders
-    function removeCollateral(address token) external onlyOwner {
-        if (!_approvedCollateral.contains(token)) revert CollateralNotApproved();
-        if (token == address(stable)) revert InvalidAddress();  // Can't remove primary stable
-        
-        _approvedCollateral.remove(token);
-        emit CollateralRemoved(token);
-    }
-
-    /// @notice Get list of all approved collateral tokens
-    /// @return List of approved collateral addresses
-    function getApprovedCollateral() external view returns (address[] memory) {
-        return _approvedCollateral.values();
-    }
-    
-    /// @notice Check if a collateral token is approved
-    /// @param token The collateral token address
-    /// @return True if approved, false otherwise
-    function isCollateralApproved(address token) external view returns (bool) {
-        return _approvedCollateral.contains(token);
+    /// @notice Update the minimum order value
+    /// @param newMinValue New minimum order value in stable decimals (e.g., 100 * 1e6 for $100 USDC)
+    function setMinOrderValue(uint256 newMinValue) external onlyOwner {
+        if (newMinValue == 0) revert InvalidAmount();
+        if (newMinValue > maxOrderValue) revert InvalidAmount();
+        uint256 oldValue = minOrderValue;
+        minOrderValue = newMinValue;
+        emit MinOrderValueUpdated(oldValue, newMinValue);
     }
 
     /// @notice Activate TGE for a project (V4: project-level activation)
@@ -407,12 +369,10 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         // Validate project exists and is active in Registry
         if (!registry.isActive(projectId)) revert InvalidProject();
         
-        // Validate collateral is whitelisted (currently USDC, can add USDT later)
-        if (!_approvedCollateral.contains(address(stable))) revert CollateralNotApproved();
-        
         // Calculate values
         uint256 totalValue = (amount * unitPrice) / 1e18;
-        if (totalValue > MAX_ORDER_VALUE) revert ExceedsMaxValue();
+        if (totalValue > maxOrderValue) revert ExceedsMaxValue();
+        if (totalValue < minOrderValue) revert OrderValueTooLow();
         
         // Collateral requirement
         uint256 collateral = totalValue;  // Both parties: 100% collateral

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { Calculator, TrendingUp, Users, Coins, Percent, AlertCircle } from "lucide-react";
+import { Percent, TrendingUp, Users, Coins, Calculator, AlertCircle, Terminal, Database, Cpu } from "lucide-react";
+import { useBlockNumber, useReadContract } from "wagmi";
+import { ORDERBOOK_ADDRESS } from "@/lib/contracts";
 
 // Slider component with proper state management
 function SliderComponent({ 
@@ -68,7 +70,7 @@ function SliderComponent({
   
   if (isBreakEven) {
     barBgColor = "bg-zinc-800/50";
-    textColor = "text-cyan-400";
+    textColor = "text-zinc-300";
   } else if (isProfit) {
     barBgColor = "bg-green-900/30";
     textColor = "text-green-400";
@@ -80,7 +82,7 @@ function SliderComponent({
   return (
     <>
       {/* Main display bar */}
-      <div className={`relative h-24 rounded-lg border ${isBreakEven ? 'border-cyan-500/50 ring-2 ring-cyan-500/20' : isProfit ? 'border-green-800/30' : 'border-red-800/30'} ${barBgColor} backdrop-blur-sm mb-6 overflow-hidden`}>
+      <div className={`relative h-24 rounded-lg border ${isBreakEven ? 'border-[#2b2b30]' : isProfit ? 'border-green-800/30' : 'border-red-800/30'} ${barBgColor} backdrop-blur-sm mb-6 overflow-hidden`} style={{ backgroundColor: isBreakEven ? '#121218' : undefined, borderColor: isBreakEven ? '#2b2b30' : undefined }}>
         <div className="relative z-10 h-full flex items-center justify-between px-6">
           <div className="flex flex-col gap-1">
             <span className={`text-sm font-semibold ${textColor}`}>
@@ -96,8 +98,8 @@ function SliderComponent({
           <div className="text-right">
             {isBreakEven ? (
               <div className="flex flex-col items-end gap-1">
-                <span className="text-sm font-semibold text-cyan-400 bg-cyan-500/20 px-3 py-1 rounded">BREAK EVEN</span>
-                <span className="text-[10px] text-cyan-300">0%</span>
+                <span className="text-sm font-semibold text-zinc-300 px-3 py-1 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>BREAK EVEN</span>
+                <span className="text-[10px] text-zinc-400">0%</span>
               </div>
             ) : (
               <div className="flex flex-col items-end gap-1">
@@ -143,7 +145,7 @@ function SliderComponent({
               onClick={() => setSliderValue(multiplierToPosition(mark))}
               className={`text-[10px] font-medium transition-colors ${
                 Math.abs(multiplier - mark) < 0.5
-                  ? mark === 1 ? 'text-cyan-400' : mark > 1 ? 'text-green-400' : 'text-red-400'
+                  ? mark === 1 ? 'text-zinc-300' : mark > 1 ? 'text-green-400' : 'text-red-400'
                   : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
@@ -153,10 +155,10 @@ function SliderComponent({
         </div>
       </div>
 
-      <div className="mt-4 p-3 bg-blue-950/20 rounded-lg border border-blue-800/30">
-        <p className="text-xs text-blue-200/90">
+      <div className="mt-4 p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+        <p className="text-xs text-zinc-300">
           💡 <span className="font-medium">Tip:</span> Drag the slider or click the markers to explore different launch scenarios. 
-          <span className="text-cyan-400 font-semibold"> 1x</span> is your break-even point at ${formatPrice(valuePerPoint)} per point.
+          <span className="text-zinc-100 font-semibold"> 1x</span> is your break-even point at ${formatPrice(valuePerPoint)} per point.
         </p>
       </div>
     </>
@@ -164,6 +166,21 @@ function SliderComponent({
 }
 
 export default function CalculatorPage() {
+  const { data: blockNumber } = useBlockNumber({ watch: true });
+  
+  // Check if orderbook is paused
+  const { data: isOrderbookPaused } = useReadContract({
+    address: ORDERBOOK_ADDRESS as `0x${string}`,
+    abi: [{
+      name: "paused",
+      type: "function",
+      stateMutability: "view",
+      inputs: [],
+      outputs: [{ type: "bool" }],
+    }],
+    functionName: "paused",
+  });
+  
   // Input values (stored without commas for calculations)
   const [fdv, setFdv] = useState("100000000"); // $100M default
   const [airdropPercent, setAirdropPercent] = useState("10"); // 10% default
@@ -219,23 +236,50 @@ export default function CalculatorPage() {
   };
 
   return (
-    <div className="relative min-h-screen">
-      {/* Corner accents */}
-      <div className="fixed top-16 left-0 w-24 h-24 border-t-2 border-l-2 border-cyan-500/20 pointer-events-none"></div>
-      <div className="fixed top-16 right-0 w-24 h-24 border-t-2 border-r-2 border-violet-500/20 pointer-events-none"></div>
-      
+    <div className="relative min-h-screen" style={{ backgroundColor: '#06060c' }}>
       <div className="relative mx-auto max-w-7xl px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <Calculator className="w-10 h-10 text-cyan-400" />
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-              Points Calculator
-            </h1>
+        {/* Terminal-style header */}
+        <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Percent className="w-8 h-8 text-zinc-300 flex-shrink-0" />
+              <div>
+                <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/calculator</span>
+                <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                  POINTS_CALCULATOR
+                </h1>
+                <p className="text-xs text-zinc-300/70 mt-1">
+                  Valuation Estimates • FDV-Based Analysis
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 items-end">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-zinc-300">
+                  {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+                </span>
+                <Database className="w-3 h-3 text-zinc-300" />
+              </div>
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+                isOrderbookPaused 
+                  ? 'bg-red-950/30 border-red-500/50' 
+                  : 'bg-green-950/30 border-green-500/50'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
+                }`} />
+                <span className={`text-xs font-mono font-semibold ${
+                  isOrderbookPaused ? 'text-red-400' : 'text-green-400'
+                }`}>
+                  {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+                <span>BLOCK #{blockNumber?.toString() || '...'}</span>
+                <Cpu className="w-3 h-3" />
+              </div>
+            </div>
           </div>
-          <p className="text-lg text-zinc-400">
-            Estimate the value of your points based on project FDV and airdrop allocation
-          </p>
         </div>
 
         {/* Disclaimer */}
@@ -257,7 +301,7 @@ export default function CalculatorPage() {
           <div className="space-y-4">
             <Card>
               <div className="flex items-center gap-2 mb-4">
-                <Coins className="w-5 h-5 text-cyan-400" />
+                <Coins className="w-5 h-5 text-zinc-300" />
                 <h2 className="font-semibold text-lg">Project Parameters</h2>
               </div>
               
@@ -346,7 +390,7 @@ export default function CalculatorPage() {
 
             <Card>
               <div className="flex items-center gap-2 mb-4">
-                <Users className="w-5 h-5 text-violet-400" />
+                <Users className="w-5 h-5 text-zinc-300" />
                 <h2 className="font-semibold text-lg">Your Points</h2>
               </div>
               
@@ -370,17 +414,17 @@ export default function CalculatorPage() {
 
           {/* Right: Results */}
           <div className="space-y-4">
-            <Card className="border-cyan-900/30 bg-gradient-to-br from-cyan-950/20 to-violet-950/20">
+            <Card>
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-4 h-4 text-cyan-400" />
+                <TrendingUp className="w-4 h-4 text-zinc-300" />
                 <h2 className="font-semibold text-base">Valuation Results</h2>
               </div>
               
               <div className="space-y-2">
                 {/* Value per Point */}
-                <div className="p-2 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                <div className="p-2 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
                   <p className="text-[10px] text-zinc-400 mb-0.5">Value per Point</p>
-                  <p className="text-xl font-bold text-cyan-400">
+                  <p className="text-xl font-bold text-white">
                     ${formatPrice(valuePerPoint)}
                   </p>
                   <p className="text-[9px] text-zinc-500 mt-0.5">
@@ -389,9 +433,9 @@ export default function CalculatorPage() {
                 </div>
 
                 {/* Total Airdrop Value */}
-                <div className="p-2 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                <div className="p-2 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
                   <p className="text-[10px] text-zinc-400 mb-0.5">Total Airdrop Value</p>
-                  <p className="text-lg font-bold text-green-400">
+                  <p className="text-lg font-bold text-white">
                     ${totalAirdropValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
                   <p className="text-[9px] text-zinc-500 mt-0.5">
@@ -400,9 +444,9 @@ export default function CalculatorPage() {
                 </div>
 
                 {/* Airdrop to Points */}
-                <div className="p-2 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                <div className="p-2 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
                   <p className="text-[10px] text-zinc-400 mb-0.5">Value to Points Holders</p>
-                  <p className="text-lg font-bold text-violet-400">
+                  <p className="text-lg font-bold text-white">
                     ${airdropValueToPoints.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
                   <p className="text-[9px] text-zinc-500 mt-0.5">
@@ -420,7 +464,7 @@ export default function CalculatorPage() {
               
               <div className="space-y-2">
                 {/* My Airdrop Value */}
-                <div className="p-2 bg-zinc-900/50 rounded-lg border border-green-800/50">
+                <div className="p-2 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
                   <p className="text-[10px] text-zinc-400 mb-0.5">Estimated Value</p>
                   <p className="text-xl font-bold text-green-400">
                     ${myAirdropValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
@@ -431,9 +475,9 @@ export default function CalculatorPage() {
                 </div>
 
                 {/* My Share */}
-                <div className="p-2 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                <div className="p-2 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
                   <p className="text-[10px] text-zinc-400 mb-0.5">Your Share of Airdrop</p>
-                  <p className="text-lg font-bold text-emerald-400">
+                  <p className="text-lg font-bold text-white">
                     {myAirdropShare.toFixed(4)}%
                   </p>
                   <p className="text-[9px] text-zinc-500 mt-0.5">
@@ -457,12 +501,12 @@ export default function CalculatorPage() {
         {/* Scenario Analysis Chart - Interactive Slider */}
         <Card className="mt-6">
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-cyan-400" />
+            <TrendingUp className="w-5 h-5 text-zinc-300" />
             <h3 className="font-semibold text-lg">If You Buy Now - Profit/Loss Scenarios</h3>
           </div>
           
           <p className="text-xs text-zinc-400 mb-4">
-            If you buy points at <span className="text-cyan-400 font-semibold">${formatPrice(valuePerPoint)}/point</span>, drag the slider to see your profit/loss at different launch valuations
+            If you buy points at <span className="text-white font-semibold">${formatPrice(valuePerPoint)}/point</span>, drag the slider to see your profit/loss at different launch valuations
           </p>
 
           <SliderComponent 
@@ -486,9 +530,9 @@ export default function CalculatorPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             {/* Left Column */}
             <div className="space-y-3">
-              <div className="p-3 bg-zinc-900/40 rounded-lg border border-zinc-800/50">
-                <h4 className="font-semibold text-sm text-cyan-400 mb-1.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+              <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+                <h4 className="font-semibold text-sm text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
                   Not All Airdrop Goes to Points
                 </h4>
                 <p className="text-xs text-zinc-300 leading-relaxed">
@@ -497,9 +541,9 @@ export default function CalculatorPage() {
                 </p>
               </div>
 
-              <div className="p-3 bg-zinc-900/40 rounded-lg border border-zinc-800/50">
-                <h4 className="font-semibold text-sm text-violet-400 mb-1.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
+              <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+                <h4 className="font-semibold text-sm text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
                   Points Distribution Varies
                 </h4>
                 <p className="text-xs text-zinc-300 leading-relaxed">
@@ -508,9 +552,9 @@ export default function CalculatorPage() {
                 </p>
               </div>
 
-              <div className="p-3 bg-zinc-900/40 rounded-lg border border-zinc-800/50">
-                <h4 className="font-semibold text-sm text-blue-400 mb-1.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+              <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+                <h4 className="font-semibold text-sm text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
                   FDV is Speculative
                 </h4>
                 <p className="text-xs text-zinc-300 leading-relaxed">
@@ -522,9 +566,9 @@ export default function CalculatorPage() {
 
             {/* Right Column */}
             <div className="space-y-3">
-              <div className="p-3 bg-zinc-900/40 rounded-lg border border-zinc-800/50">
-                <h4 className="font-semibold text-sm text-green-400 mb-1.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+              <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+                <h4 className="font-semibold text-sm text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
                   Vesting and Lockups
                 </h4>
                 <p className="text-xs text-zinc-300 leading-relaxed">
@@ -533,9 +577,9 @@ export default function CalculatorPage() {
                 </p>
               </div>
 
-              <div className="p-3 bg-zinc-900/40 rounded-lg border border-zinc-800/50">
-                <h4 className="font-semibold text-sm text-orange-400 mb-1.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+              <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+                <h4 className="font-semibold text-sm text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
                   Market Volatility
                 </h4>
                 <p className="text-xs text-zinc-300 leading-relaxed">

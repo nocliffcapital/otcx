@@ -62,6 +62,19 @@ export function useOrderbook() {
       // Convert from 24 decimals to 6 decimals (USDC)
       const total = (amount * unitPrice) / BigInt(10 ** 18);
       
+      // Check minimum order value
+      const minOrderValue = await publicClient?.readContract({
+        address: ORDERBOOK_ADDRESS,
+        abi: ESCROW_ORDERBOOK_ABI,
+        functionName: "minOrderValue",
+      }) as bigint || 100_000_000n; // Default to $100 (6 decimals)
+      
+      if (total < minOrderValue) {
+        const minValueUSD = (Number(minOrderValue) / 1e6).toFixed(2);
+        const orderValueUSD = (Number(total) / 1e6).toFixed(2);
+        throw new Error(`Order value too low. Minimum is $${minValueUSD} but your order is $${orderValueUSD}.`);
+      }
+      
       // Seller needs 100% collateral (same as buyer)
       const collateral = total;
       
@@ -111,6 +124,19 @@ export function useOrderbook() {
       
       // Convert from 24 decimals to 6 decimals (USDC)
       const total = (amount * unitPrice) / BigInt(10 ** 18);
+      
+      // Check minimum order value
+      const minOrderValue = await publicClient?.readContract({
+        address: ORDERBOOK_ADDRESS,
+        abi: ESCROW_ORDERBOOK_ABI,
+        functionName: "minOrderValue",
+      }) as bigint || 100_000_000n; // Default to $100 (6 decimals)
+      
+      if (total < minOrderValue) {
+        const minValueUSD = (Number(minOrderValue) / 1e6).toFixed(2);
+        const orderValueUSD = (Number(total) / 1e6).toFixed(2);
+        throw new Error(`Order value too low. Minimum is $${minValueUSD} but your order is $${orderValueUSD}.`);
+      }
       
       // Check balance first
       const balance = await checkBalance(address);
@@ -170,6 +196,20 @@ export function useOrderbook() {
       
       // Convert from 24 decimals to 6 decimals (USDC)
       const total = (amount * unitPrice) / BigInt(10 ** 18);
+      
+      // Check minimum order value
+      const minOrderValue = await publicClient?.readContract({
+        address: ORDERBOOK_ADDRESS,
+        abi: ESCROW_ORDERBOOK_ABI,
+        functionName: "minOrderValue",
+      }) as bigint || 100_000_000n; // Default to $100 (6 decimals)
+      
+      if (total < minOrderValue) {
+        const minValueUSD = (Number(minOrderValue) / 1e6).toFixed(2);
+        const orderValueUSD = (Number(total) / 1e6).toFixed(2);
+        throw new Error(`Order value too low. Minimum is $${minValueUSD} but your order is $${orderValueUSD}.`);
+      }
+      
       const collateral = isSell ? total : (total * 110n) / 100n; // Sell: 100%, Buy: 110%
       
       // Check balance first

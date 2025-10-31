@@ -12,8 +12,9 @@ import { TGEOrderControls } from "@/components/TGEOrderControls";
 import { formatUnits } from "viem";
 import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { useState, useEffect, useMemo } from "react";
-import { useReadContract, usePublicClient } from "wagmi";
-import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight, FileText, Search, AlertCircle, Link as LinkIcon, Copy, Loader2 } from "lucide-react";
+import { useReadContract, usePublicClient, useBlockNumber } from "wagmi";
+import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight, FileText, Search, AlertCircle, Link as LinkIcon, Copy, Loader2, Terminal, Database, Cpu } from "lucide-react";
+import Link from "next/link";
 
 // V4: Simplified status enum (no TGE_ACTIVATED status)
 const STATUS_LABELS = [
@@ -46,6 +47,20 @@ export default function MyOrdersPage() {
   const [activeTab, setActiveTab] = useState<"open" | "filled" | "settlement" | "ended">("open");
 
   const publicClient = usePublicClient();
+  const { data: blockNumber } = useBlockNumber({ watch: true });
+
+  // Check if orderbook is paused
+  const { data: isOrderbookPaused } = useReadContract({
+    address: ORDERBOOK_ADDRESS as `0x${string}`,
+    abi: [{
+      name: "paused",
+      type: "function",
+      stateMutability: "view",
+      inputs: [],
+      outputs: [{ type: "bool" }],
+    }],
+    functionName: "paused",
+  });
 
   // Fetch all projects to map token addresses to names and metadata URIs
   const { data: projects } = useReadContract({
@@ -242,19 +257,51 @@ export default function MyOrdersPage() {
   };
 
   return (
-    <div className="relative min-h-screen">
-      {/* Corner accents */}
-      <div className="fixed top-16 left-0 w-24 h-24 border-t-2 border-l-2 border-zinc-700/20 pointer-events-none"></div>
-      <div className="fixed top-16 right-0 w-24 h-24 border-t-2 border-r-2 border-zinc-700/20 pointer-events-none"></div>
-
+    <div className="relative min-h-screen" style={{ backgroundColor: '#06060c' }}>
       <div className="relative mx-auto max-w-7xl px-4 py-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3">
-          <User className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
-          <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-            Dashboard
-          </span>
-        </h1>
-        <p className="text-zinc-400 mb-6">Track and manage all your OTC orders</p>
+        {/* Terminal-style header */}
+        <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <User className="w-8 h-8 text-zinc-300 flex-shrink-0" />
+              <div>
+                <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/dashboard</span>
+                <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                  USER_DASHBOARD
+                </h1>
+                <p className="text-xs text-zinc-300/70 mt-1">
+                  Order Management • Portfolio Tracking
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 items-end">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-zinc-300">
+                  {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+                </span>
+                <Database className="w-3 h-3 text-zinc-300" />
+              </div>
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+                isOrderbookPaused 
+                  ? 'bg-red-950/30 border-red-500/50' 
+                  : 'bg-green-950/30 border-green-500/50'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
+                }`} />
+                <span className={`text-xs font-mono font-semibold ${
+                  isOrderbookPaused ? 'text-red-400' : 'text-green-400'
+                }`}>
+                  {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+                <span>BLOCK #{blockNumber?.toString() || '...'}</span>
+                <Cpu className="w-3 h-3" />
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Settlement Alerts */}
         {address && !loading && orders.length > 0 && (
@@ -417,78 +464,101 @@ export default function MyOrdersPage() {
         )}
 
         {address && !loading && orders.length === 0 && (
-          <Card className="p-6 text-center">
-            <p className="text-zinc-400">You haven&apos;t created any orders yet</p>
-          </Card>
+          <div className="flex flex-col items-center px-4 py-8">
+            <div className="bg-[#121218] border border-[#2b2b30] rounded p-8 backdrop-blur-sm max-w-2xl">
+              <div className="flex items-center gap-3 mb-4 font-mono text-zinc-300">
+                <Terminal className="w-5 h-5" />
+                <span className="text-sm">otcX://protocol/dashboard</span>
+              </div>
+              <div className="bg-[#06060c] border border-blue-500/30 rounded p-4 mb-4 font-mono text-sm">
+                <div className="flex items-center gap-2 text-blue-400 mb-2">
+                  <span className="font-bold">INFO:</span>
+                  <span>No orders found for address</span>
+                </div>
+                <div className="text-zinc-500 text-xs space-y-1 pl-4">
+                  <div>→ wallet: {address?.slice(0, 6)}...{address?.slice(-4)}</div>
+                  <div>→ orders.length = 0</div>
+                  <div>→ status: EMPTY_DASHBOARD</div>
+                </div>
+              </div>
+              <div className="space-y-3 font-mono text-sm">
+                <div className="text-zinc-400">
+                  You haven&apos;t created any orders yet.
+                </div>
+                <div className="text-zinc-400">
+                  Start trading by exploring the available markets.
+                </div>
+              </div>
+              <div className="mt-6 pt-6 border-t border-[#2b2b30]">
+                <Link href="/">
+                  <button className="w-full px-6 py-3 text-sm font-mono font-medium text-zinc-300 border border-[#2b2b30] rounded transition-all hover:bg-[#2b2b30] hover:border-zinc-500 flex items-center justify-center gap-2">
+                    <span>→</span> EXPLORE MARKETS
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
         )}
 
-        {/* Tabs */}
+        {/* Tabs - Terminal Style (matching markets page) */}
         {address && !loading && orders.length > 0 && (
           <div className="mb-6">
-            <div className="flex items-center gap-2 border-b border-zinc-800 mb-4">
+            <div className="flex items-center gap-2 mb-6 rounded border p-1" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
               <button
                 onClick={() => setActiveTab("open")}
-                className={`px-4 py-2 text-sm font-medium transition-all relative ${
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
                   activeTab === "open"
-                    ? "text-cyan-400"
-                    : "text-zinc-400 hover:text-zinc-300"
+                    ? "bg-blue-500/20 text-blue-400 border border-blue-500/50"
+                    : "text-zinc-400 hover:text-zinc-300 hover:bg-[#2b2b30]"
                 }`}
               >
-                Open Orders
-                {activeTab === "open" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
-                )}
-                <Badge className="ml-2 bg-cyan-600 text-xs">
+                <div className={`w-2 h-2 rounded-full ${activeTab === "open" ? "bg-blue-400 animate-pulse" : "bg-zinc-600"}`}></div>
+                <span>OPEN</span>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/30">
                   {stats.active}
-                </Badge>
+                </span>
               </button>
               <button
                 onClick={() => setActiveTab("filled")}
-                className={`px-4 py-2 text-sm font-medium transition-all relative ${
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
                   activeTab === "filled"
-                    ? "text-cyan-400"
-                    : "text-zinc-400 hover:text-zinc-300"
+                    ? "bg-green-500/20 text-green-400 border border-green-500/50"
+                    : "text-zinc-400 hover:text-zinc-300 hover:bg-[#2b2b30]"
                 }`}
               >
-                Filled Orders
-                {activeTab === "filled" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
-                )}
-                <Badge className="ml-2 bg-blue-600 text-xs">
+                <div className={`w-2 h-2 rounded-full ${activeTab === "filled" ? "bg-green-400" : "bg-zinc-600"}`}></div>
+                <span>FILLED</span>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/30">
                   {stats.funded}
-                </Badge>
+                </span>
               </button>
               <button
                 onClick={() => setActiveTab("settlement")}
-                className={`px-4 py-2 text-sm font-medium transition-all relative ${
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
                   activeTab === "settlement"
-                    ? "text-violet-400"
-                    : "text-zinc-400 hover:text-zinc-300"
+                    ? "bg-orange-500/20 text-orange-400 border border-orange-500/50"
+                    : "text-zinc-400 hover:text-zinc-300 hover:bg-[#2b2b30]"
                 }`}
               >
-                In Settlement
-                {activeTab === "settlement" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-400"></div>
-                )}
-                <Badge className="ml-2 bg-violet-600 text-xs">
+                <div className={`w-2 h-2 rounded-full ${activeTab === "settlement" ? "bg-orange-400 animate-pulse" : "bg-zinc-600"}`}></div>
+                <span>SETTLEMENT</span>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/30">
                   {stats.inSettlement}
-                </Badge>
+                </span>
               </button>
               <button
                 onClick={() => setActiveTab("ended")}
-                className={`px-4 py-2 text-sm font-medium transition-all relative ${
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
                   activeTab === "ended"
-                    ? "text-cyan-400"
-                    : "text-zinc-400 hover:text-zinc-300"
+                    ? "bg-red-500/20 text-red-400 border border-red-500/50"
+                    : "text-zinc-400 hover:text-zinc-300 hover:bg-[#2b2b30]"
                 }`}
               >
-                Ended Settlements
-                {activeTab === "ended" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
-                )}
-                <Badge className="ml-2 bg-green-600 text-xs">
+                <div className={`w-2 h-2 rounded-full ${activeTab === "ended" ? "bg-red-400" : "bg-zinc-600"}`}></div>
+                <span>ENDED</span>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/30">
                   {orders.filter(o => o.status === 2 || o.status === 3 || o.status === 4).length}
-                </Badge>
+                </span>
               </button>
             </div>
 
@@ -502,7 +572,8 @@ export default function MyOrdersPage() {
                   placeholder="Search by project name or order ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-all"
+                  className="w-full pl-10 pr-4 py-2 rounded text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none font-mono"
+                  style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
                 />
               </div>
 
@@ -510,23 +581,29 @@ export default function MyOrdersPage() {
               <select
                 value={sideFilter}
                 onChange={(e) => setSideFilter(e.target.value as "all" | "buy" | "sell")}
-                className="px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-cyan-500 transition-all cursor-pointer"
+                className="px-4 py-2 rounded text-sm text-zinc-100 focus:outline-none font-mono cursor-pointer"
+                style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
               >
-                <option value="all">All Sides</option>
-                <option value="buy">Buy Only</option>
-                <option value="sell">Sell Only</option>
+                <option value="all">ALL SIDES</option>
+                <option value="buy">BUY ONLY</option>
+                <option value="sell">SELL ONLY</option>
               </select>
 
               {/* Include Canceled (only for "ended" tab) */}
               {activeTab === "ended" && (
                 <button
                   onClick={() => setShowCanceled(!showCanceled)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 transition-all text-sm whitespace-nowrap"
+                  className="flex items-center gap-2 px-4 py-2 rounded border text-sm whitespace-nowrap font-mono transition-all"
+                  style={{ 
+                    backgroundColor: showCanceled ? '#2b2b30' : '#121218', 
+                    borderColor: '#2b2b30',
+                    color: 'white'
+                  }}
                 >
                   <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
                     showCanceled 
-                      ? 'bg-cyan-600 border-cyan-600' 
-                      : 'border-zinc-600'
+                      ? 'bg-[#2b2b30] border-[#2b2b30]' 
+                      : 'border-[#2b2b30]'
                   }`}>
                     {showCanceled && (
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -534,7 +611,7 @@ export default function MyOrdersPage() {
                       </svg>
                     )}
                   </div>
-                  <span className="text-zinc-300">Include canceled</span>
+                  <span>INCLUDE CANCELED</span>
                 </button>
               )}
             </div>
@@ -551,17 +628,17 @@ export default function MyOrdersPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-zinc-800">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Project</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Type</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Side</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
-                  <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Amount</th>
-                  <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Price</th>
-                  <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total</th>
-                  <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Progress</th>
-                  <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Escrow</th>
-                  <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Actions</th>
+                <tr className="border-b" style={{ borderColor: '#2b2b30' }}>
+                  <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Project</th>
+                  <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Type</th>
+                  <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Side</th>
+                  <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Status</th>
+                  <th className="text-right py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Amount</th>
+                  <th className="text-right py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Price</th>
+                  <th className="text-right py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Total</th>
+                  <th className="text-center py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Progress</th>
+                  <th className="text-center py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Escrow</th>
+                  <th className="text-right py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -585,7 +662,10 @@ export default function MyOrdersPage() {
             return (
               <tr 
                 key={order.id.toString()}
-                className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-all group"
+                className="border-b transition-all group"
+                style={{ borderColor: '#2b2b30' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2b2b30'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 {/* Project */}
                 <td className="py-4 px-4">
@@ -605,20 +685,20 @@ export default function MyOrdersPage() {
                 {/* Type */}
                 <td className="py-4 px-4">
                   {order.allowedTaker && order.allowedTaker !== "0x0000000000000000000000000000000000000000" ? (
-                    <Badge className="bg-purple-600 text-xs flex items-center gap-1 w-fit">
+                    <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/50 text-xs flex items-center gap-1 w-fit">
                       <Lock className="w-3 h-3" />
-                      Private
+                      PRIVATE
                     </Badge>
                   ) : (
-                    <Badge className="bg-zinc-700 text-xs w-fit">
-                      Public
+                    <Badge className="text-zinc-300 text-xs w-fit" style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}>
+                      PUBLIC
                     </Badge>
                   )}
                 </td>
 
                 {/* Side */}
                 <td className="py-4 px-4">
-                  <Badge className={order.isSell ? "bg-red-600 text-xs" : "bg-green-600 text-xs"}>
+                  <Badge className={order.isSell ? "bg-red-500/20 text-red-400 border border-red-500/50 text-xs" : "bg-green-500/20 text-green-400 border border-green-500/50 text-xs"}>
                     {order.isSell ? "SELL" : "BUY"}
                   </Badge>
                 </td>
@@ -656,7 +736,7 @@ export default function MyOrdersPage() {
 
                 {/* Price */}
                 <td className="py-4 px-4 text-right">
-                  <span className="font-medium text-cyan-400 text-sm">
+                  <span className="font-medium text-white text-sm font-mono">
                     ${formatUnits(order.unitPrice, STABLE_DECIMALS)}
                   </span>
                 </td>
@@ -671,24 +751,30 @@ export default function MyOrdersPage() {
                 {/* Progress */}
                 <td className="py-4 px-4">
                   <div className="flex items-center gap-1 justify-center">
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
-                      order.status >= 0 ? 'bg-orange-500 text-white' : 'bg-zinc-800 text-zinc-600'
-                    }`}>1</div>
-                    <div className={`h-0.5 w-3 ${order.status >= 1 ? 'bg-blue-500' : 'bg-zinc-800'}`}></div>
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
-                      order.status >= 1 ? 'bg-blue-500 text-white' : 'bg-zinc-800 text-zinc-600'
-                    }`}>2</div>
-                    <div className={`h-0.5 w-3 ${order.status >= 2 ? 'bg-violet-600' : 'bg-zinc-800'}`}></div>
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
-                      order.status >= 2 ? 'bg-violet-600 text-white' : 'bg-zinc-800 text-zinc-600'
-                    }`}>3</div>
-                    <div className={`h-0.5 w-3 ${order.status === 3 ? 'bg-emerald-600' : order.status >= 4 ? 'bg-red-700' : 'bg-zinc-800'}`}></div>
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
-                      order.status === 3 ? 'bg-emerald-600 text-white' : 
-                      order.status === 4 ? 'bg-orange-600 text-white' : 
-                      order.status === 5 ? 'bg-red-700 text-white' : 
-                      'bg-zinc-800 text-zinc-600'
-                    }`}>{order.status === 3 ? '✓' : order.status === 4 ? 'D' : order.status === 5 ? '✗' : '4'}</div>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono ${
+                      order.status >= 0 ? 'text-white' : 'text-zinc-600'
+                    }`} style={{ backgroundColor: order.status >= 0 ? '#f97316' : '#121218', border: `1px solid ${order.status >= 0 ? '#f97316' : '#2b2b30'}` }}>1</div>
+                    <div className={`h-0.5 w-3`} style={{ backgroundColor: order.status >= 1 ? '#3b82f6' : '#2b2b30' }}></div>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono ${
+                      order.status >= 1 ? 'text-white' : 'text-zinc-600'
+                    }`} style={{ backgroundColor: order.status >= 1 ? '#3b82f6' : '#121218', border: `1px solid ${order.status >= 1 ? '#3b82f6' : '#2b2b30'}` }}>2</div>
+                    <div className={`h-0.5 w-3`} style={{ backgroundColor: order.status >= 2 ? '#8b5cf6' : '#2b2b30' }}></div>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono ${
+                      order.status >= 2 ? 'text-white' : 'text-zinc-600'
+                    }`} style={{ backgroundColor: order.status >= 2 ? '#8b5cf6' : '#121218', border: `1px solid ${order.status >= 2 ? '#8b5cf6' : '#2b2b30'}` }}>3</div>
+                    <div className={`h-0.5 w-3`} style={{ backgroundColor: order.status === 3 ? '#10b981' : order.status >= 4 ? '#dc2626' : '#2b2b30' }}></div>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono ${
+                      order.status === 3 ? 'text-white' : 
+                      order.status === 4 ? 'text-white' : 
+                      order.status === 5 ? 'text-white' : 
+                      'text-zinc-600'
+                    }`} style={{ 
+                      backgroundColor: order.status === 3 ? '#10b981' : 
+                        order.status === 4 ? '#ea580c' : 
+                        order.status === 5 ? '#dc2626' : 
+                        '#121218',
+                      border: `1px solid ${order.status === 3 ? '#10b981' : order.status === 4 ? '#ea580c' : order.status === 5 ? '#dc2626' : '#2b2b30'}`
+                    }}>{order.status === 3 ? '✓' : order.status === 4 ? 'D' : order.status === 5 ? '✗' : '4'}</div>
                   </div>
                 </td>
 
@@ -734,11 +820,12 @@ export default function MyOrdersPage() {
                           e.stopPropagation();
                           handleCopyPrivateLink(order.id, order.allowedTaker);
                         }}
-                        className="bg-purple-600 hover:bg-purple-700 text-xs px-2 py-1 whitespace-nowrap h-7"
+                        className="text-xs px-2 py-1 whitespace-nowrap h-7 font-mono border"
+                        style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
                         title="Copy shareable link"
                       >
                         <Copy className="w-3 h-3 mr-1 inline" />
-                        Copy Link
+                        COPY LINK
                       </Button>
                     )}
                     
@@ -753,14 +840,15 @@ export default function MyOrdersPage() {
                           handleLockCollateral(order);
                         }}
                         disabled={!!locking}
-                        className="bg-cyan-600 hover:bg-cyan-700 text-xs px-2 py-1 whitespace-nowrap h-7"
+                        className="text-xs px-2 py-1 whitespace-nowrap h-7 font-mono border"
+                        style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
                       >
                         {locking === order.id.toString() ? (
                           <Loader2 className="w-3 h-3 mr-1 inline animate-spin" />
                         ) : (
                           <Lock className="w-3 h-3 mr-1 inline" />
                         )}
-                        {locking === order.id.toString() ? "Locking..." : "Lock"}
+                        {locking === order.id.toString() ? "LOCKING..." : "LOCK"}
                       </Button>
                     )}
                     
@@ -773,14 +861,15 @@ export default function MyOrdersPage() {
                           handleCancel(order.id);
                         }}
                         disabled={!!canceling}
-                        className="bg-red-600 hover:bg-red-700 text-xs px-2 py-1 h-7"
+                        className="text-xs px-2 py-1 h-7 font-mono border"
+                        style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
                       >
                         {canceling === order.id.toString() ? (
                           <>
                             <Loader2 className="w-3 h-3 mr-1 inline animate-spin" />
-                            Canceling...
+                            CANCELING...
                           </>
-                        ) : "Cancel"}
+                        ) : "CANCEL"}
                       </Button>
                     )}
                   </div>

@@ -7,15 +7,9 @@ import { Home, Search } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <main className="relative min-h-screen overflow-hidden flex items-center justify-center">
+    <main className="relative min-h-screen overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#06060c' }}>
       {/* Tech grid background */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-20"></div>
-      
-      {/* Animated scanning lines */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute h-px w-full bg-gradient-to-r from-transparent via-red-500 to-transparent animate-scan-horizontal" style={{ top: '20%' }}></div>
-        <div className="absolute w-px h-full bg-gradient-to-b from-transparent via-red-500 to-transparent animate-scan-vertical" style={{ left: '50%' }}></div>
-      </div>
+      <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
       
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-2xl px-4 py-20 text-center">
@@ -25,10 +19,10 @@ export default function NotFound() {
           
           {/* 404 */}
           <div className="relative">
-            <h1 className="text-9xl font-bold bg-gradient-to-r from-red-400 to-violet-400 bg-clip-text text-transparent">
+            <h1 className="text-9xl font-bold text-white">
               404
             </h1>
-            <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-red-500/30 to-violet-500/30 -z-10"></div>
+            <div className="absolute inset-0 blur-3xl bg-[#2b2b30]/30 -z-10"></div>
           </div>
           
           {/* Error message */}
@@ -47,16 +41,18 @@ export default function NotFound() {
             <Link href="/">
               <Button
                 variant="custom"
-                className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700 px-6 py-3 shadow-lg flex items-center gap-2"
+                className="border font-mono px-6 py-3 flex items-center gap-2"
+                style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
               >
                 <Home className="w-4 h-4" />
                 Go Home
               </Button>
             </Link>
-            <Link href="/markets">
+            <Link href="/">
               <Button
                 variant="custom"
-                className="bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 px-6 py-3 flex items-center gap-2"
+                className="border font-mono px-6 py-3 flex items-center gap-2"
+                style={{ backgroundColor: '#121218', borderColor: '#2b2b30', color: 'white' }}
               >
                 <Search className="w-4 h-4" />
                 Browse Markets
@@ -68,16 +64,16 @@ export default function NotFound() {
           <div className="pt-8 border-t border-zinc-800/50 mt-8">
             <p className="text-sm text-zinc-500 mb-3">Popular pages:</p>
             <div className="flex flex-wrap gap-2 justify-center">
-              <Link href="/markets" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-3 py-1 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50">
+              <Link href="/" className="text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 Markets
               </Link>
-              <Link href="/dashboard" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-3 py-1 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50">
+              <Link href="/dashboard" className="text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 Dashboard
               </Link>
-              <Link href="/calculator" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-3 py-1 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50">
+              <Link href="/calculator" className="text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 Calculator
               </Link>
-              <Link href="/how-it-works" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-3 py-1 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50">
+              <Link href="/how-it-works" className="text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                 How It Works
               </Link>
             </div>

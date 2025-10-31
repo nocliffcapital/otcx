@@ -17,15 +17,31 @@ import {
   Coins,
   GitBranch,
   Globe,
-  Terminal
+  Terminal,
+  Database,
+  Cpu
 } from "lucide-react";
-import { usePublicClient, useReadContract } from "wagmi";
+import { usePublicClient, useReadContract, useBlockNumber } from "wagmi";
 import { ORDERBOOK_ADDRESS, REGISTRY_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { sepolia } from "viem/chains";
 
 export default function DocsPage() {
   const [activeSection, setActiveSection] = useState<string>("architecture");
   const publicClient = usePublicClient();
+  const { data: blockNumber } = useBlockNumber({ watch: true });
+  
+  // Check if orderbook is paused
+  const { data: isOrderbookPaused } = useReadContract({
+    address: ORDERBOOK_ADDRESS as `0x${string}`,
+    abi: [{
+      name: "paused",
+      type: "function",
+      stateMutability: "view",
+      inputs: [],
+      outputs: [{ type: "bool" }],
+    }],
+    functionName: "paused",
+  });
   
   // Fetch dynamic contract data
   const { data: settlementFeeBps } = useReadContract({
@@ -66,39 +82,71 @@ export default function DocsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3">
-          <BookOpen className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
-          <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-            Technical Documentation
-          </span>
-        </h1>
-        <p className="text-lg text-zinc-400">
-          Complete technical reference for developers integrating with otcX protocol
-        </p>
+    <div style={{ backgroundColor: '#06060c', minHeight: '100vh' }}>
+      <div className="mx-auto max-w-7xl px-4 py-8">
+      {/* Terminal-style header */}
+      <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-8 h-8 text-zinc-300 flex-shrink-0" />
+            <div>
+              <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/documentation/technical-docs</span>
+              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                TECHNICAL_DOCUMENTATION
+              </h1>
+              <p className="text-xs text-zinc-300/70 mt-1">
+                Developer Reference • Integration Guide
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 items-end">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-zinc-300">
+                {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+              </span>
+              <Database className="w-3 h-3 text-zinc-300" />
+            </div>
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+              isOrderbookPaused 
+                ? 'bg-red-950/30 border-red-500/50' 
+                : 'bg-green-950/30 border-green-500/50'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
+              }`} />
+              <span className={`text-xs font-mono font-semibold ${
+                isOrderbookPaused ? 'text-red-400' : 'text-green-400'
+              }`}>
+                {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+              <span>BLOCK #{blockNumber?.toString() || '...'}</span>
+              <Cpu className="w-3 h-3" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
       <div className="mb-6 overflow-x-auto">
-        <div className="flex items-center gap-2 border-b border-zinc-800 min-w-max">
+        <div className="flex items-center gap-2 border-b min-w-max" style={{ borderColor: '#2b2b30' }}>
           {sections.map((section) => {
             const Icon = section.icon;
             return (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`px-4 py-2 text-sm font-medium transition-all relative flex items-center gap-2 ${
+                className={`px-4 py-2 text-xs font-mono font-medium transition-all relative flex items-center gap-2 ${
                   activeSection === section.id
-                    ? "text-cyan-400"
+                    ? "text-zinc-300"
                     : "text-zinc-400 hover:text-zinc-300"
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                {section.label}
+                {section.label.toUpperCase()}
                 {activeSection === section.id && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: '#2b2b30' }}></div>
                 )}
               </button>
             );
@@ -111,7 +159,7 @@ export default function DocsPage() {
         <>
           <Card className="mb-6">
             <div className="flex items-start gap-3 mb-4">
-              <GitBranch className="w-6 h-6 text-cyan-400 mt-1" />
+              <GitBranch className="w-6 h-6 text-zinc-300 mt-1" />
               <h2 className="text-2xl font-bold">System Architecture</h2>
             </div>
             <p className="text-zinc-300 mb-6">
@@ -121,11 +169,11 @@ export default function DocsPage() {
             <div className="space-y-6">
               {/* Contract Overview */}
               <div>
-                <h3 className="text-lg font-semibold mb-3 text-cyan-400">Core Contracts</h3>
+                <h3 className="text-lg font-semibold mb-3 text-zinc-100">Core Contracts</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
                     <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-blue-400" />
+                      <FileText className="w-4 h-4 text-zinc-300" />
                       ProjectRegistryV2
                     </h4>
                     <p className="text-sm text-zinc-400 mb-3">
@@ -149,7 +197,7 @@ export default function DocsPage() {
 
                   <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
                     <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Code className="w-4 h-4 text-purple-400" />
+                      <Code className="w-4 h-4 text-zinc-300" />
                       EscrowOrderBookV4
                     </h4>
                     <p className="text-sm text-zinc-400 mb-3">
@@ -175,7 +223,7 @@ export default function DocsPage() {
 
               {/* Data Flow */}
               <div>
-                <h3 className="text-lg font-semibold mb-3 text-cyan-400">Data Flow</h3>
+                <h3 className="text-lg font-semibold mb-3 text-zinc-100">Data Flow</h3>
                 <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-4">
                   <pre className="text-xs text-zinc-300 overflow-x-auto">
 {`Registry                    OrderBook                    Frontend
@@ -200,7 +248,7 @@ export default function DocsPage() {
           {/* Network Info */}
           <Card className="mb-6">
             <div className="flex items-start gap-3 mb-4">
-              <Globe className="w-6 h-6 text-violet-400 mt-1" />
+              <Globe className="w-6 h-6 text-zinc-300 mt-1" />
               <h2 className="text-2xl font-bold">Deployment Information</h2>
             </div>
             
@@ -213,25 +261,25 @@ export default function DocsPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-start gap-2">
                     <span className="text-zinc-400 min-w-[140px]">Registry:</span>
-                    <code className="text-cyan-400 text-xs bg-zinc-900/50 px-2 py-1 rounded break-all">
+                    <code className="text-zinc-300 text-xs bg-zinc-900/50 px-2 py-1 rounded break-all">
                       {REGISTRY_ADDRESS}
                     </code>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-zinc-400 min-w-[140px]">OrderBook:</span>
-                    <code className="text-cyan-400 text-xs bg-zinc-900/50 px-2 py-1 rounded break-all">
+                    <code className="text-zinc-300 text-xs bg-zinc-900/50 px-2 py-1 rounded break-all">
                       {ORDERBOOK_ADDRESS}
                     </code>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-zinc-400 min-w-[140px]">Stablecoin:</span>
-                    <code className="text-cyan-400 text-xs bg-zinc-900/50 px-2 py-1 rounded break-all">
+                    <code className="text-zinc-300 text-xs bg-zinc-900/50 px-2 py-1 rounded break-all">
                       {stableAddress || 'Loading...'}
                     </code>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-zinc-400 min-w-[140px]">Registry Owner:</span>
-                    <code className="text-cyan-400 text-xs bg-zinc-900/50 px-2 py-1 rounded break-all">
+                    <code className="text-zinc-300 text-xs bg-zinc-900/50 px-2 py-1 rounded break-all">
                       {registryOwner || 'Loading...'}
                     </code>
                   </div>
@@ -259,18 +307,18 @@ export default function DocsPage() {
         <>
           <Card className="mb-6">
             <div className="flex items-start gap-3 mb-4">
-              <Code className="w-6 h-6 text-cyan-400 mt-1" />
+              <Code className="w-6 h-6 text-zinc-300 mt-1" />
               <h2 className="text-2xl font-bold">Smart Contract Reference</h2>
             </div>
 
             {/* EscrowOrderBookV4 */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold mb-4 text-cyan-400">EscrowOrderBookV4</h3>
+              <h3 className="text-xl font-semibold mb-4 text-zinc-100">EscrowOrderBookV4</h3>
               
               {/* Key Functions */}
               <div className="space-y-4">
                 <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2 font-mono text-sm text-purple-400">createOrder()</h4>
+                  <h4 className="font-semibold mb-2 font-mono text-sm text-zinc-100">createOrder()</h4>
                   <p className="text-sm text-zinc-400 mb-3">
                     Creates a new buy or sell order and locks maker's collateral.
                   </p>
@@ -288,18 +336,18 @@ export default function DocsPage() {
                   </div>
                   <div className="text-xs text-zinc-400 space-y-1">
                     <div className="flex items-start gap-2">
-                      <span className="text-cyan-400 min-w-[80px]">Collateral:</span>
+                      <span className="text-zinc-400 min-w-[80px]">Collateral:</span>
                       <span>Seller locks tokenAmount × unitPrice, Buyer locks tokenAmount × unitPrice</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-cyan-400 min-w-[80px]">Emits:</span>
-                      <code className="text-purple-400">OrderCreated</code>
+                      <span className="text-zinc-400 min-w-[80px]">Emits:</span>
+                      <code className="text-zinc-300">OrderCreated</code>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2 font-mono text-sm text-purple-400">takeOrder()</h4>
+                  <h4 className="font-semibold mb-2 font-mono text-sm text-zinc-100">takeOrder()</h4>
                   <p className="text-sm text-zinc-400 mb-3">
                     Fills an existing order and locks taker's collateral.
                   </p>
@@ -310,18 +358,18 @@ export default function DocsPage() {
                   </div>
                   <div className="text-xs text-zinc-400 space-y-1">
                     <div className="flex items-start gap-2">
-                      <span className="text-cyan-400 min-w-[80px]">Validation:</span>
+                      <span className="text-zinc-400 min-w-[80px]">Validation:</span>
                       <span>Checks allowedTaker (if private), order status, expiry</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-cyan-400 min-w-[80px]">Emits:</span>
-                      <code className="text-purple-400">OrderTaken</code>
+                      <span className="text-zinc-400 min-w-[80px]">Emits:</span>
+                      <code className="text-zinc-300">OrderTaken</code>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2 font-mono text-sm text-purple-400">settleOrder()</h4>
+                  <h4 className="font-semibold mb-2 font-mono text-sm text-zinc-100">settleOrder()</h4>
                   <p className="text-sm text-zinc-400 mb-3">
                     For Token projects: seller deposits actual tokens on-chain, buyer claims tokens, funds distributed.
                   </p>
@@ -335,18 +383,18 @@ export default function DocsPage() {
                   </div>
                   <div className="text-xs text-zinc-400 space-y-1">
                     <div className="flex items-start gap-2">
-                      <span className="text-cyan-400 min-w-[80px]">Only:</span>
+                      <span className="text-zinc-400 min-w-[80px]">Only:</span>
                       <span>Seller (for Token projects only)</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-cyan-400 min-w-[80px]">Fee:</span>
+                      <span className="text-zinc-400 min-w-[80px]">Fee:</span>
                       <span>{settlementFeePercent}% from both sides (buyer: USDC, seller: tokens)</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2 font-mono text-sm text-purple-400">acceptProof() / settleOrderManual()</h4>
+                  <h4 className="font-semibold mb-2 font-mono text-sm text-zinc-100">acceptProof() / settleOrderManual()</h4>
                   <p className="text-sm text-zinc-400 mb-3">
                     For Points projects: seller submits off-chain proof → admin accepts → permissionless settlement.
                   </p>
@@ -364,18 +412,18 @@ function settleOrderManual(uint256 orderId) external`}
                   </div>
                   <div className="text-xs text-zinc-400 space-y-1">
                     <div className="flex items-start gap-2">
-                      <span className="text-cyan-400 min-w-[80px]">Security:</span>
+                      <span className="text-zinc-400 min-w-[80px]">Security:</span>
                       <span>Cannot settle without admin approval; cannot cancel after approval</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-cyan-400 min-w-[80px]">Deadline:</span>
+                      <span className="text-zinc-400 min-w-[80px]">Deadline:</span>
                       <span>Must accept & settle before project settlement deadline</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2 font-mono text-sm text-purple-400">handleDefault()</h4>
+                  <h4 className="font-semibold mb-2 font-mono text-sm text-zinc-100">handleDefault()</h4>
                   <p className="text-sm text-zinc-400 mb-3">
                     Called by non-defaulting party after deadline to claim both deposits.
                   </p>
@@ -386,11 +434,11 @@ function settleOrderManual(uint256 orderId) external`}
                   </div>
                   <div className="text-xs text-zinc-400 space-y-1">
                     <div className="flex items-start gap-2">
-                      <span className="text-cyan-400 min-w-[80px]">Timing:</span>
+                      <span className="text-zinc-400 min-w-[80px]">Timing:</span>
                       <span>Only callable after projectSettlementDeadline has passed</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-cyan-400 min-w-[80px]">Payout:</span>
+                      <span className="text-zinc-400 min-w-[80px]">Payout:</span>
                       <span>Caller receives both deposits (2× their locked amount)</span>
                     </div>
                   </div>
@@ -404,7 +452,7 @@ function settleOrderManual(uint256 orderId) external`}
               
               <div className="space-y-4">
                 <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2 font-mono text-sm text-purple-400">addProject()</h4>
+                  <h4 className="font-semibold mb-2 font-mono text-sm text-zinc-100">addProject()</h4>
                   <div className="bg-zinc-950/50 rounded p-3 mb-3">
                     <pre className="text-xs text-zinc-300 overflow-x-auto">
 {`function addProject(
@@ -419,7 +467,7 @@ function settleOrderManual(uint256 orderId) external`}
                 </div>
 
                 <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2 font-mono text-sm text-purple-400">getProject()</h4>
+                  <h4 className="font-semibold mb-2 font-mono text-sm text-zinc-100">getProject()</h4>
                   <div className="bg-zinc-950/50 rounded p-3 mb-3">
                     <pre className="text-xs text-zinc-300 overflow-x-auto">
 {`function getProject(bytes32 projectId) 
@@ -519,7 +567,7 @@ function settleOrderManual(uint256 orderId) external`}
                       Private Orders
                     </h4>
                     <p className="text-sm text-zinc-400 mb-2">
-                      <code className="text-purple-400">allowedTaker = 0xABC...</code>
+                      <code className="text-zinc-300">allowedTaker = 0xABC...</code>
                     </p>
                     <p className="text-xs text-zinc-400">
                       Only specified address can take. Access via shareable link.
@@ -545,8 +593,8 @@ function settleOrderManual(uint256 orderId) external`}
               {/* Token Settlement */}
               <div className="bg-blue-950/20 border border-blue-800/50 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Badge className="bg-blue-600">Token Projects</Badge>
-                  <span className="text-lg font-semibold text-blue-400">On-Chain Settlement</span>
+                  <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/50">Token Projects</Badge>
+                  <span className="text-lg font-semibold text-zinc-300">On-Chain Settlement</span>
                 </div>
                 
                 <p className="text-sm text-zinc-400 mb-4">
@@ -601,8 +649,8 @@ function settleOrderManual(uint256 orderId) external`}
               {/* Points Settlement */}
               <div className="bg-purple-950/20 border border-purple-800/50 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Badge className="bg-purple-600">Points Projects</Badge>
-                  <span className="text-lg font-semibold text-purple-400">Proof-Based Settlement</span>
+                  <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/50">Points Projects</Badge>
+                  <span className="text-lg font-semibold text-zinc-300">Proof-Based Settlement</span>
                 </div>
                 
                 <p className="text-sm text-zinc-400 mb-4">
@@ -766,7 +814,7 @@ function settleOrderManual(uint256 orderId) external`}
                       Points-Only Manual Settlement
                     </h4>
                     <p className="text-xs text-zinc-400 mb-2">
-                      <code className="text-purple-400">settleOrderManual()</code> strictly enforces Points projects only:
+                      <code className="text-zinc-300">settleOrderManual()</code> strictly enforces Points projects only:
                     </p>
                     <div className="bg-zinc-950/50 rounded p-2">
                       <code className="text-xs text-zinc-300">
@@ -953,19 +1001,19 @@ function OrderDisplay({ orderId }) {
                   <p className="text-sm text-zinc-400 mb-3">Key events emitted by EscrowOrderBookV4:</p>
                   <div className="space-y-2 text-xs">
                     <div className="bg-zinc-950/50 rounded p-2">
-                      <code className="text-purple-400">OrderCreated(uint256 indexed id, ...)</code>
+                      <code className="text-zinc-300">OrderCreated(uint256 indexed id, ...)</code>
                     </div>
                     <div className="bg-zinc-950/50 rounded p-2">
-                      <code className="text-purple-400">OrderTaken(uint256 indexed id, address indexed taker)</code>
+                      <code className="text-zinc-300">OrderTaken(uint256 indexed id, address indexed taker)</code>
                     </div>
                     <div className="bg-zinc-950/50 rounded p-2">
-                      <code className="text-purple-400">OrderSettled(uint256 indexed id, ...)</code>
+                      <code className="text-zinc-300">OrderSettled(uint256 indexed id, ...)</code>
                     </div>
                     <div className="bg-zinc-950/50 rounded p-2">
-                      <code className="text-purple-400">ProofSubmitted(uint256 indexed id, string proof)</code>
+                      <code className="text-zinc-300">ProofSubmitted(uint256 indexed id, string proof)</code>
                     </div>
                     <div className="bg-zinc-950/50 rounded p-2">
-                      <code className="text-purple-400">ProofAccepted(uint256 indexed id, address admin)</code>
+                      <code className="text-zinc-300">ProofAccepted(uint256 indexed id, address admin)</code>
                     </div>
                   </div>
                 </div>
@@ -1023,6 +1071,7 @@ function OrderDisplay({ orderId }) {
           </li>
         </ul>
       </Card>
+      </div>
     </div>
   );
 }

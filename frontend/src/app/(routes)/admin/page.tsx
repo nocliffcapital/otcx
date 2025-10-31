@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Switch } from "@/components/ui/Switch";
 import { TGESettlementManager } from "@/components/TGESettlementManager";
-import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
+import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, usePublicClient, useBlockNumber } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
 import { isAddress, getAddress } from "viem";
-import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings, DollarSign, Shield, Coins, Trash2 } from "lucide-react";
+import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings, DollarSign, Shield, Coins, Trash2, Terminal, Database, Cpu } from "lucide-react";
 import { uploadImageToPinata, uploadMetadataToPinata } from "@/lib/pinata";
 import { useToast } from "@/components/Toast";
 import { ProjectImage } from "@/components/ProjectImage";
@@ -36,8 +36,6 @@ export default function AdminPage() {
   const [tgeProjectSlug, setTgeProjectSlug] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "ended" | "all">("active");
   const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({});
-  const [collateralToRemove, setCollateralToRemove] = useState<string | null>(null);
-  const [collateralToApprove, setCollateralToApprove] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     slug: "",
@@ -61,14 +59,27 @@ export default function AdminPage() {
   // V4: Fee management state
   const [newSettlementFee, setNewSettlementFee] = useState("");
   const [newCancellationFee, setNewCancellationFee] = useState("");
-  const [newCollateralAddress, setNewCollateralAddress] = useState("");
+  const [newMinOrderValue, setNewMinOrderValue] = useState("");
   const [showFeeManager, setShowFeeManager] = useState(false);
-  const [showCollateralManager, setShowCollateralManager] = useState(false);
 
   // V3: Use getActiveProjects to fetch all projects directly
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const publicClient = usePublicClient();
+  const { data: blockNumber } = useBlockNumber({ watch: true });
+
+  // Check if orderbook is paused
+  const { data: isOrderbookPaused } = useReadContract({
+    address: ORDERBOOK_ADDRESS as `0x${string}`,
+    abi: [{
+      name: "paused",
+      type: "function",
+      stateMutability: "view",
+      inputs: [],
+      outputs: [{ type: "bool" }],
+    }],
+    functionName: "paused",
+  });
 
   const refetch = async () => {
     if (!publicClient) {
@@ -169,6 +180,12 @@ export default function AdminPage() {
     functionName: "cancellationFeeBps",
   }) as { data: bigint | undefined; refetch: () => void };
 
+  const { data: minOrderValue, refetch: refetchMinOrderValue } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "minOrderValue",
+  }) as { data: bigint | undefined; refetch: () => void };
+
   const { data: maxFeeBps } = useReadContract({
     address: ORDERBOOK_ADDRESS,
     abi: ESCROW_ORDERBOOK_ABI,
@@ -180,13 +197,6 @@ export default function AdminPage() {
     abi: ESCROW_ORDERBOOK_ABI,
     functionName: "feeCollector",
   }) as { data: string | undefined };
-
-  // V4: Read approved collateral
-  const { data: approvedCollateral, refetch: refetchCollateral } = useReadContract({
-    address: ORDERBOOK_ADDRESS,
-    abi: ESCROW_ORDERBOOK_ABI,
-    functionName: "getApprovedCollateral",
-  }) as { data: `0x${string}`[] | undefined; refetch: () => void };
 
   // Check if orderbook is paused
   const { data: isPausedData, refetch: refetchPaused } = useReadContract({
@@ -278,17 +288,6 @@ export default function AdminPage() {
   const { writeContract, data: hash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  // Helper: Generate deterministic placeholder address from slug
-  const generatePlaceholderAddress = (slug: string): `0x${string}` => {
-    // Convert slug to hex and pad to 40 characters (20 bytes)
-    let hexSlug = '';
-    for (let i = 0; i < Math.min(slug.length, 20); i++) {
-      hexSlug += slug.charCodeAt(i).toString(16).padStart(2, '0');
-    }
-    const paddedHex = hexSlug.padEnd(40, '0');
-    return `0x${paddedHex}` as `0x${string}`;
-  };
-
   // Handle form submission for adding project
   const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -300,10 +299,13 @@ export default function AdminPage() {
 
     const cleanSlug = formData.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     
-    // If no token address provided, generate a deterministic placeholder
+    // Token address handling:
+    // - Points projects: Must be address(0)
+    // - Token projects: address(0) if pre-TGE, or deployed contract address
+    const isPointsProject = formData.assetType === "Points";
     const tokenAddr = formData.tokenAddress 
       ? getAddress(formData.tokenAddress) 
-      : generatePlaceholderAddress(cleanSlug);
+      : "0x0000000000000000000000000000000000000000" as `0x${string}`;
 
     try {
       let logoUrl = "";
@@ -368,7 +370,6 @@ export default function AdminPage() {
       }
 
       // Step 4: Register on-chain (V3)
-      const isPoints = formData.assetType === "Points";
       writeContract({
         address: REGISTRY_ADDRESS,
         abi: PROJECT_REGISTRY_ABI,
@@ -376,8 +377,8 @@ export default function AdminPage() {
         args: [
           cleanSlug,           // string slug
           formData.name,       // string name
-          tokenAddr,           // address tokenAddress
-          isPoints,            // bool isPoints (V3: replaces assetType string)
+          tokenAddr,           // address tokenAddress (address(0) for Points)
+          isPointsProject,     // bool isPoints (V3: replaces assetType string)
           metadataURI,         // string metadataURI (V3: replaces individual fields)
         ],
       });
@@ -456,12 +457,13 @@ export default function AdminPage() {
           
           // Wait a bit for the metadata update to complete, then update the rest
           setTimeout(() => {
-            // V3: updateProject(bytes32 id, string name, address tokenAddress, bool active)
+            // V4: updateProject(bytes32 id, string name, address tokenAddress)
+            // Note: Active status is managed separately via setProjectStatus()
             writeContract({
               address: REGISTRY_ADDRESS,
               abi: PROJECT_REGISTRY_ABI,
               functionName: "updateProject",
-              args: [projectId, formData.name, tokenAddr, active],
+              args: [projectId, formData.name, tokenAddr],
             });
           }, 2000);
         } catch (error) {
@@ -477,7 +479,7 @@ export default function AdminPage() {
           address: REGISTRY_ADDRESS,
           abi: PROJECT_REGISTRY_ABI,
           functionName: "updateProject",
-          args: [projectId, formData.name, tokenAddr, active],
+          args: [projectId, formData.name, tokenAddr],
         });
       }
     } catch (error) {
@@ -586,51 +588,32 @@ export default function AdminPage() {
     });
   };
 
-  // V4: Approve new collateral
-  const handleApproveCollateral = () => {
-    if (!isAddress(newCollateralAddress)) {
-      toast.error("Invalid address", "Please enter a valid ERC20 token address");
+  // V4: Update minimum order value
+  const handleUpdateMinOrderValue = () => {
+    const valueUSD = Number(newMinOrderValue);
+    if (isNaN(valueUSD) || valueUSD <= 0) {
+      toast.error("Invalid value", "Minimum order value must be greater than 0");
       return;
     }
 
-    setCollateralToApprove(newCollateralAddress);
-  };
+    // Convert USD to stable decimals (e.g., 100 USD -> 100 * 10^6 for USDC)
+    const stableDecimals = 6; // USDC has 6 decimals
+    const valueInStableUnits = BigInt(Math.floor(valueUSD * (10 ** stableDecimals)));
 
-  const confirmApproveCollateral = () => {
-    if (!collateralToApprove) return;
+    if (!confirm(`Update minimum order value to $${valueUSD}?`)) {
+      return;
+    }
 
+    toast.info("Updating minimum order value", "Transaction pending");
+    
     writeContract({
       address: ORDERBOOK_ADDRESS,
       abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "approveCollateral",
-      args: [collateralToApprove as `0x${string}`],
+      functionName: "setMinOrderValue",
+      args: [valueInStableUnits],
     });
-    
-    toast.info("Transaction sent", "Approving collateral token...");
-    
-    // Clear input and close modal
-    setNewCollateralAddress("");
-    setCollateralToApprove(null);
   };
 
-  // V4: Remove collateral
-  const handleRemoveCollateral = (tokenAddress: string) => {
-    setCollateralToRemove(tokenAddress);
-  };
-
-  const confirmRemoveCollateral = () => {
-    if (!collateralToRemove) return;
-
-    writeContract({
-      address: ORDERBOOK_ADDRESS,
-      abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "removeCollateral",
-      args: [collateralToRemove as `0x${string}`],
-    });
-
-    toast.info("Transaction sent", "Removing collateral from whitelist...");
-    setCollateralToRemove(null);
-  };
 
   // V3: Load project data into form for editing (mainly for setting token address during TGE)
   const startEditing = async (project: Project) => {
@@ -763,9 +746,9 @@ export default function AdminPage() {
       setTimeout(() => {
         refetch();
         refetchPaused();
-        refetchCollateral(); // V4: Refetch collateral whitelist
         refetchSettlementFee(); // V4: Refetch settlement fee
         refetchCancellationFee(); // V4: Refetch cancellation fee
+        refetchMinOrderValue(); // V4: Refetch min order value
         fetchOrders();
         resetForm();
       }, 2000);
@@ -793,18 +776,18 @@ export default function AdminPage() {
         <Card className="text-center py-12 border-red-800/30 bg-red-950/20">
           <h1 className="text-3xl font-bold mb-4 text-red-400">Access Denied</h1>
           <p className="text-zinc-400 mb-4">You are not the contract owner.</p>
-          <div className="bg-zinc-900/50 p-4 rounded-lg text-left text-xs space-y-2">
+          <div className="p-4 rounded text-left text-xs space-y-2" style={{ backgroundColor: '#121218', border: '1px solid #2b2b30' }}>
             <div>
               <span className="text-zinc-500">Connected Wallet:</span>
               <p className="text-white font-mono mt-1">{address}</p>
             </div>
             <div>
               <span className="text-zinc-500">Registry Owner:</span>
-              <p className="text-cyan-400 font-mono mt-1">{owner as string || 'Loading...'}</p>
+              <p className="text-zinc-100 font-mono mt-1">{owner as string || 'Loading...'}</p>
             </div>
-            <div className="pt-2 mt-2 border-t border-zinc-800">
+            <div className="pt-2 mt-2 border-t" style={{ borderColor: '#2b2b30' }}>
               <span className="text-zinc-500">Registry Address:</span>
-              <p className="text-violet-400 font-mono mt-1">{REGISTRY_ADDRESS}</p>
+              <p className="text-zinc-100 font-mono mt-1">{REGISTRY_ADDRESS}</p>
             </div>
           </div>
           <p className="text-xs text-zinc-500 mt-4">
@@ -816,15 +799,50 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3">
-          <Settings className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
-          <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-            Admin Panel
-          </span>
-        </h1>
-        <p className="text-lg text-zinc-400">Manage projects on the otcX platform</p>
+    <div style={{ backgroundColor: '#06060c', minHeight: '100vh' }}>
+      <div className="mx-auto max-w-7xl px-4 py-8">
+      {/* Terminal-style header */}
+      <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Settings className="w-8 h-8 text-zinc-300 flex-shrink-0" />
+            <div>
+              <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/admin/control-panel</span>
+              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                ADMIN_CONTROL_PANEL
+              </h1>
+              <p className="text-xs text-zinc-300/70 mt-1">
+                Platform Management • System Configuration
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 items-end">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-zinc-300">
+                {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+              </span>
+              <Database className="w-3 h-3 text-zinc-300" />
+            </div>
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+              isOrderbookPaused 
+                ? 'bg-red-950/30 border-red-500/50' 
+                : 'bg-green-950/30 border-green-500/50'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
+              }`} />
+              <span className={`text-xs font-mono font-semibold ${
+                isOrderbookPaused ? 'text-red-400' : 'text-green-400'
+              }`}>
+                {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+              <span>BLOCK #{blockNumber?.toString() || '...'}</span>
+              <Cpu className="w-3 h-3" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Emergency Controls */}
@@ -902,14 +920,14 @@ export default function AdminPage() {
       </Card>
 
       {/* V4: Fee Management */}
-      <Card className="mb-6 p-6 border-cyan-500/30 bg-cyan-950/10">
+      <Card className="mb-6 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-cyan-500/20">
-              <DollarSign className="w-5 h-5 text-cyan-400" />
+            <div className="p-2 rounded-lg" style={{ backgroundColor: '#2b2b30' }}>
+              <DollarSign className="w-5 h-5 text-zinc-300" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-cyan-400">Fee Configuration</h3>
+              <h3 className="text-lg font-bold text-zinc-100">Fee Configuration</h3>
               <p className="text-sm text-zinc-400">
                 Manage protocol fees for settlement and cancellations
               </p>
@@ -918,7 +936,8 @@ export default function AdminPage() {
           <Button
             onClick={() => setShowFeeManager(!showFeeManager)}
             variant="custom"
-            className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500/30"
+            className="text-zinc-100 border"
+            style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
           >
             {showFeeManager ? "Hide" : "Manage Fees"}
           </Button>
@@ -926,9 +945,9 @@ export default function AdminPage() {
 
         {/* Current Fee Display */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div className="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
+          <div className="p-4 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             <div className="text-xs text-zinc-500 mb-1">Settlement Fee</div>
-            <div className="text-2xl font-bold text-cyan-400">
+            <div className="text-2xl font-bold text-zinc-100">
               {settlementFeeBps ? `${(Number(settlementFeeBps) / 100).toFixed(2)}%` : "Loading..."}
             </div>
             <div className="text-xs text-zinc-600 mt-1">
@@ -936,9 +955,9 @@ export default function AdminPage() {
             </div>
           </div>
           
-          <div className="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
+          <div className="p-4 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             <div className="text-xs text-zinc-500 mb-1">Cancellation Fee</div>
-            <div className="text-2xl font-bold text-orange-400">
+            <div className="text-2xl font-bold text-zinc-100">
               {cancellationFeeBps ? `${(Number(cancellationFeeBps) / 100).toFixed(2)}%` : "Loading..."}
             </div>
             <div className="text-xs text-zinc-600 mt-1">
@@ -946,7 +965,7 @@ export default function AdminPage() {
             </div>
           </div>
           
-          <div className="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
+          <div className="p-4 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             <div className="text-xs text-zinc-500 mb-1">Maximum Fee Cap</div>
             <div className="text-2xl font-bold text-red-400">
               {maxFeeBps ? `${(Number(maxFeeBps) / 100).toFixed(2)}%` : "Loading..."}
@@ -958,7 +977,7 @@ export default function AdminPage() {
         </div>
 
         {/* Fee Collector Display */}
-        <div className="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800 mb-4">
+        <div className="p-4 rounded border mb-4" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs text-zinc-500 mb-1">Fee Collector Address</div>
@@ -967,15 +986,15 @@ export default function AdminPage() {
                   href={`https://blockscan.com/address/${feeCollector}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm font-mono text-violet-400 hover:text-violet-300 underline decoration-dotted hover:decoration-solid transition-all"
+                  className="text-sm font-mono text-zinc-300 hover:text-zinc-100 underline decoration-dotted hover:decoration-solid transition-all"
                 >
                   {feeCollector}
                 </a>
               ) : (
-                <div className="text-sm font-mono text-violet-400">Loading...</div>
+                <div className="text-sm font-mono text-zinc-300">Loading...</div>
               )}
             </div>
-            <Badge className="bg-violet-600/20 text-violet-400 border-violet-500/30">
+            <Badge className="bg-zinc-700 text-zinc-300 border-zinc-600">
               Fees Auto-Transferred
             </Badge>
           </div>
@@ -983,7 +1002,7 @@ export default function AdminPage() {
 
         {/* Fee Update Forms */}
         {showFeeManager && (
-          <div className="space-y-4 pt-4 border-t border-zinc-800">
+          <div className="space-y-4 pt-4 border-t" style={{ borderColor: '#2b2b30' }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Update Settlement Fee */}
               <div className="space-y-3">
@@ -1043,143 +1062,56 @@ export default function AdminPage() {
                 </p>
               </div>
             </div>
-          </div>
-        )}
-      </Card>
 
-      {/* V4: Collateral Whitelist Management */}
-      <Card className="mb-6 p-6 border-violet-500/30 bg-violet-950/10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-violet-500/20">
-              <Shield className="w-5 h-5 text-violet-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-violet-400">Collateral Whitelist</h3>
-              <p className="text-sm text-zinc-400">
-                Manage approved tokens for order collateral
-              </p>
-            </div>
-          </div>
-          <Button
-            onClick={() => setShowCollateralManager(!showCollateralManager)}
-            variant="custom"
-            className="bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 border border-violet-500/30"
-          >
-            {showCollateralManager ? "Hide" : "Manage Collateral"}
-          </Button>
-        </div>
-
-        {/* Approved Collateral List */}
-        <div className="space-y-2">
-          <div className="text-sm font-medium text-zinc-300 mb-3">
-            Approved Tokens ({approvedCollateral?.length || 0})
-          </div>
-          
-          {approvedCollateral && approvedCollateral.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Token Address</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {approvedCollateral.map((tokenAddr, idx) => (
-                    <tr 
-                      key={idx}
-                      className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-all"
+            {/* Update Minimum Order Value */}
+            <div className="space-y-3 pt-4 border-t" style={{ borderColor: '#2b2b30' }}>
+              <label className="text-sm font-medium text-zinc-300">
+                Update Minimum Order Value (USD)
+              </label>
+              <div className="flex gap-2 items-start">
+                <div className="flex-1">
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      value={newMinOrderValue}
+                      onChange={(e) => setNewMinOrderValue(e.target.value)}
+                      placeholder={minOrderValue ? `Current: $${(Number(minOrderValue) / 1e6).toFixed(0)}` : "e.g. 100"}
+                      className="flex-1"
+                      min="1"
+                    />
+                    <Button
+                      onClick={handleUpdateMinOrderValue}
+                      disabled={!newMinOrderValue || isPending}
+                      variant="custom"
+                      className="bg-violet-600 hover:bg-violet-700 text-white"
                     >
-                      {/* Token Address */}
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2">
-                          <Coins className="w-4 h-4 text-violet-400 flex-shrink-0" />
-                          <span className="text-sm font-mono text-white">{tokenAddr}</span>
-                        </div>
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-4 px-4">
-                        {idx === 0 ? (
-                          <Badge className="bg-cyan-600 text-xs">Primary Stable</Badge>
-                        ) : (
-                          <Badge className="bg-violet-600 text-xs">Approved</Badge>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-4 px-4 text-right">
-                        {idx !== 0 ? (
-                          <Button
-                            onClick={() => handleRemoveCollateral(tokenAddr)}
-                            disabled={isPending}
-                            variant="custom"
-                            className="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 text-xs px-3 py-1"
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Remove
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-zinc-600">Cannot Remove</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      Update
+                    </Button>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-2">
+                    Prevents dust orders and ensures meaningful trading volume. Current: <span className="text-zinc-100 font-medium">${minOrderValue ? (Number(minOrderValue) / 1e6).toFixed(0) : 'Loading...'}</span>
+                  </p>
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-8 text-zinc-500">
-              No approved collateral found
-            </div>
-          )}
-        </div>
-
-        {/* Add New Collateral */}
-        {showCollateralManager && (
-          <div className="mt-4 pt-4 border-t border-zinc-800">
-            <label className="text-sm font-medium text-zinc-300 block mb-3">
-              Approve New Collateral Token
-            </label>
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                value={newCollateralAddress}
-                onChange={(e) => setNewCollateralAddress(e.target.value)}
-                placeholder="0x... Token Address"
-                className="flex-1 font-mono text-sm"
-              />
-              <Button
-                onClick={handleApproveCollateral}
-                disabled={!newCollateralAddress || isPending}
-                variant="custom"
-                className="bg-violet-600 hover:bg-violet-700 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Approve
-              </Button>
-            </div>
-            <p className="text-xs text-zinc-500 mt-2">
-              ⚠️ Only approve trusted ERC20 tokens. Token must have code deployed and valid decimals.
-            </p>
           </div>
         )}
       </Card>
+
 
       {/* Add/Edit Project Form - Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <Card className="w-full max-w-4xl my-8 border-cyan-500/30 p-4" data-edit-form>
+          <Card className="w-full max-w-4xl my-8 p-4" data-edit-form>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-cyan-400">
+              <h2 className="text-lg font-bold text-zinc-100">
                 {editingProject ? `Edit ${formData.name || 'Project'}` : "Add New Project"}
               </h2>
               <Button
                 onClick={resetForm}
                 variant="custom"
-                className="bg-zinc-800 hover:bg-zinc-700 text-sm px-3 py-1.5"
+                className="text-sm px-3 py-1.5 border"
+                style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
               >
                 ✕ Close
               </Button>
@@ -1210,7 +1142,8 @@ export default function AdminPage() {
                   placeholder="e.g., lighter"
                   required
                   disabled={!!editingProject}
-                  className={`text-sm py-2 ${editingProject ? "bg-zinc-900/50 cursor-not-allowed" : ""}`}
+                  className={`text-sm py-2 ${editingProject ? "cursor-not-allowed" : ""}`}
+                  style={editingProject ? { backgroundColor: '#121218', opacity: 0.5 } : {}}
                 />
               </div>
             </div>
@@ -1235,7 +1168,8 @@ export default function AdminPage() {
                 <select
                   value={formData.assetType}
                   onChange={(e) => setFormData({ ...formData, assetType: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-zinc-900/50 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full px-3 py-2 text-sm rounded text-white focus:outline-none"
+                  style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
                   required
                 >
                   <option value="Tokens">Tokens</option>
@@ -1279,7 +1213,8 @@ export default function AdminPage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
                 placeholder="Brief description of the project..."
-                className="w-full px-3 py-2 text-sm bg-zinc-900/50 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
+                className="w-full px-3 py-2 text-sm rounded text-white placeholder-zinc-500 focus:outline-none resize-none"
+                style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
               />
             </div>
 
@@ -1293,7 +1228,7 @@ export default function AdminPage() {
                 <div className="flex flex-col gap-2">
                   {/* Preview */}
                   {logoPreview && (
-                    <div className="relative w-full h-20 bg-zinc-900/30 rounded-lg overflow-hidden border border-cyan-500/30">
+                    <div className="relative w-full h-20 rounded overflow-hidden border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                       <img 
                         src={logoPreview} 
                         alt="Logo preview" 
@@ -1313,7 +1248,8 @@ export default function AdminPage() {
                   )}
                   
                   {/* Upload Button */}
-                  <label className="flex items-center justify-center px-3 py-4 bg-zinc-900/50 border border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-cyan-500/50 hover:bg-zinc-900/70 transition-all">
+                  <label className="flex items-center justify-center px-3 py-4 border border-dashed rounded cursor-pointer transition-all hover:opacity-80"
+                    style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                     <div className="text-center">
                       <Upload className="w-4 h-4 mx-auto mb-1 text-zinc-400" />
                       <p className="text-[10px] text-zinc-300">
@@ -1328,7 +1264,7 @@ export default function AdminPage() {
                     />
                   </label>
                   {logoFile && (
-                    <p className="text-[10px] text-cyan-400 flex items-center truncate">
+                    <p className="text-[10px] text-zinc-300 flex items-center truncate">
                       <CheckCircle className="w-3 h-3 mr-1 flex-shrink-0" />
                       {logoFile.name}
                     </p>
@@ -1344,11 +1280,12 @@ export default function AdminPage() {
                 <div className="flex flex-col gap-2">
                   {/* Preview */}
                   {iconPreview && (
-                    <div className="relative w-full h-20 bg-zinc-900/30 rounded-lg overflow-hidden border border-blue-500/30 flex items-center justify-center">
+                    <div className="relative w-full h-20 rounded overflow-hidden border flex items-center justify-center" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                       <img 
                         src={iconPreview} 
                         alt="Icon preview" 
-                        className="w-16 h-16 object-cover rounded-full border-2 border-blue-500/20"
+                        className="w-16 h-16 object-cover rounded-full border-2"
+                        style={{ borderColor: '#2b2b30' }}
                       />
                       <button
                         type="button"
@@ -1364,7 +1301,8 @@ export default function AdminPage() {
                   )}
                   
                   {/* Upload Button */}
-                  <label className="flex items-center justify-center px-3 py-4 bg-zinc-900/50 border border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-violet-500/50 hover:bg-zinc-900/70 transition-all">
+                  <label className="flex items-center justify-center px-3 py-4 border border-dashed rounded cursor-pointer transition-all hover:opacity-80"
+                    style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                     <div className="text-center">
                       <Upload className="w-4 h-4 mx-auto mb-1 text-zinc-400" />
                       <p className="text-[10px] text-zinc-300">
@@ -1379,7 +1317,7 @@ export default function AdminPage() {
                     />
                   </label>
                   {iconFile && (
-                    <p className="text-[10px] text-violet-400 flex items-center truncate">
+                    <p className="text-[10px] text-zinc-300 flex items-center truncate">
                       <CheckCircle className="w-3 h-3 mr-1 flex-shrink-0" />
                       {iconFile.name}
                     </p>
@@ -1420,25 +1358,25 @@ export default function AdminPage() {
               {/* Progress Messages */}
               <div className="flex flex-col gap-1">
                 {uploadingLogo && (
-                  <p className="text-xs text-cyan-400 flex items-center">
+                  <p className="text-xs text-zinc-300 flex items-center">
                     <Upload className="w-3 h-3 mr-1 animate-pulse" />
                     Step 1/4: Uploading logo to IPFS...
                   </p>
                 )}
                 {uploadingIcon && (
-                  <p className="text-xs text-violet-400 flex items-center">
+                  <p className="text-xs text-zinc-300 flex items-center">
                     <Upload className="w-3 h-3 mr-1 animate-pulse" />
                     Step 2/4: Uploading icon to IPFS...
                   </p>
                 )}
                 {uploadingMetadata && (
-                  <p className="text-xs text-cyan-400 flex items-center">
+                  <p className="text-xs text-zinc-300 flex items-center">
                     <Upload className="w-3 h-3 mr-1 animate-pulse" />
                     Step 3/4: Uploading metadata to IPFS...
                   </p>
                 )}
                 {isConfirming && (
-                  <p className="text-xs text-cyan-400 flex items-center">
+                  <p className="text-xs text-zinc-300 flex items-center">
                     ⏳ Step 4/4: Waiting for blockchain confirmation...
                   </p>
                 )}
@@ -1459,12 +1397,13 @@ export default function AdminPage() {
       {/* TGE Management Modal - Separate from Edit */}
       {showTGEManager && tgeProjectSlug && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <Card className="w-full max-w-5xl my-8 border-violet-500/30 p-4">
+          <Card className="w-full max-w-5xl my-8 p-4">
             <div className="flex items-center justify-end mb-3">
               <Button
                 onClick={closeTGEManager}
                 variant="custom"
-                className="bg-zinc-800 hover:bg-zinc-700 text-sm px-3 py-1.5"
+                className="text-sm px-3 py-1.5 border"
+                style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
               >
                 ✕ Close
               </Button>
@@ -1496,7 +1435,8 @@ export default function AdminPage() {
             <Button
               onClick={() => setShowAddForm(true)}
               variant="custom"
-              className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700"
+              className="text-sm font-mono text-zinc-100 border px-4 py-2"
+              style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
             >
               <Plus className="w-4 h-4 mr-2" />
               Add New Project
@@ -1504,45 +1444,49 @@ export default function AdminPage() {
           </div>
           
           {/* Status Tabs */}
-          <div className="flex items-center gap-2 border-b border-zinc-800">
+          {/* Tabs - Terminal Style (matching markets page) */}
+          <div className="flex items-center gap-2 mb-6 rounded border p-1" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             <button
               onClick={() => setStatusFilter("active")}
-              className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
                 statusFilter === "active"
-                  ? "text-cyan-400 border-cyan-400"
-                  : "text-zinc-400 border-transparent hover:text-zinc-300"
+                  ? "bg-green-500/20 text-green-400 border border-green-500/50"
+                  : "text-zinc-400 hover:text-zinc-300 hover:bg-[#2b2b30]"
               }`}
             >
-              Active
-              <Badge className="ml-2 bg-green-600 text-xs">
+              <div className={`w-2 h-2 rounded-full ${statusFilter === "active" ? "bg-green-400 animate-pulse" : "bg-zinc-600"}`}></div>
+              <span>LIVE</span>
+              <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/30">
                 {projects.filter(p => p.active && !projectTgeStatus[p.slug]).length}
-              </Badge>
+              </span>
             </button>
             <button
               onClick={() => setStatusFilter("ended")}
-              className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
                 statusFilter === "ended"
-                  ? "text-emerald-400 border-emerald-400"
-                  : "text-zinc-400 border-transparent hover:text-zinc-300"
+                  ? "bg-red-500/20 text-red-400 border border-red-500/50"
+                  : "text-zinc-400 hover:text-zinc-300 hover:bg-[#2b2b30]"
               }`}
             >
-              Ended
-              <Badge className="ml-2 bg-red-600/70 text-xs">
+              <div className={`w-2 h-2 rounded-full ${statusFilter === "ended" ? "bg-red-400" : "bg-zinc-600"}`}></div>
+              <span>ENDED</span>
+              <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/30">
                 {projects.filter(p => projectTgeStatus[p.slug]).length}
-              </Badge>
+              </span>
             </button>
             <button
               onClick={() => setStatusFilter("all")}
-              className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
                 statusFilter === "all"
-                  ? "text-cyan-400 border-cyan-400"
-                  : "text-zinc-400 border-transparent hover:text-zinc-300"
+                  ? "bg-zinc-700 text-zinc-300 border border-zinc-500"
+                  : "text-zinc-400 hover:text-zinc-300 hover:bg-[#2b2b30]"
               }`}
             >
-              All Projects
-              <Badge className="ml-2 bg-zinc-700 text-xs">
+              <div className={`w-2 h-2 rounded-full ${statusFilter === "all" ? "bg-zinc-400" : "bg-zinc-600"}`}></div>
+              <span>ALL</span>
+              <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-500/30">
                 {projects.length}
-              </Badge>
+              </span>
             </button>
           </div>
         </div>
@@ -1550,7 +1494,29 @@ export default function AdminPage() {
         {loadingProjects ? (
           <p className="text-zinc-400 text-center py-8">Loading projects...</p>
         ) : !projects || projects.length === 0 ? (
-          <p className="text-zinc-400 text-center py-8">No projects found</p>
+          <div className="flex flex-col items-center px-4 py-12">
+            <div className="bg-[#121218] border border-[#2b2b30] rounded p-8 backdrop-blur-sm max-w-2xl w-full">
+              <div className="flex items-center gap-3 mb-4 font-mono text-zinc-300">
+                <Terminal className="w-5 h-5" />
+                <span className="text-sm">otcX://protocol/admin/projects</span>
+              </div>
+              <div className="bg-[#06060c] border border-red-500/30 rounded p-4 mb-4 font-mono text-sm">
+                <div className="flex items-center gap-2 text-red-400 mb-2">
+                  <span className="font-bold">EMPTY:</span>
+                  <span>No projects found</span>
+                </div>
+                <div className="text-zinc-500 text-xs space-y-1 pl-4">
+                  <div>→ registry.getActiveProjects(): []</div>
+                  <div>→ total_projects = 0</div>
+                  <div>→ status: EMPTY_STATE</div>
+                </div>
+              </div>
+              <div className="space-y-3 font-mono text-sm">
+                <div className="text-zinc-400">You haven’t added any projects yet.</div>
+                <div className="text-zinc-400">Use the button above to create your first project.</div>
+              </div>
+            </div>
+          </div>
         ) : (() => {
             const filteredProjects = projects.filter((project) => {
               if (statusFilter === "all") return true;
@@ -1560,11 +1526,27 @@ export default function AdminPage() {
             });
             
             return (
-              <>
+              <div className="mt-6">
                 {filteredProjects.length === 0 ? (
-                  <p className="text-zinc-400 text-center py-8">
-                    No {statusFilter === "all" ? "" : statusFilter} projects found
-                  </p>
+                  <div className="flex flex-col items-center px-4 py-12">
+                    <div className="bg-[#121218] border border-yellow-500/30 rounded p-8 backdrop-blur-sm max-w-2xl w-full">
+                      <div className="flex items-center gap-3 mb-4 font-mono text-yellow-400">
+                        <Terminal className="w-5 h-5" />
+                        <span className="text-sm">otcX://protocol/admin/filter</span>
+                      </div>
+                      <div className="bg-[#06060c] border border-yellow-500/30 rounded p-4 mb-4 font-mono text-sm">
+                        <div className="flex items-center gap-2 text-yellow-400 mb-2">
+                          <span className="font-bold">WARN:</span>
+                          <span>No results for current filter</span>
+                        </div>
+                        <div className="text-zinc-500 text-xs space-y-1 pl-4">
+                          <div>→ filter: {statusFilter}</div>
+                          <div>→ matches: 0</div>
+                        </div>
+                      </div>
+                      <div className="text-zinc-400 font-mono text-sm">Try switching tabs or adding a new project.</div>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <p className="text-sm text-zinc-500 mb-4">
@@ -1573,23 +1555,23 @@ export default function AdminPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead>
-                          <tr className="border-b border-zinc-800">
-                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Project</th>
-                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Type</th>
-                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Lifecycle</th>
-                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Slug</th>
-                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Added</th>
-                            <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Token Address</th>
-                            <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
-                            <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">TGE</th>
-                            <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Edit</th>
+                          <tr>
+                            <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">Project</th>
+                            <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">Type</th>
+                            <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">Lifecycle</th>
+                            <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">Slug</th>
+                            <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">Added</th>
+                            <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">Token Address</th>
+                            <th className="text-center py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">Status</th>
+                            <th className="text-center py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">TGE</th>
+                            <th className="text-right py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">Edit</th>
                           </tr>
                         </thead>
                         <tbody>
                           {filteredProjects.map((project) => (
                             <tr 
                               key={project.slug}
-                              className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-all"
+                              className="border-b border-[#2b2b30]/50 hover:bg-[#2b2b30]/50 transition-all"
                             >
                               {/* Project Name */}
                               <td className="py-4 px-4">
@@ -1681,7 +1663,8 @@ export default function AdminPage() {
                                 <Button
                                   onClick={() => openTGEManager(project.slug)}
                                   variant="custom"
-                                  className="bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 border border-violet-500/30 text-xs px-2 py-1"
+                                  className="hover:opacity-80 text-zinc-300 border text-xs px-2 py-1"
+                                  style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
                                 >
                                   🚀 TGE
                                 </Button>
@@ -1692,7 +1675,8 @@ export default function AdminPage() {
                                 <Button
                                   onClick={() => startEditing(project)}
                                   variant="custom"
-                                  className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs px-2 py-1"
+                                  className="hover:opacity-80 text-zinc-300 border text-xs px-2 py-1"
+                                  style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
                                 >
                                   <Edit2 className="w-3 h-3 mr-1 inline" />
                                   Edit
@@ -1705,124 +1689,11 @@ export default function AdminPage() {
                     </div>
                   </>
                 )}
-              </>
+              </div>
             );
           })()}
       </Card>
-
-      {/* Approve Collateral Confirmation Modal */}
-      {collateralToApprove && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card className="max-w-md w-full mx-4 p-6 bg-zinc-900 border-green-500/30">
-            <div className="mb-4">
-              <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                Approve Collateral
-              </h3>
-              <p className="text-sm text-zinc-400 mb-3">
-                Are you sure you want to approve this token as collateral?
-              </p>
-              <div className="p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                <div className="text-xs text-zinc-500 mb-1">Token Address</div>
-                <div className="text-sm font-mono text-green-400 break-all">{collateralToApprove}</div>
-              </div>
-            </div>
-
-            <div className="space-y-3 mb-6">
-              <div className="flex items-start gap-2 text-sm text-blue-400 bg-blue-950/20 p-3 rounded-lg border border-blue-500/30">
-                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">Security Check</p>
-                  <p className="text-xs text-blue-300/80 mt-1">
-                    Only approve trusted ERC20 tokens. The contract will verify the token has valid code and decimals before approval.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2 text-sm text-violet-400 bg-violet-950/20 p-3 rounded-lg border border-violet-500/30">
-                <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">Effect</p>
-                  <p className="text-xs text-violet-300/80 mt-1">
-                    Once approved, users will be able to create new orders using this token as collateral.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                onClick={() => setCollateralToApprove(null)}
-                variant="custom"
-                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={confirmApproveCollateral}
-                disabled={isPending}
-                variant="custom"
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Approve Collateral
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Remove Collateral Confirmation Modal */}
-      {collateralToRemove && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card className="max-w-md w-full mx-4 p-6 bg-zinc-900 border-red-500/30">
-            <div className="mb-4">
-              <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-red-400" />
-                Remove Collateral
-              </h3>
-              <p className="text-sm text-zinc-400 mb-3">
-                Are you sure you want to remove this token from the approved collateral whitelist?
-              </p>
-              <div className="p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                <div className="text-xs text-zinc-500 mb-1">Token Address</div>
-                <div className="text-sm font-mono text-red-400 break-all">{collateralToRemove}</div>
-              </div>
-            </div>
-
-            <div className="space-y-3 mb-6">
-              <div className="flex items-start gap-2 text-sm text-yellow-400 bg-yellow-950/20 p-3 rounded-lg border border-yellow-500/30">
-                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">Important</p>
-                  <p className="text-xs text-yellow-300/80 mt-1">
-                    Existing orders using this collateral will not be affected. Only new orders will be prevented from using this token.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                onClick={() => setCollateralToRemove(null)}
-                variant="custom"
-                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={confirmRemoveCollateral}
-                disabled={isPending}
-                variant="custom"
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Remove Collateral
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

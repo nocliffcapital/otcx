@@ -122,10 +122,10 @@ export default function PrivateOrderPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
+      <div className="relative min-h-screen" style={{ backgroundColor: '#06060c' }}>
+        <div className="relative mx-auto max-w-2xl px-4 py-12">
           <Card className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-zinc-400 mx-auto mb-4" style={{ borderColor: '#2b2b30' }}></div>
             <p className="text-zinc-400">Loading private order...</p>
           </Card>
         </div>
@@ -135,13 +135,13 @@ export default function PrivateOrderPage() {
 
   if (!order || !order.amount || !order.unitPrice) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
-          <Card className="p-8 text-center border-red-500/30 bg-red-950/10">
+      <div className="relative min-h-screen" style={{ backgroundColor: '#06060c' }}>
+        <div className="relative mx-auto max-w-2xl px-4 py-12">
+          <Card className="p-8 text-center">
             <h1 className="text-2xl font-bold text-red-400 mb-4">Order Not Found</h1>
             <p className="text-zinc-400 mb-6">This order does not exist or has been removed.</p>
-            <Link href="/markets">
-              <Button>Back to Markets</Button>
+            <Link href="/">
+              <Button variant="custom" className="border font-mono" style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}>Back to Markets</Button>
             </Link>
           </Card>
         </div>
@@ -156,21 +156,21 @@ export default function PrivateOrderPage() {
   const isOpen = order.status === 0; // OPEN status
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="relative min-h-screen" style={{ backgroundColor: '#06060c' }}>
+      <div className="relative mx-auto max-w-2xl px-4 py-12">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <Lock className="w-8 h-8 text-purple-400" />
+            <Lock className="w-8 h-8 text-zinc-300" />
             <h1 className="text-3xl md:text-4xl font-bold text-white">
-              Private Order
+              PRIVATE ORDER
             </h1>
           </div>
           <p className="text-zinc-400">This is a private order. Only the specified address can take it.</p>
         </div>
 
         {/* Order Details */}
-        <Card className="p-6 border-purple-500/30 bg-purple-950/10">
+        <Card className="p-6 mb-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
               <h2 className="text-xl font-bold text-white">Order Details</h2>
@@ -183,7 +183,7 @@ export default function PrivateOrderPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-zinc-500 mb-1">Project</p>
                 <p className="text-white font-medium">{project?.name || 'Unknown'}</p>
@@ -200,9 +200,9 @@ export default function PrivateOrderPage() {
                 <p className="text-sm text-zinc-500 mb-1">Unit Price</p>
                 <p className="text-white font-medium">${unitPrice}</p>
               </div>
-              <div className="col-span-2">
+              <div className="col-span-1 sm:col-span-2">
                 <p className="text-sm text-zinc-500 mb-1">Total Value</p>
-                <p className="text-2xl font-bold text-cyan-400">${total}</p>
+                <p className="text-2xl font-bold text-white">${total}</p>
               </div>
             </div>
 
@@ -217,26 +217,26 @@ export default function PrivateOrderPage() {
 
         {/* Authorization Status */}
         {!address ? (
-          <Card className="p-6 border-yellow-500/30 bg-yellow-950/10 text-center">
-            <p className="text-yellow-400 font-medium mb-4">Please connect your wallet to view this order</p>
-            <Button variant="outline" className="border-yellow-500/30">
+          <Card className="p-6 text-center mb-6">
+            <p className="text-zinc-300 font-medium mb-4">Please connect your wallet to view this order</p>
+            <Button variant="custom" className="border font-mono" style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}>
               Connect Wallet
             </Button>
           </Card>
         ) : !isAuthorized ? (
-          <Card className="p-6 border-red-500/30 bg-red-950/10 text-center">
+          <Card className="p-6 text-center mb-6">
             <Lock className="w-12 h-12 text-red-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-red-400 mb-2">Not Authorized</h3>
             <p className="text-zinc-400 mb-2">This order is restricted to a specific address.</p>
             <p className="text-xs text-zinc-500 font-mono break-all">Your address: {address}</p>
           </Card>
         ) : !isOpen ? (
-          <Card className="p-6 border-zinc-700 bg-zinc-900/50 text-center">
+          <Card className="p-6 text-center mb-6">
             <h3 className="text-xl font-bold text-zinc-400 mb-2">Order No Longer Available</h3>
             <p className="text-zinc-500">This order has already been taken or cancelled.</p>
           </Card>
         ) : (
-          <Card className="p-6 border-green-500/30 bg-green-950/10 text-center">
+          <Card className="p-6 text-center mb-6">
             <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">You're Authorized!</h3>
             <p className="text-zinc-400 mb-6">You can take this order</p>
@@ -244,7 +244,9 @@ export default function PrivateOrderPage() {
             <Button 
               onClick={handleTakeOrder}
               disabled={taking}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+              variant="custom"
+              className="w-full border font-mono"
+              style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
             >
               {taking ? (
                 <>
@@ -263,7 +265,7 @@ export default function PrivateOrderPage() {
 
         {/* Back Link */}
         <div className="text-center">
-          <Link href="/markets" className="text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-2">
+          <Link href="/" className="text-zinc-400 hover:text-zinc-300 inline-flex items-center gap-2">
             <ExternalLink className="w-4 h-4" />
             View All Markets
           </Link>

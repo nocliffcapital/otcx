@@ -6,11 +6,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
 import { ProjectImage } from "@/components/ProjectImage";
-import { useReadContract, usePublicClient } from "wagmi";
+import { useReadContract, usePublicClient, useBlockNumber } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, STABLE_DECIMALS, slugToProjectId } from "@/lib/contracts";
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
-import { TrendingUp, SearchX, DollarSign, Clock, Activity } from "lucide-react";
+import { TrendingUp, SearchX, DollarSign, Clock, Activity, Terminal, Cpu, Zap, Database, GitBranch, Code2, Network } from "lucide-react";
 
 // Smart decimal formatting based on price
 function formatPrice(price: number): string {
@@ -60,11 +60,17 @@ export default function ProjectsPage() {
   });
   const isOrderbookPaused = isPausedData === true;
 
+  // Get current block number for nerdy display
+  const { data: blockNumber } = useBlockNumber({ watch: true });
+
   const [projectStats, setProjectStats] = useState<Record<string, ProjectStats>>({});
   const [loadingStats, setLoadingStats] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | "Tokens" | "Points">("all");
-  const [viewMode, setViewMode] = useState<"cards" | "list">("list");
+  // Default to cards on mobile, list on desktop
+  const [viewMode, setViewMode] = useState<"cards" | "list">(
+    typeof window !== 'undefined' && window.innerWidth < 768 ? "cards" : "list"
+  );
   const [marketTab, setMarketTab] = useState<"live" | "ended">("live");
   const [sortBy, setSortBy] = useState<"name" | "price" | "volume" | "orders">("volume");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -318,159 +324,205 @@ export default function ProjectsPage() {
     : [];
 
   return (
-    <div className="relative min-h-screen">
-      {/* Corner accents - tech frame */}
-      <div className="fixed top-16 left-0 w-24 h-24 border-t-2 border-l-2 border-amber-500/20 pointer-events-none"></div>
-      <div className="fixed top-16 right-0 w-24 h-24 border-t-2 border-r-2 border-blue-500/20 pointer-events-none"></div>
+    <div className="relative min-h-screen" style={{ backgroundColor: '#06060c' }}>
+      {/* Cyberpunk scanlines effect */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#2b2b30]/30 via-transparent to-[#2b2b30]/30"></div>
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, transparent 1px, transparent 2px, rgba(0,0,0,0.15) 3px)',
+          backgroundSize: '100% 3px'
+        }}></div>
+      </div>
+
+      {/* Corner tech brackets */}
+      <div className="fixed top-16 left-0 w-32 h-32 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#2b2b30] to-transparent"></div>
+        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#2b2b30] to-transparent"></div>
+      </div>
+      <div className="fixed top-16 right-0 w-32 h-32 pointer-events-none">
+        <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-l from-[#2b2b30] to-transparent"></div>
+        <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-[#2b2b30] to-transparent"></div>
+      </div>
       
       <div className="relative mx-auto max-w-7xl px-4 py-8">
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
-              <TrendingUp className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
-              <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-                Explore Markets
-              </span>
-            </h1>
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 ${
-              isOrderbookPaused 
-                ? 'bg-red-950/30 border-red-500/50' 
-                : 'bg-green-950/30 border-green-500/50'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500'
-              }`} />
-              <span className={`text-sm font-semibold ${
-                isOrderbookPaused ? 'text-red-400' : 'text-green-400'
-              }`}>
-                {isOrderbookPaused ? 'Trading Paused' : 'Trading Active'}
-              </span>
-            </div>
-          </div>
-          <p className="text-lg text-zinc-400 mb-6">
-            Browse pre-TGE OTC markets for tokens and points
-          </p>
-
-        {/* Top Stats Cards */}
-        {!loadingStats && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-            {/* Total Volume */}
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-zinc-800/50 rounded-xl">
-                    <DollarSign className="w-6 h-6 text-zinc-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs text-zinc-400 uppercase tracking-wide mb-1">Total Volume</h3>
-                    <p className="text-2xl font-bold text-white">
-                      ${globalStats.total24hVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-0.5">
-                      {globalStats.totalTrades} Completed Trades
-            </p>
-          </div>
+          {/* Terminal-style header */}
+          <div className="border border-[#2b2b30] rounded-lg p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218' }}>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="w-8 h-8 text-zinc-300 flex-shrink-0" />
+                <div>
+                  <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/markets/v4</span>
+                  <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                    MARKETS_EXPLORER
+                  </h1>
+                  <p className="text-xs text-zinc-300/70 mt-1">
+                    Pre-TGE OTC Protocol • Sepolia Testnet
+                  </p>
                 </div>
               </div>
-            </Card>
-
-            {/* Total Projects */}
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-zinc-800/50 rounded-xl">
-                    <Activity className="w-6 h-6 text-zinc-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs text-zinc-400 uppercase tracking-wide mb-1">Total Projects</h3>
-                    <p className="text-2xl font-bold text-white">
-                      {globalStats.totalMarkets}
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-0.5">
-                      {globalStats.liveMarkets} Live Markets
-              </p>
-            </div>
+              <div className="flex flex-col gap-2 items-end">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-zinc-300">
+                    {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+                  </span>
+                  <Database className="w-3 h-3 text-zinc-300" />
+                </div>
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+                  isOrderbookPaused 
+                    ? 'bg-red-950/30 border-red-500/50' 
+                    : 'bg-green-950/30 border-green-500/50'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full ${
+                    isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
+                  }`} />
+                  <span className={`text-xs font-mono font-semibold ${
+                    isOrderbookPaused ? 'text-red-400' : 'text-green-400'
+                  }`}>
+                    {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+                  <span>BLOCK #{blockNumber?.toString() || '...'}</span>
+                  <Cpu className="w-3 h-3" />
                 </div>
               </div>
-            </Card>
-
-            {/* In Settlement */}
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-zinc-800/50 rounded-xl">
-                    <Clock className="w-6 h-6 text-zinc-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs text-zinc-400 uppercase tracking-wide mb-1">In Settlement</h3>
-                    <p className="text-2xl font-bold text-white">
-                      {projects.filter(p => projectTgeStatus[p.slug]).length}
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-0.5">
-                      {projects.filter(p => projectTgeStatus[p.slug]).length > 0 ? 'Active settlements' : 'No active settlements'}
-              </p>
             </div>
-                </div>
-              </div>
-            </Card>
           </div>
-        )}
 
-        {/* Tabs */}
-        <div className="flex items-center gap-2 border-b border-zinc-800 mb-6">
+        {/* Top Stats - Terminal Style */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          {/* Total Volume */}
+          <div className="border border-[#2b2b30] rounded p-4 backdrop-blur-sm hover:border-zinc-500 transition-all" style={{ backgroundColor: '#121218' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-4 h-4 text-zinc-300" />
+              <span className="text-xs font-mono text-zinc-300 uppercase">TOTAL VOLUME</span>
+            </div>
+            <div className="font-mono">
+              {loadingStats ? (
+                <div className="h-8 w-32 bg-[#2b2b30] rounded animate-pulse mb-1"></div>
+              ) : (
+                <div className="text-2xl font-bold text-white mb-1">
+                  ${globalStats.total24hVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </div>
+              )}
+              <div className="text-xs text-zinc-500">
+                <span className="text-green-400">{loadingStats ? '...' : globalStats.totalTrades}</span> trades completed
+              </div>
+            </div>
+          </div>
+
+          {/* Projects Live */}
+          <div className="border border-green-500/30 rounded p-4 backdrop-blur-sm hover:border-green-500/60 transition-all" style={{ backgroundColor: '#121218' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="w-4 h-4 text-green-400" />
+              <span className="text-xs font-mono text-green-400 uppercase">PROJECTS LIVE</span>
+            </div>
+            <div className="font-mono">
+              {loadingStats ? (
+                <div className="h-8 w-16 bg-[#2b2b30] rounded animate-pulse mb-1"></div>
+              ) : (
+                <div className="text-2xl font-bold text-white mb-1">
+                  {globalStats.liveMarkets}
+                </div>
+              )}
+              <div className="text-xs text-zinc-500">
+                <span className="text-green-400 animate-pulse">●</span> trading now
+              </div>
+            </div>
+          </div>
+
+          {/* Total Ended */}
+          <div className="border border-red-500/30 rounded p-4 backdrop-blur-sm hover:border-red-500/60 transition-all" style={{ backgroundColor: '#121218' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-red-400" />
+              <span className="text-xs font-mono text-red-400 uppercase">TOTAL ENDED</span>
+            </div>
+            <div className="font-mono">
+              {loadingStats ? (
+                <div className="h-8 w-16 bg-[#2b2b30] rounded animate-pulse mb-1"></div>
+              ) : (
+                <div className="text-2xl font-bold text-white mb-1">
+                  {projects.filter(p => projectTgeStatus[p.slug]).length}
+                </div>
+              )}
+              <div className="text-xs text-zinc-500">
+                markets closed
+              </div>
+            </div>
+          </div>
+
+          {/* Currently in Settlement */}
+          <div className="border border-orange-500/30 rounded p-4 backdrop-blur-sm hover:border-orange-500/60 transition-all" style={{ backgroundColor: '#121218' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <GitBranch className="w-4 h-4 text-orange-400" />
+              <span className="text-xs font-mono text-orange-400 uppercase">IN SETTLEMENT</span>
+            </div>
+            <div className="font-mono">
+              {loadingStats ? (
+                <div className="h-8 w-16 bg-[#2b2b30] rounded animate-pulse mb-1"></div>
+              ) : (
+                <div className="text-2xl font-bold text-white mb-1">
+                  {projects.filter(p => projectTgeStatus[p.slug]).length}
+                </div>
+              )}
+              <div className="text-xs text-zinc-500">
+                <span className="text-orange-400">●</span> active settlements
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs - Terminal Style */}
+        <div className="flex items-center gap-2 mb-6 rounded border p-1" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
           <button
             onClick={() => setMarketTab("live")}
-            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
               marketTab === "live"
-                ? "text-green-400"
-                : "text-zinc-400 hover:text-zinc-300"
+                ? "bg-green-500/20 text-green-400 border border-green-500/50"
+                : "text-zinc-400 hover:text-zinc-300 hover:bg-[#2b2b30]"
             }`}
           >
-            Live
-            {marketTab === "live" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-400"></div>
-            )}
-            <Badge className="ml-2 bg-green-600 text-xs">
+            <div className={`w-2 h-2 rounded-full ${marketTab === "live" ? "bg-green-400 animate-pulse" : "bg-zinc-600"}`}></div>
+            <span>LIVE</span>
+            <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/30">
               {projects.filter(p => p.active && !projectTgeStatus[p.slug]).length}
-            </Badge>
+            </span>
           </button>
           <button
             onClick={() => setMarketTab("ended")}
-            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
               marketTab === "ended"
-                ? "text-emerald-400"
-                : "text-zinc-400 hover:text-zinc-300"
+                ? "bg-red-500/20 text-red-400 border border-red-500/50"
+                : "text-zinc-400 hover:text-zinc-300 hover:bg-[#2b2b30]"
             }`}
           >
-            Ended
-            {marketTab === "ended" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400"></div>
-            )}
-            <Badge className="ml-2 bg-red-600/70 text-xs">
+            <div className={`w-2 h-2 rounded-full ${marketTab === "ended" ? "bg-red-400" : "bg-zinc-600"}`}></div>
+            <span>ENDED</span>
+            <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/30">
               {projects.filter(p => projectTgeStatus[p.slug]).length}
-            </Badge>
+            </span>
           </button>
         </div>
         
         {/* Search Bar and Request Button */}
-        <div className="flex gap-4 items-center justify-between">
+        <div className="flex gap-4 items-center justify-between mb-4">
           <div className="relative w-full max-w-md">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <Terminal className="h-4 w-4 text-zinc-300" />
             </div>
             <input
               type="text"
               placeholder="Search projects..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 text-sm font-mono border border-[#2b2b30] rounded text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 transition-all"
+              style={{ backgroundColor: '#121218' }}
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-white transition-colors"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-300 hover:text-white transition-colors"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -480,66 +532,75 @@ export default function ProjectsPage() {
           </div>
 
           <Link href="/request">
-            <button className="px-4 py-2 text-sm font-medium text-zinc-400 border border-zinc-700 rounded-lg whitespace-nowrap transition-colors hover:bg-zinc-800 hover:text-white hover:border-zinc-600">
-              + Request Project
+            <button className="px-4 py-2.5 text-sm font-mono font-medium text-zinc-300 border border-[#2b2b30] rounded whitespace-nowrap transition-all hover:bg-[#2b2b30] hover:border-zinc-500 flex items-center gap-2">
+              <span>+</span> REQUEST PROJECT
             </button>
           </Link>
         </div>
 
         {/* Asset Type Filter and View Toggle */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="custom"
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex gap-2 font-mono">
+            <button
               onClick={() => setAssetFilter("all")}
-              className={assetFilter === "all" ? "bg-cyan-600 hover:bg-cyan-700" : "bg-zinc-800 hover:bg-zinc-700"}
+              className={`px-4 py-2 text-xs font-medium rounded border transition-all ${
+                assetFilter === "all" 
+                  ? "bg-zinc-700 text-zinc-300 border-zinc-500" 
+                  : "text-zinc-400 hover:border-zinc-700"
+              }`}
+              style={assetFilter !== "all" ? { backgroundColor: '#121218', borderColor: '#2b2b30' } : {}}
             >
-              All
-            </Button>
-              <Button
-              size="sm"
-                variant="custom"
+              ALL
+            </button>
+            <button
               onClick={() => setAssetFilter("Tokens")}
-              className={assetFilter === "Tokens" ? "bg-blue-600 hover:bg-blue-700" : "bg-zinc-800 hover:bg-zinc-700"}
-              >
-              Tokens
-              </Button>
-              <Button
-              size="sm"
-                variant="custom"
+              className={`px-4 py-2 text-xs font-medium rounded border transition-all ${
+                assetFilter === "Tokens" 
+                  ? "bg-blue-500/20 text-blue-400 border-blue-500/50" 
+                  : "text-zinc-400 hover:border-zinc-700"
+              }`}
+              style={assetFilter !== "Tokens" ? { backgroundColor: '#121218', borderColor: '#2b2b30' } : {}}
+            >
+              TOKENS
+            </button>
+            <button
               onClick={() => setAssetFilter("Points")}
-              className={assetFilter === "Points" ? "bg-purple-600 hover:bg-purple-700" : "bg-zinc-800 hover:bg-zinc-700"}
-              >
-              Points
-              </Button>
+              className={`px-4 py-2 text-xs font-medium rounded border transition-all ${
+                assetFilter === "Points" 
+                  ? "bg-purple-500/20 text-purple-400 border-purple-500/50" 
+                  : "text-zinc-400 hover:border-zinc-700"
+              }`}
+              style={assetFilter !== "Points" ? { backgroundColor: '#121218', borderColor: '#2b2b30' } : {}}
+            >
+              POINTS
+            </button>
           </div>
 
           {/* View Toggle */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 rounded border p-1" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             <button
               onClick={() => setViewMode("list")}
-              className={`p-2 rounded-lg transition-all ${
+              className={`p-2 rounded transition-all ${
                 viewMode === "list" 
-                  ? "bg-cyan-600 text-white" 
-                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                  ? "bg-zinc-700 text-zinc-300 border border-zinc-500" 
+                  : "text-zinc-400 hover:bg-[#2b2b30]"
               }`}
               title="List View"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
             <button
               onClick={() => setViewMode("cards")}
-              className={`p-2 rounded-lg transition-all ${
+              className={`p-2 rounded transition-all ${
                 viewMode === "cards" 
-                  ? "bg-cyan-600 text-white" 
-                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                  ? "bg-zinc-700 text-zinc-300 border border-zinc-500" 
+                  : "text-zinc-400 hover:bg-[#2b2b30]"
               }`}
               title="Card View"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
               </svg>
             </button>
@@ -549,7 +610,7 @@ export default function ProjectsPage() {
 
       {isLoading && (
         <div className="text-center text-zinc-400 py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-400"></div>
           <p className="mt-4">Loading projects...</p>
         </div>
       )}
@@ -557,119 +618,180 @@ export default function ProjectsPage() {
       {/* Card View */}
       {viewMode === "cards" && !isLoading && projects && projects.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 px-4">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500/20 to-violet-500/20 flex items-center justify-center mb-6">
-            <svg className="w-10 h-10 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-            </svg>
+          <div className="border border-[#2b2b30] rounded p-8 backdrop-blur-sm max-w-2xl" style={{ backgroundColor: '#121218' }}>
+            <div className="flex items-center gap-3 mb-4 font-mono text-zinc-300">
+              <Terminal className="w-5 h-5" />
+              <span className="text-sm">otcX://protocol/markets</span>
+            </div>
+            <div className="bg-[#06060c] border border-red-500/30 rounded p-4 mb-4 font-mono text-sm">
+              <div className="flex items-center gap-2 text-red-400 mb-2">
+                <span className="font-bold">ERROR:</span>
+                <span>No active markets found</span>
+              </div>
+              <div className="text-zinc-500 text-xs space-y-1 pl-4">
+                <div>→ query returned 0 results</div>
+                <div>→ registry.getActiveProjects() = []</div>
+                <div>→ status: EMPTY_STATE</div>
+              </div>
+            </div>
+            <div className="space-y-3 font-mono text-sm">
+              <div className="text-zinc-400">
+                No projects are currently listed on the platform.
+              </div>
+              <div className="text-zinc-400">
+                Check back soon or submit a new project request.
+              </div>
+            </div>
+            <div className="mt-6 pt-6 border-t border-[#2b2b30]">
+              <Link href="/request">
+                <button className="w-full px-6 py-3 text-sm font-mono font-medium text-zinc-300 border border-[#2b2b30] rounded transition-all hover:bg-[#2b2b30] hover:border-zinc-500 flex items-center justify-center gap-2">
+                  <span>+</span> REQUEST NEW PROJECT
+                </button>
+              </Link>
+            </div>
           </div>
-          <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-            No Active Projects
-          </h3>
-          <p className="text-zinc-400 text-center max-w-md mb-6">
-            There are currently no projects listed on the platform. Check back soon or request a new project to get started.
-          </p>
-          <Link href="/request">
-            <button className="px-6 py-3 text-sm font-medium text-zinc-400 border border-zinc-700 rounded-lg whitespace-nowrap transition-colors hover:bg-zinc-800 hover:text-white hover:border-zinc-600">
-              + Request a Project
-            </button>
-          </Link>
         </div>
       )}
 
       {viewMode === "cards" && projects && projects.length > 0 && (
         <>
         {filteredProjects.length === 0 && projects && projects.length > 0 ? (
-          <div className="text-center py-12">
-            <div className="flex justify-center mb-4">
-              <SearchX className="w-16 h-16 text-zinc-600" />
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <div className="bg-[#121218] border border-yellow-500/30 rounded p-8 backdrop-blur-sm max-w-2xl">
+              <div className="flex items-center gap-3 mb-4 font-mono text-yellow-400">
+                <Terminal className="w-5 h-5" />
+                <span className="text-sm">otcX://protocol/search</span>
+              </div>
+              <div className="bg-[#06060c] border border-yellow-500/30 rounded p-4 mb-4 font-mono text-sm">
+                <div className="flex items-center gap-2 text-yellow-400 mb-2">
+                  <span className="font-bold">WARN:</span>
+                  <span>No results found for query</span>
+                </div>
+                <div className="text-zinc-500 text-xs space-y-1 pl-4">
+                  <div>→ search_query: &quot;{searchQuery}&quot;</div>
+                  <div>→ filter: {assetFilter}</div>
+                  <div>→ matches: 0</div>
+                </div>
+              </div>
+              <div className="space-y-3 font-mono text-sm">
+                <div className="text-zinc-400">
+                  No projects match your current search criteria.
+                </div>
+                <div className="text-zinc-400">
+                  Try adjusting filters or search terms.
+                </div>
+              </div>
+              <div className="mt-6 pt-6 border-t border-yellow-500/30">
+                <button 
+                  onClick={() => {
+                    setSearchQuery("");
+                    setAssetFilter("all");
+                  }}
+                  className="w-full px-6 py-3 text-sm font-mono font-medium text-yellow-400 border border-yellow-500/30 rounded transition-all hover:bg-yellow-500/10 hover:border-yellow-500/60 flex items-center justify-center gap-2"
+                >
+                  <span>↻</span> RESET FILTERS
+                </button>
+              </div>
             </div>
-            <p className="text-zinc-400 text-lg mb-2">No projects match your search</p>
-            <p className="text-zinc-500 text-sm">Try searching for something else</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProjects.map((project) => {
           const stats = projectStats[project.slug];
+          const spread = stats?.lowestAsk && stats?.highestBid 
+            ? ((stats.lowestAsk - stats.highestBid) / stats.highestBid * 100).toFixed(2)
+            : null;
           
           return (
             <Link key={project.slug} href={`/markets/${project.slug}`}>
-              <Card className="hover:border-blue-500/30 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer h-full group transition-all duration-500 ease-out">
-                <div className="flex items-center gap-3 mb-3">
-                  {/* Project Icon */}
-                  <ProjectImage 
-                    metadataURI={project.metadataURI}
-                    imageType="icon"
-                    className="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-zinc-700 group-hover:border-blue-500/50 transition-all"
-                    fallbackText={project.name.charAt(0).toUpperCase()}
-                  />
+              <div className="bg-[#121218] border border-[#2b2b30] hover:border-zinc-500 hover:shadow-lg hover:shadow-zinc-500/20 cursor-pointer h-full group transition-all backdrop-blur-sm rounded">
+                {/* Terminal-style header */}
+                <div className="bg-gradient-to-r from-[#2b2b30]/50 to-[#2b2b30]/50 border-b border-[#2b2b30] px-3 py-2 font-mono text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                    <span className="text-zinc-300 uppercase">{project.slug}</span>
+                  </div>
+                  <Badge className={`text-xs font-mono ${project.assetType === "Points" ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" : "bg-blue-500/20 text-blue-400 border border-blue-500/50"}`}>
+                    {project.assetType}
+                  </Badge>
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    {/* Project Icon */}
+                    <div className="relative">
+                      <ProjectImage 
+                        metadataURI={project.metadataURI}
+                        imageType="icon"
+                        className="w-14 h-14 rounded object-cover flex-shrink-0 border-2 border-[#2b2b30] group-hover:border-zinc-500 transition-all"
+                        fallbackText={project.name.charAt(0).toUpperCase()}
+                      />
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black"></div>
+                    </div>
+                    
+                    {/* Project Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-lg text-white mb-0.5">{project.name}</h3>
+                      <div className="font-mono text-xs text-zinc-500">
+                        ID: {slugToProjectId(project.slug).slice(0, 10)}...
+                      </div>
+                    </div>
+                  </div>
                   
-                  {/* Project Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg">{project.name}</h3>
+                  {/* Price Stats - Terminal Style */}
+                  {!loadingStats && stats ? (
+                    <div className="space-y-2 font-mono text-xs">
+                      <div className="flex justify-between items-center bg-[#06060c] px-2 py-1.5 rounded">
+                        <span className="text-zinc-500">last_price</span>
+                        <span className="font-bold text-zinc-300">
+                          {stats.lastPrice !== null ? `$${formatPrice(stats.lastPrice)}` : "null"}
+                        </span>
                       </div>
-                      <Badge className={project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"}>
-                        {project.assetType}
-                      </Badge>
+                      <div className="flex justify-between items-center bg-[#06060c] px-2 py-1.5 rounded">
+                        <span className="text-zinc-500">best_ask</span>
+                        <span className="font-bold text-red-400">
+                          {stats.lowestAsk !== null ? `$${formatPrice(stats.lowestAsk)}` : "null"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center bg-[#06060c] px-2 py-1.5 rounded">
+                        <span className="text-zinc-500">best_bid</span>
+                        <span className="font-bold text-green-400">
+                          {stats.highestBid !== null ? `$${formatPrice(stats.highestBid)}` : "null"}
+                        </span>
+                      </div>
+                      {spread && (
+                        <div className="flex justify-between items-center bg-[#06060c] px-2 py-1.5 rounded">
+                          <span className="text-zinc-500">spread</span>
+                          <span className="font-bold text-orange-400">
+                            {spread}%
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center bg-gradient-to-r from-[#2b2b30]/50 to-[#2b2b30]/50 px-2 py-1.5 rounded border border-[#2b2b30] mt-3">
+                        <span className="text-zinc-300">volume</span>
+                        <span className="font-bold text-white">
+                          ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                      <div className="text-xs text-zinc-600 mt-2 flex items-center justify-between">
+                        <span>{stats.orderCount} orders</span>
+                        <span>{stats.tradeCount} trades</span>
+                      </div>
                     </div>
-                    {project.twitterUrl && (
-                      <div className="mt-2">
-                        <ProjectReputationBadge 
-                          twitterUrl={project.twitterUrl}
-                          projectName={project.name}
-                          variant="compact"
-                        />
-                      </div>
-                    )}
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="h-6 bg-[#2b2b30] rounded animate-pulse"></div>
+                      <div className="h-6 bg-[#2b2b30] rounded animate-pulse"></div>
+                      <div className="h-6 bg-[#2b2b30] rounded animate-pulse"></div>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 text-xs font-mono text-zinc-300 group-hover:text-white transition-colors flex items-center gap-2 justify-center py-2 border border-[#2b2b30] rounded group-hover:bg-[#2b2b30]">
+                    <span>ENTER MARKET</span>
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 </div>
-                
-                {/* Price Stats */}
-                {!loadingStats && stats ? (
-                  <div className="mb-3 space-y-2">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-zinc-400">Last Price:</span>
-                      <span className="font-semibold text-blue-400">
-                        {stats.lastPrice !== null ? `$${formatPrice(stats.lastPrice)}` : "—"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-zinc-400">Best Ask:</span>
-                      <span className="font-semibold text-red-400">
-                        {stats.lowestAsk !== null ? `$${formatPrice(stats.lowestAsk)}` : "—"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-zinc-400">Best Bid:</span>
-                      <span className="font-semibold text-green-400">
-                        {stats.highestBid !== null ? `$${formatPrice(stats.highestBid)}` : "—"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm border-t border-zinc-800 pt-2 mt-2">
-                      <span className="text-zinc-400">Total Volume:</span>
-                      <span className="font-semibold text-white">
-                        ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <div className="text-xs text-zinc-500 mt-2">
-                      {stats.orderCount} active order{stats.orderCount !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mb-3 space-y-2">
-                    <div className="h-4 bg-zinc-800/50 rounded animate-pulse"></div>
-                    <div className="h-4 bg-zinc-800/50 rounded animate-pulse"></div>
-                    <div className="h-4 bg-zinc-800/50 rounded animate-pulse"></div>
-                    <div className="h-4 bg-zinc-800/50 rounded animate-pulse"></div>
-                  </div>
-                )}
-                
-                <div className="text-sm text-zinc-400 group-hover:text-blue-400 transition-colors flex items-center gap-2">
-                  <span>View Orderbook</span>
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
-                </div>
-              </Card>
+              </div>
             </Link>
           );
         })}
@@ -678,10 +800,10 @@ export default function ProjectsPage() {
         </>
       )}
 
-      {/* List View - Table */}
+      {/* List View - Terminal Table */}
       {viewMode === "list" && (
-        <div className="overflow-x-auto">
-          <table className="w-full table-fixed">
+        <div className="overflow-x-auto bg-[#121218] border border-[#2b2b30] rounded backdrop-blur-sm">
+          <table className="w-full table-fixed font-mono text-xs">
             <colgroup>
               <col style={{ width: '60px' }} />
               <col style={{ width: '180px' }} />
@@ -695,8 +817,8 @@ export default function ProjectsPage() {
               <col style={{ width: '100px' }} />
               <col style={{ width: '60px' }} />
             </colgroup>
-            <thead>
-              <tr className="border-b border-zinc-800">
+            <thead className="bg-gradient-to-r from-[#2b2b30]/50 to-[#2b2b30]/50">
+              <tr className="border-b border-[#2b2b30]">
                 <th className="text-left py-3 px-4"></th>
                 <th className="text-left py-3 px-4">
                   <button
@@ -708,16 +830,16 @@ export default function ProjectsPage() {
                         setSortDirection("asc");
                       }
                     }}
-                    className="flex items-center gap-1 hover:text-cyan-400 transition-colors text-xs font-semibold text-zinc-400 uppercase tracking-wider"
+                    className="flex items-center gap-1 hover:text-white transition-colors text-xs font-bold text-zinc-300 uppercase tracking-wider"
                   >
-                    Project
+                    project
                     {sortBy === "name" && (
                       <span>{sortDirection === "asc" ? "↑" : "↓"}</span>
                     )}
                   </button>
                 </th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Type</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
+                <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">type</th>
+                <th className="text-left py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">status</th>
                 <th className="text-right py-3 px-4">
                   <button
                     onClick={() => {
@@ -728,20 +850,20 @@ export default function ProjectsPage() {
                         setSortDirection("desc");
                       }
                     }}
-                    className="flex items-center justify-end gap-1 hover:text-cyan-400 transition-colors text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-auto"
+                    className="flex items-center justify-end gap-1 hover:text-white transition-colors text-xs font-bold text-zinc-300 uppercase tracking-wider ml-auto"
                   >
-                    Last Price
+                    last_price
                     {sortBy === "price" && (
                       <span>{sortDirection === "asc" ? "↑" : "↓"}</span>
                     )}
                   </button>
                 </th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Best Ask</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Best Bid</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider whitespace-nowrap">Trades</th>
+                <th className="text-right py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">best_ask</th>
+                <th className="text-right py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider">best_bid</th>
+                <th className="text-right py-3 px-4 text-xs font-bold text-zinc-300 uppercase tracking-wider whitespace-nowrap">trades</th>
                 <th className="text-right py-3 px-4 whitespace-nowrap">
-                  <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                    Total Volume
+                  <div className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                    volume
                   </div>
                 </th>
                 <th className="text-right py-3 px-4">
@@ -754,9 +876,9 @@ export default function ProjectsPage() {
                         setSortDirection("desc");
                       }
                     }}
-                    className="flex items-center justify-end gap-1 hover:text-cyan-400 transition-colors text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-auto"
+                    className="flex items-center justify-end gap-1 hover:text-white transition-colors text-xs font-bold text-zinc-300 uppercase tracking-wider ml-auto"
                   >
-                    Orders
+                    orders
                     {sortBy === "orders" && (
                       <span>{sortDirection === "asc" ? "↑" : "↓"}</span>
                     )}
@@ -768,35 +890,84 @@ export default function ProjectsPage() {
             <tbody>
               {!projects || projects.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center">
-                    <div className="flex flex-col items-center">
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500/20 to-violet-500/20 flex items-center justify-center mb-6">
-                        <svg className="w-10 h-10 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                        </svg>
-              </div>
-                      <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-                        No Active Projects
-                      </h3>
-                      <p className="text-zinc-400 text-center max-w-md mb-6">
-                        There are currently no projects listed on the platform. Check back soon or request a new project to get started.
-                      </p>
-                      <Link href="/request">
-                        <button className="px-6 py-3 text-sm font-medium text-zinc-400 border border-zinc-700 rounded-lg whitespace-nowrap transition-colors hover:bg-zinc-800 hover:text-white hover:border-zinc-600">
-                          + Request a Project
-                        </button>
-                      </Link>
-            </div>
+                  <td colSpan={11} className="py-12">
+                    <div className="flex flex-col items-center px-4">
+                      <div className="bg-[#121218] border border-[#2b2b30] rounded p-8 backdrop-blur-sm max-w-2xl">
+                        <div className="flex items-center gap-3 mb-4 font-mono text-zinc-300">
+                          <Terminal className="w-5 h-5" />
+                          <span className="text-sm">otcX://protocol/markets</span>
+                        </div>
+                        <div className="bg-[#06060c] border border-red-500/30 rounded p-4 mb-4 font-mono text-sm">
+                          <div className="flex items-center gap-2 text-red-400 mb-2">
+                            <span className="font-bold">ERROR:</span>
+                            <span>No active markets found</span>
+                          </div>
+                          <div className="text-zinc-500 text-xs space-y-1 pl-4">
+                            <div>→ query returned 0 results</div>
+                            <div>→ registry.getActiveProjects() = []</div>
+                            <div>→ status: EMPTY_STATE</div>
+                          </div>
+                        </div>
+                        <div className="space-y-3 font-mono text-sm">
+                          <div className="text-zinc-400">
+                            No projects are currently listed on the platform.
+                          </div>
+                          <div className="text-zinc-400">
+                            Check back soon or submit a new project request.
+                          </div>
+                        </div>
+                        <div className="mt-6 pt-6 border-t border-[#2b2b30]">
+                          <Link href="/request">
+                            <button className="w-full px-6 py-3 text-sm font-mono font-medium text-zinc-300 border border-[#2b2b30] rounded transition-all hover:bg-[#2b2b30] hover:border-zinc-500 flex items-center justify-center gap-2">
+                              <span>+</span> REQUEST NEW PROJECT
+                            </button>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : filteredProjects.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center">
-                    <div className="flex flex-col items-center">
-                      <SearchX className="w-16 h-16 text-zinc-600 mb-4" />
-                      <p className="text-zinc-400 text-lg mb-2">No projects match your search</p>
-                      <p className="text-zinc-500 text-sm">Try searching for something else</p>
-            </div>
+                  <td colSpan={11} className="py-12">
+                    <div className="flex flex-col items-center px-4">
+                      <div className="bg-[#121218] border border-yellow-500/30 rounded p-8 backdrop-blur-sm max-w-2xl">
+                        <div className="flex items-center gap-3 mb-4 font-mono text-yellow-400">
+                          <Terminal className="w-5 h-5" />
+                          <span className="text-sm">otcX://protocol/search</span>
+                        </div>
+                        <div className="bg-[#06060c] border border-yellow-500/30 rounded p-4 mb-4 font-mono text-sm">
+                          <div className="flex items-center gap-2 text-yellow-400 mb-2">
+                            <span className="font-bold">WARN:</span>
+                            <span>No results found for query</span>
+                          </div>
+                          <div className="text-zinc-500 text-xs space-y-1 pl-4">
+                            <div>→ search_query: &quot;{searchQuery}&quot;</div>
+                            <div>→ filter: {assetFilter}</div>
+                            <div>→ matches: 0</div>
+                          </div>
+                        </div>
+                        <div className="space-y-3 font-mono text-sm">
+                          <div className="text-zinc-400">
+                            No projects match your current search criteria.
+                          </div>
+                          <div className="text-zinc-400">
+                            Try adjusting filters or search terms.
+                          </div>
+                        </div>
+                        <div className="mt-6 pt-6 border-t border-yellow-500/30">
+                          <button 
+                            onClick={() => {
+                              setSearchQuery("");
+                              setAssetFilter("all");
+                            }}
+                            className="w-full px-6 py-3 text-sm font-mono font-medium text-yellow-400 border border-yellow-500/30 rounded transition-all hover:bg-yellow-500/10 hover:border-yellow-500/60 flex items-center justify-center gap-2"
+                          >
+                            <span>↻</span> RESET FILTERS
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -807,11 +978,11 @@ export default function ProjectsPage() {
                   <tr 
                     key={project.slug}
                     onClick={() => window.location.href = `/markets/${project.slug}`}
-                    className="border-b border-zinc-800/50 hover:bg-zinc-900/50 cursor-pointer group transition-all"
+                    className="border-b border-[#2b2b30]/50 hover:bg-[#2b2b30]/50 cursor-pointer group transition-all"
                   >
                     {/* Icon */}
-                    <td className="py-4 px-4">
-                      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-zinc-700 group-hover:border-blue-500/50 transition-all flex-shrink-0">
+                    <td className="py-3 px-4">
+                      <div className="w-10 h-10 rounded overflow-hidden border-2 border-[#2b2b30] group-hover:border-zinc-500 transition-all flex-shrink-0">
                         <ProjectImage 
                           metadataURI={project.metadataURI}
                           imageType="icon"
@@ -821,88 +992,101 @@ export default function ProjectsPage() {
           </div>
                     </td>
                     {/* Token Name */}
-                    <td className="py-4 px-4">
-                      <span className="font-semibold text-base text-white">{project.name}</span>
+                    <td className="py-3 px-4">
+                      <span className="font-bold text-white">{project.name}</span>
                     </td>
                     {/* Type */}
-                    <td className="py-4 px-4">
-                      <Badge className={`${project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"} text-xs`}>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                        project.assetType === "Points" 
+                          ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" 
+                          : "bg-blue-500/20 text-blue-400 border border-blue-500/50"
+                      }`}>
                         {project.assetType}
-                      </Badge>
+                      </span>
                     </td>
                     {/* Status */}
-                    <td className="py-4 px-4">
+                    <td className="py-3 px-4">
                       {(() => {
                         const tgeActivated = projectTgeStatus[project.slug] || false;
-                        // TGE activation takes priority over active status
                         if (tgeActivated) {
-                          return <Badge className="bg-red-600/80 text-xs">Ended</Badge>;
+                          return (
+                            <div className="flex items-center gap-1">
+                              <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                              <span className="text-red-400">ENDED</span>
+                            </div>
+                          );
                         } else {
-                          return <Badge className="bg-green-600 text-xs">Live</Badge>;
+                          return (
+                            <div className="flex items-center gap-1">
+                              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                              <span className="text-green-400">LIVE</span>
+                            </div>
+                          );
                         }
                       })()}
                     </td>
                     {/* Last Price */}
-                    <td className="py-4 px-4 text-right">
+                    <td className="py-3 px-4 text-right">
                       {!loadingStats && stats ? (
-                        <span className="font-semibold text-blue-400">
-                          {stats.lastPrice !== null ? `$${formatPrice(stats.lastPrice)}` : "—"}
+                        <span className="font-bold text-zinc-300">
+                          {stats.lastPrice !== null ? `$${formatPrice(stats.lastPrice)}` : "null"}
                         </span>
                       ) : (
-                        <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                        <div className="h-5 w-20 bg-[#2b2b30] rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
                     {/* Best Ask */}
-                    <td className="py-4 px-4 text-right">
+                    <td className="py-3 px-4 text-right">
                       {!loadingStats && stats ? (
-                        <span className="font-semibold text-red-400">
-                          {stats.lowestAsk !== null ? `$${formatPrice(stats.lowestAsk)}` : "—"}
+                        <span className="font-bold text-red-400">
+                          {stats.lowestAsk !== null ? `$${formatPrice(stats.lowestAsk)}` : "null"}
                         </span>
                       ) : (
-                        <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                        <div className="h-5 w-20 bg-[#2b2b30] rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
                     {/* Best Bid */}
-                    <td className="py-4 px-4 text-right">
+                    <td className="py-3 px-4 text-right">
                       {!loadingStats && stats ? (
-                        <span className="font-semibold text-green-400">
-                          {stats.highestBid !== null ? `$${formatPrice(stats.highestBid)}` : "—"}
+                        <span className="font-bold text-green-400">
+                          {stats.highestBid !== null ? `$${formatPrice(stats.highestBid)}` : "null"}
                         </span>
                       ) : (
-                        <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                        <div className="h-5 w-20 bg-[#2b2b30] rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
                     {/* Trades */}
-                    <td className="py-4 px-4 text-right">
+                    <td className="py-3 px-4 text-right">
                       {!loadingStats && stats ? (
-                        <span className="font-semibold text-zinc-400">
+                        <span className="font-bold text-zinc-400">
                           {stats.tradeCount}
                         </span>
                       ) : (
-                        <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                        <div className="h-5 w-20 bg-[#2b2b30] rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
                     {/* Total Volume */}
-                    <td className="py-4 px-4 text-right">
+                    <td className="py-3 px-4 text-right">
                       {!loadingStats && stats ? (
-                        <span className="font-semibold text-white">
+                        <span className="font-bold text-white">
                           ${stats.totalVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                         </span>
                       ) : (
-                        <div className="h-6 w-20 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                        <div className="h-5 w-20 bg-[#2b2b30] rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
                     {/* Orders */}
-                    <td className="py-4 px-4 text-right">
+                    <td className="py-3 px-4 text-right">
                       {!loadingStats && stats ? (
-                        <span className="font-semibold text-zinc-300">{stats.orderCount}</span>
+                        <span className="font-bold text-zinc-300">{stats.orderCount}</span>
                       ) : (
-                        <div className="h-6 w-16 bg-zinc-800/50 rounded animate-pulse ml-auto"></div>
+                        <div className="h-5 w-16 bg-[#2b2b30] rounded animate-pulse ml-auto"></div>
                       )}
                     </td>
                     {/* Arrow */}
-                    <td className="py-4 px-4 text-right">
-                      <span className="text-zinc-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all inline-block">
+                    <td className="py-3 px-4 text-right">
+                      <span className="text-zinc-300/50 group-hover:text-zinc-300 group-hover:translate-x-1 transition-all inline-block font-bold">
                         →
                       </span>
                     </td>

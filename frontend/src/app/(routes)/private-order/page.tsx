@@ -4,12 +4,13 @@ import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { PrivateOrderCreator } from "@/components/PrivateOrderCreator";
 import { useOrderbook } from "@/hooks/useOrderbook";
-import { useReadContract } from "wagmi";
-import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, slugToProjectId } from "@/lib/contracts";
-import { Lock, Search, UserPlus, Users, ShieldCheck, Calendar, Coins, CheckCircle, ArrowRight } from "lucide-react";
+import { useReadContract, useBlockNumber } from "wagmi";
+import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, slugToProjectId, ORDERBOOK_ADDRESS } from "@/lib/contracts";
+import { Lock, Search, UserPlus, Users, ShieldCheck, Calendar, Coins, CheckCircle, ArrowRight, Terminal, Database, Cpu, AlertTriangle } from "lucide-react";
 import { ProjectImage } from "@/components/ProjectImage";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
+import Link from "next/link";
 
 export default function PrivateOrderPage() {
   const { address, createPrivateOrder } = useOrderbook();
@@ -17,6 +18,22 @@ export default function PrivateOrderPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [assetTypeFilter, setAssetTypeFilter] = useState<"all" | "points" | "tokens">("all");
+
+  // Get current block number
+  const { data: blockNumber } = useBlockNumber({ watch: true });
+
+  // Check if orderbook is paused
+  const { data: isOrderbookPaused } = useReadContract({
+    address: ORDERBOOK_ADDRESS as `0x${string}`,
+    abi: [{
+      name: "paused",
+      type: "function",
+      stateMutability: "view",
+      inputs: [],
+      outputs: [{ type: "bool" }],
+    }],
+    functionName: "paused",
+  });
 
   // Fetch all projects
   const { data: projectsData } = useReadContract({
@@ -78,19 +95,51 @@ export default function PrivateOrderPage() {
   const selectedProjectData = projects.find(p => p.slug === selectedProject);
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen" style={{ backgroundColor: '#06060c' }}>
       {/* Header */}
       <div className="relative mx-auto max-w-7xl px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 mb-3">
-            <Lock className="w-8 h-8 md:w-10 md:h-10 text-cyan-400" />
-            <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-              Create Private Order
-            </span>
-          </h1>
-          <p className="text-lg text-zinc-400">
-            Create an order that only a specific address can fill. Perfect for negotiated trades.
-          </p>
+        {/* Terminal-style header */}
+        <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Lock className="w-8 h-8 text-zinc-300 flex-shrink-0" />
+              <div>
+                <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/private-order</span>
+                <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                  PRIVATE_ORDER_CREATOR
+                </h1>
+                <p className="text-xs text-zinc-300/70 mt-1">
+                  Address-Locked Trading • Peer-to-Peer Settlement
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 items-end">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-zinc-300">
+                  {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+                </span>
+                <Database className="w-3 h-3 text-zinc-300" />
+              </div>
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+                isOrderbookPaused 
+                  ? 'bg-red-950/30 border-red-500/50' 
+                  : 'bg-green-950/30 border-green-500/50'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
+                }`} />
+                <span className={`text-xs font-mono font-semibold ${
+                  isOrderbookPaused ? 'text-red-400' : 'text-green-400'
+                }`}>
+                  {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+                <span>BLOCK #{blockNumber?.toString() || '...'}</span>
+                <Cpu className="w-3 h-3" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Project Selection */}
@@ -114,36 +163,39 @@ export default function PrivateOrderPage() {
                 </div>
 
                 {/* Asset Type Filter */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 font-mono">
                   <button
                     onClick={() => setAssetTypeFilter("all")}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    className={`px-4 py-2 text-xs font-medium rounded border transition-all ${
                       assetTypeFilter === "all"
-                        ? "bg-cyan-600 text-white"
-                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                        ? "bg-zinc-700 text-zinc-300 border-zinc-500" 
+                        : "text-zinc-400 hover:border-zinc-700"
                     }`}
+                    style={assetTypeFilter !== "all" ? { backgroundColor: '#121218', borderColor: '#2b2b30' } : {}}
                   >
-                    All
+                    ALL
                   </button>
                   <button
                     onClick={() => setAssetTypeFilter("points")}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    className={`px-4 py-2 text-xs font-medium rounded border transition-all ${
                       assetTypeFilter === "points"
-                        ? "bg-purple-600 text-white"
-                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                        ? "bg-purple-500/20 text-purple-400 border-purple-500/50" 
+                        : "text-zinc-400 hover:border-zinc-700"
                     }`}
+                    style={assetTypeFilter !== "points" ? { backgroundColor: '#121218', borderColor: '#2b2b30' } : {}}
                   >
-                    Points
+                    POINTS
                   </button>
                   <button
                     onClick={() => setAssetTypeFilter("tokens")}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    className={`px-4 py-2 text-xs font-medium rounded border transition-all ${
                       assetTypeFilter === "tokens"
-                        ? "bg-blue-600 text-white"
-                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                        ? "bg-blue-500/20 text-blue-400 border-blue-500/50" 
+                        : "text-zinc-400 hover:border-zinc-700"
                     }`}
+                    style={assetTypeFilter !== "tokens" ? { backgroundColor: '#121218', borderColor: '#2b2b30' } : {}}
                   >
-                    Tokens
+                    TOKENS
                   </button>
                 </div>
               </div>
@@ -151,9 +203,77 @@ export default function PrivateOrderPage() {
 
             <div className="space-y-2">
               {projects.length === 0 ? (
-                <p className="text-zinc-400 text-center py-8">No projects available</p>
+                <div className="flex flex-col items-center px-4 py-8">
+                  <div className="bg-[#121218] border border-[#2b2b30] rounded p-8 backdrop-blur-sm max-w-2xl">
+                    <div className="flex items-center gap-3 mb-4 font-mono text-zinc-300">
+                      <Terminal className="w-5 h-5" />
+                      <span className="text-sm">otcX://protocol/private-order</span>
+                    </div>
+                    <div className="bg-[#06060c] border border-red-500/30 rounded p-4 mb-4 font-mono text-sm">
+                      <div className="flex items-center gap-2 text-red-400 mb-2">
+                        <span className="font-bold">ERROR:</span>
+                        <span>No active projects found</span>
+                      </div>
+                      <div className="text-zinc-500 text-xs space-y-1 pl-4">
+                        <div>→ query returned 0 results</div>
+                        <div>→ registry.getActiveProjects() = []</div>
+                        <div>→ status: EMPTY_STATE</div>
+                      </div>
+                    </div>
+                    <div className="space-y-3 font-mono text-sm">
+                      <div className="text-zinc-400">
+                        No projects are currently listed on the platform.
+                      </div>
+                      <div className="text-zinc-400">
+                        Check back soon or submit a new project request.
+                      </div>
+                    </div>
+                    <div className="mt-6 pt-6 border-t border-[#2b2b30]">
+                      <Link href="/request">
+                        <button className="w-full px-6 py-3 text-sm font-mono font-medium text-zinc-300 border border-[#2b2b30] rounded transition-all hover:bg-[#2b2b30] hover:border-zinc-500 flex items-center justify-center gap-2">
+                          <span>+</span> REQUEST NEW PROJECT
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
               ) : filteredProjects.length === 0 ? (
-                <p className="text-zinc-400 text-center py-8">No projects match your filters</p>
+                <div className="flex flex-col items-center px-4 py-8">
+                  <div className="bg-[#121218] border border-yellow-500/30 rounded p-8 backdrop-blur-sm max-w-2xl">
+                    <div className="flex items-center gap-3 mb-4 font-mono text-yellow-400">
+                      <Terminal className="w-5 h-5" />
+                      <span className="text-sm">otcX://protocol/search</span>
+                    </div>
+                    <div className="bg-[#06060c] border border-yellow-500/30 rounded p-4 mb-4 font-mono text-sm">
+                      <div className="flex items-center gap-2 text-yellow-400 mb-2">
+                        <span className="font-bold">WARN:</span>
+                        <span>No results found for query</span>
+                      </div>
+                      <div className="text-zinc-500 text-xs space-y-1 pl-4">
+                        <div>→ filter: {assetTypeFilter}</div>
+                        <div>→ matches: 0</div>
+                      </div>
+                    </div>
+                    <div className="space-y-3 font-mono text-sm">
+                      <div className="text-zinc-400">
+                        No projects match your current filter criteria.
+                      </div>
+                      <div className="text-zinc-400">
+                        Try adjusting filters or check back later.
+                      </div>
+                    </div>
+                    <div className="mt-6 pt-6 border-t border-yellow-500/30">
+                      <button 
+                        onClick={() => {
+                          setAssetTypeFilter("all");
+                        }}
+                        className="w-full px-6 py-3 text-sm font-mono font-medium text-yellow-400 border border-yellow-500/30 rounded transition-all hover:bg-yellow-500/10 hover:border-yellow-500/60 flex items-center justify-center gap-2"
+                      >
+                        <span>↻</span> RESET FILTERS
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 filteredProjects.map((project, index) => (
                   <button
@@ -162,7 +282,13 @@ export default function PrivateOrderPage() {
                       console.log('Clicked project:', project.slug);
                       setSelectedProject(project.slug);
                     }}
-                    className="w-full p-4 bg-zinc-900/50 hover:bg-zinc-800/50 border border-zinc-800 hover:border-purple-500/50 rounded-lg transition-all text-left group"
+                    className="w-full p-4 hover:bg-zinc-800/50 border transition-all text-left group rounded"
+                    style={{ 
+                      backgroundColor: '#121218',
+                      borderColor: '#2b2b30'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#2b2b30'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#2b2b30'}
                   >
                     <div className="flex items-center gap-3">
                       <ProjectImage 
@@ -175,7 +301,7 @@ export default function PrivateOrderPage() {
                         <h3 className="font-semibold text-white">{project.name || "Unknown"}</h3>
                         <p className="text-xs text-zinc-500">{project.slug || "unknown"}</p>
                       </div>
-                      <Badge className={project.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"}>
+                      <Badge className={project.assetType === "Points" ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" : "bg-blue-500/20 text-blue-400 border border-blue-500/50"}>
                         {project.assetType}
                       </Badge>
                     </div>
@@ -200,15 +326,18 @@ export default function PrivateOrderPage() {
                     <h3 className="text-sm font-semibold text-white">{selectedProjectData?.name}</h3>
                     <p className="text-xs text-zinc-500">{selectedProjectData?.slug}</p>
                   </div>
-                  <Badge className={`${selectedProjectData?.assetType === "Points" ? "bg-purple-600" : "bg-blue-600"} text-xs`}>
+                  <Badge className={`text-xs ${selectedProjectData?.assetType === "Points" ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" : "bg-blue-500/20 text-blue-400 border border-blue-500/50"}`}>
                     {selectedProjectData?.assetType}
                   </Badge>
                 </div>
                 <button
                   onClick={() => setSelectedProject(null)}
-                  className="text-xs text-zinc-400 hover:text-purple-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800/50"
+                  className="text-xs font-mono text-zinc-400 hover:text-white transition-colors px-3 py-1.5 rounded"
+                  style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2b2b30'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#121218'}
                 >
-                  Change
+                  CHANGE
                 </button>
               </div>
             </Card>
@@ -225,10 +354,10 @@ export default function PrivateOrderPage() {
         )}
 
         {/* Info Section - How It Works */}
-        <Card className="mt-6 bg-gradient-to-br from-zinc-900/50 to-zinc-900/30 border-zinc-800">
+        <Card className="mt-6">
           <div className="mb-6">
             <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-              <Lock className="w-5 h-5 text-purple-400" />
+              <Lock className="w-5 h-5 text-zinc-300" />
             How Private Orders Work
           </h3>
             <p className="text-sm text-zinc-400">
@@ -239,10 +368,10 @@ export default function PrivateOrderPage() {
           {/* Step-by-step flow */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Step 1 */}
-            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-purple-500/50 transition-all group">
+            <div className="relative p-4 rounded-lg border transition-all" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-500/20 border border-purple-500/50 flex items-center justify-center group-hover:bg-purple-500/30 transition-all">
-                  <UserPlus className="w-5 h-5 text-purple-400" />
+                <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#2b2b30' }}>
+                  <UserPlus className="w-5 h-5 text-zinc-300" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -257,10 +386,10 @@ export default function PrivateOrderPage() {
             </div>
 
             {/* Step 2 */}
-            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-blue-500/50 transition-all group">
+            <div className="relative p-4 rounded-lg border transition-all" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 border border-blue-500/50 flex items-center justify-center group-hover:bg-blue-500/30 transition-all">
-                  <Users className="w-5 h-5 text-blue-400" />
+                <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#2b2b30' }}>
+                  <Users className="w-5 h-5 text-zinc-300" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -275,10 +404,10 @@ export default function PrivateOrderPage() {
             </div>
 
             {/* Step 3 */}
-            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-green-500/50 transition-all group">
+            <div className="relative p-4 rounded-lg border transition-all" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-500/20 border border-green-500/50 flex items-center justify-center group-hover:bg-green-500/30 transition-all">
-                  <ShieldCheck className="w-5 h-5 text-green-400" />
+                <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#2b2b30' }}>
+                  <ShieldCheck className="w-5 h-5 text-zinc-300" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -293,10 +422,10 @@ export default function PrivateOrderPage() {
             </div>
 
             {/* Step 4 */}
-            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-yellow-500/50 transition-all group">
+            <div className="relative p-4 rounded-lg border transition-all" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center group-hover:bg-yellow-500/30 transition-all">
-                  <Calendar className="w-5 h-5 text-yellow-400" />
+                <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#2b2b30' }}>
+                  <Calendar className="w-5 h-5 text-zinc-300" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -311,10 +440,10 @@ export default function PrivateOrderPage() {
             </div>
 
             {/* Step 5 */}
-            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-cyan-500/50 transition-all group">
+            <div className="relative p-4 rounded-lg border transition-all" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center group-hover:bg-cyan-500/30 transition-all">
-                  <Coins className="w-5 h-5 text-cyan-400" />
+                <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#2b2b30' }}>
+                  <Coins className="w-5 h-5 text-zinc-300" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -329,10 +458,10 @@ export default function PrivateOrderPage() {
             </div>
 
             {/* Step 6 */}
-            <div className="relative p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-emerald-500/50 transition-all group">
+            <div className="relative p-4 rounded-lg border transition-all" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center group-hover:bg-emerald-500/30 transition-all">
-                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#2b2b30' }}>
+                  <CheckCircle className="w-5 h-5 text-zinc-300" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -352,28 +481,28 @@ export default function PrivateOrderPage() {
             <h4 className="text-sm font-semibold text-zinc-300 mb-3">Key Features</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-start gap-2">
-                <Lock className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                <Lock className="w-4 h-4 text-zinc-300 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-medium text-zinc-300">Address-Locked</p>
                   <p className="text-xs text-zinc-500">Only the specified address can accept</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                <ShieldCheck className="w-4 h-4 text-zinc-300 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-medium text-zinc-300">Escrow Protected</p>
                   <p className="text-xs text-zinc-500">Smart contract holds all funds safely</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <ArrowRight className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <ArrowRight className="w-4 h-4 text-zinc-300 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-medium text-zinc-300">Shareable Link</p>
                   <p className="text-xs text-zinc-500">Send the order link to your counterparty</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <Coins className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                <Coins className="w-4 h-4 text-zinc-300 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-medium text-zinc-300">Points & Tokens</p>
                   <p className="text-xs text-zinc-500">Supports both asset types seamlessly</p>

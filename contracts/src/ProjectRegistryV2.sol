@@ -97,13 +97,13 @@ contract ProjectRegistryV2 is Ownable {
     }
 
     /**
-     * @notice Update project core data (name, token address, active status)
+     * @notice Update project core data (name, token address)
+     * @dev To change active status, use setProjectStatus() to maintain index consistency
      */
     function updateProject(
         bytes32 id,
         string memory name,
-        address tokenAddress,
-        bool active
+        address tokenAddress
     ) external onlyOwner {
         require(projects[id].addedAt > 0, "PROJECT_NOT_FOUND");
         require(bytes(name).length > 0 && bytes(name).length <= 50, "INVALID_NAME");
@@ -111,7 +111,6 @@ contract ProjectRegistryV2 is Ownable {
         Project storage project = projects[id];
         project.name = name;
         project.tokenAddress = tokenAddress;
-        project.active = active;
 
         emit ProjectUpdated(id, name, tokenAddress);
     }
