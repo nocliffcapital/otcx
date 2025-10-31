@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { FileText, Info, Database, Cpu, ChevronDown } from "lucide-react";
+import { FileText, Info, Database, Cpu, ChevronDown, CheckCircle2 } from "lucide-react";
 import { useReadContract, useBlockNumber } from "wagmi";
 import { ORDERBOOK_ADDRESS } from "@/lib/contracts";
 import Link from "next/link";
@@ -54,6 +54,15 @@ export default function RequestProjectPage() {
       alert('Please complete the captcha verification');
       return;
     }
+
+    // Auto-fix URLs before submission if they don't have protocol
+    const submissionData = { ...formData };
+    if (submissionData.twitterUrl) {
+      submissionData.twitterUrl = ensureUrlProtocol(submissionData.twitterUrl);
+    }
+    if (submissionData.websiteUrl) {
+      submissionData.websiteUrl = ensureUrlProtocol(submissionData.websiteUrl);
+    }
     
     setSubmitting(true);
     
@@ -64,7 +73,7 @@ export default function RequestProjectPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
+          ...submissionData,
           'h-captcha-response': captchaToken,
         }),
       });
@@ -91,11 +100,45 @@ export default function RequestProjectPage() {
     }
   };
 
+  // Helper function to ensure URL has protocol
+  const ensureUrlProtocol = (url: string): string => {
+    if (!url || url.trim() === '') return url;
+    const trimmed = url.trim();
+    // If it already has http:// or https://, return as is
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    // Otherwise, prepend https://
+    return `https://${trimmed}`;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    let value = e.target.value;
+    
+    // Auto-fix URL fields if they have content
+    if ((e.target.name === 'twitterUrl' || e.target.name === 'websiteUrl') && value.trim()) {
+      // Only auto-fix if user is typing and it doesn't already have a protocol
+      // This allows them to type naturally without immediate correction
+      // We'll fix it on blur instead
+    }
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: value,
     });
+  };
+
+  const handleUrlBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const fieldName = e.target.name;
+    if ((fieldName === 'twitterUrl' || fieldName === 'websiteUrl') && formData[fieldName as keyof typeof formData]) {
+      const fixedUrl = ensureUrlProtocol(formData[fieldName as keyof typeof formData] as string);
+      if (fixedUrl !== formData[fieldName as keyof typeof formData]) {
+        setFormData({
+          ...formData,
+          [fieldName]: fixedUrl,
+        });
+      }
+    }
   };
 
   if (submitted) {
@@ -103,7 +146,9 @@ export default function RequestProjectPage() {
       <div className="relative min-h-screen" style={{ backgroundColor: '#06060c' }}>
         <div className="relative mx-auto max-w-2xl px-4 py-16">
           <Card className="text-center py-12">
-          <div className="text-6xl mb-4">✅</div>
+          <div className="flex justify-center mb-4">
+            <CheckCircle2 className="w-16 h-16 text-green-500" />
+          </div>
           <h1 className="text-3xl font-bold mb-3 text-white">
             Request Submitted!
           </h1>
@@ -288,7 +333,8 @@ export default function RequestProjectPage() {
                 type="url"
                 value={formData.twitterUrl}
                 onChange={handleChange}
-                placeholder="https://twitter.com/..."
+                onBlur={handleUrlBlur}
+                placeholder="https://twitter.com/... or x.com/..."
               />
             </div>
 
@@ -302,7 +348,8 @@ export default function RequestProjectPage() {
                 type="url"
                 value={formData.websiteUrl}
                 onChange={handleChange}
-                placeholder="https://..."
+                onBlur={handleUrlBlur}
+                placeholder="https://... or example.com"
               />
             </div>
           </div>
