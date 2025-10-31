@@ -222,7 +222,7 @@ contract ProjectRegistryV2 is Ownable {
         for (uint256 i = 0; i < activeCount; i++) {
             activeProjects[i] = projects[activeProjectIds[i]];
         }
-        
+
         return activeProjects;
     }
     

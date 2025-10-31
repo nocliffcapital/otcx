@@ -294,85 +294,85 @@ export function getReputationTier(level?: string): {
   const normalizedLevel = (level || 'unknown').toLowerCase();
   
   switch (normalizedLevel) {
-    case 'renowned': // 2600-2800 - Purple
+    case 'renowned': // 2600-2800
       return {
         label: 'Renowned',
+        color: 'text-purple-600',
+        bgColor: 'bg-purple-600/5',
+        textColor: 'text-zinc-400',
+        hexColor: '#7a5daf',
+      };
+    case 'revered': // 2400-2599
+      return {
+        label: 'Revered',
         color: 'text-purple-500',
         bgColor: 'bg-purple-500/5',
         textColor: 'text-zinc-400',
-        hexColor: '#a855f7',
+        hexColor: '#836da6',
       };
-    case 'revered': // 2400-2599 - Light Purple
-      return {
-        label: 'Revered',
-        color: 'text-purple-400',
-        bgColor: 'bg-purple-400/5',
-        textColor: 'text-zinc-400',
-        hexColor: '#c084fc',
-      };
-    case 'distinguished': // 2200-2399 - Light Green
+    case 'distinguished': // 2200-2399
       return {
         label: 'Distinguished',
-        color: 'text-green-300',
-        bgColor: 'bg-green-300/5',
+        color: 'text-green-600',
+        bgColor: 'bg-green-600/5',
         textColor: 'text-zinc-400',
-        hexColor: '#86efac',
+        hexColor: '#127f31',
       };
-    case 'exemplary': // 2000-2199 - Green
+    case 'exemplary': // 2000-2199
       return {
         label: 'Exemplary',
-        color: 'text-green-500',
-        bgColor: 'bg-green-500/5',
+        color: 'text-green-700',
+        bgColor: 'bg-green-700/5',
         textColor: 'text-zinc-400',
-        hexColor: '#22c55e',
+        hexColor: '#427b56',
       };
-    case 'reputable': // 1800-1999 - Blue
+    case 'reputable': // 1800-1999
       return {
         label: 'Reputable',
-        color: 'text-blue-400',
-        bgColor: 'bg-blue-500/5',
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-600/5',
         textColor: 'text-zinc-400',
-        hexColor: '#60a5fa',
+        hexColor: '#2e7bc3',
       };
-    case 'established': // 1600-1799 - Light Blue
+    case 'established': // 1600-1799
       return {
         label: 'Established',
-        color: 'text-cyan-400',
-        bgColor: 'bg-cyan-400/5',
+        color: 'text-blue-500',
+        bgColor: 'bg-blue-500/5',
         textColor: 'text-zinc-400',
-        hexColor: '#22d3ee',
+        hexColor: '#4e86b9',
       };
-    case 'known': // 1400-1599 - Blue/Grey
+    case 'known': // 1400-1599
       return {
         label: 'Known',
-        color: 'text-slate-300',
-        bgColor: 'bg-slate-400/5',
+        color: 'text-blue-400',
+        bgColor: 'bg-blue-400/5',
         textColor: 'text-zinc-400',
-        hexColor: '#cbd5e1',
+        hexColor: '#7c8da8',
       };
-    case 'neutral': // 1200-1399 - White
+    case 'neutral': // 1200-1399
       return {
         label: 'Neutral',
-        color: 'text-zinc-200',
-        bgColor: 'bg-zinc-200/5',
+        color: 'text-zinc-400',
+        bgColor: 'bg-zinc-400/5',
         textColor: 'text-zinc-400',
-        hexColor: '#e4e4e7',
+        hexColor: '#c1c0b6',
       };
-    case 'questionable': // 800-1199 - Yellow
+    case 'questionable': // 800-1199
       return {
         label: 'Questionable',
-        color: 'text-yellow-400',
-        bgColor: 'bg-yellow-400/5',
+        color: 'text-yellow-600',
+        bgColor: 'bg-yellow-600/5',
         textColor: 'text-zinc-400',
-        hexColor: '#facc15',
+        hexColor: '#c2900f',
       };
-    case 'untrusted': // 0-799 - Red
+    case 'untrusted': // 0-799
       return {
         label: 'Untrusted',
-        color: 'text-red-500',
-        bgColor: 'bg-red-500/5',
+        color: 'text-red-600',
+        bgColor: 'bg-red-600/5',
         textColor: 'text-zinc-400',
-        hexColor: '#ef4444',
+        hexColor: '#b72b38',
       };
     case 'unknown':
     default:

@@ -10,7 +10,7 @@ import { TGESettlementManager } from "@/components/TGESettlementManager";
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, usePublicClient, useBlockNumber } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
 import { isAddress, getAddress } from "viem";
-import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings, DollarSign, Shield, Coins, Trash2, Terminal, Database, Cpu } from "lucide-react";
+import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings, DollarSign, Shield, Coins, Trash2, Terminal, Database, Cpu, ChevronDown } from "lucide-react";
 import { uploadImageToPinata, uploadMetadataToPinata } from "@/lib/pinata";
 import { useToast } from "@/components/Toast";
 import { ProjectImage } from "@/components/ProjectImage";
@@ -843,8 +843,8 @@ export default function AdminPage() {
       <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Terminal-style header */}
       <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="border rounded flex items-center justify-center flex-shrink-0" style={{ 
               width: '56px', 
               height: '56px',
@@ -852,29 +852,29 @@ export default function AdminPage() {
             }}>
               <Settings className="w-10 h-10 text-zinc-300" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/admin/control-panel</span>
-              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight break-words">
                 ADMIN_CONTROL_PANEL
               </h1>
-              <p className="text-xs text-zinc-300/70 mt-1">
+              <p className="text-xs text-zinc-300/70 mt-1 break-words">
                 Platform Management • System Configuration
               </p>
             </div>
           </div>
-          <div className="flex flex-col gap-2 items-end">
-            <div className="flex items-center gap-2 text-xs">
+          <div className="flex flex-col gap-2 items-end flex-shrink-0">
+            <div className="flex items-center gap-2 text-xs whitespace-nowrap">
               <span className="text-zinc-300">
                 {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
               </span>
-              <Database className="w-3 h-3 text-zinc-300" />
+              <Database className="w-3 h-3 text-zinc-300 flex-shrink-0" />
             </div>
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded border whitespace-nowrap ${
               isOrderbookPaused 
                 ? 'bg-red-950/30 border-red-500/50' 
                 : 'bg-green-950/30 border-green-500/50'
             }`}>
-              <div className={`w-2 h-2 rounded-full ${
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                 isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
               }`} />
               <span className={`text-xs font-mono font-semibold ${
@@ -883,9 +883,10 @@ export default function AdminPage() {
                 {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
-              <span>BLOCK #{blockNumber?.toString() || '...'}</span>
-              <Cpu className="w-3 h-3" />
+            <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono whitespace-nowrap">
+              <span className="hidden sm:inline">BLOCK #{blockNumber?.toString() || '...'}</span>
+              <span className="sm:hidden">#{blockNumber?.toString() || '...'}</span>
+              <Cpu className="w-3 h-3 flex-shrink-0" />
             </div>
           </div>
         </div>
@@ -1202,16 +1203,21 @@ export default function AdminPage() {
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Asset Type <span className="text-red-400">*</span>
                 </label>
-                <select
-                  value={formData.assetType}
-                  onChange={(e) => setFormData({ ...formData, assetType: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded text-white focus:outline-none"
-                  style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
-                  required
-                >
-                  <option value="Tokens">Tokens</option>
-                  <option value="Points">Points</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={formData.assetType}
+                    onChange={(e) => setFormData({ ...formData, assetType: e.target.value })}
+                    className="w-full pl-3 pr-10 py-2 text-sm rounded text-white focus:outline-none appearance-none"
+                    style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
+                    required
+                  >
+                    <option value="Tokens">Tokens</option>
+                    <option value="Points">Points</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <ChevronDown className="w-4 h-4 text-zinc-400" />
+                  </div>
+                </div>
               </div>
             </div>
 

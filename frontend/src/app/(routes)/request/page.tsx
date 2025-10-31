@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { FileText, Info, Database, Cpu } from "lucide-react";
+import { FileText, Info, Database, Cpu, ChevronDown } from "lucide-react";
 import { useReadContract, useBlockNumber } from "wagmi";
 import { ORDERBOOK_ADDRESS } from "@/lib/contracts";
 import Link from "next/link";
+import HCaptcha, { HCaptchaRef } from "@hcaptcha/react-hcaptcha";
 
 export default function RequestProjectPage() {
   const [formData, setFormData] = useState({
@@ -22,6 +23,8 @@ export default function RequestProjectPage() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaRef = useRef<HCaptchaRef>(null);
 
   // Get current block number
   const { data: blockNumber } = useBlockNumber({ watch: true });
@@ -39,16 +42,53 @@ export default function RequestProjectPage() {
     functionName: "paused",
   });
 
+  const handleCaptchaVerify = (token: string) => {
+    setCaptchaToken(token);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate captcha
+    if (!captchaToken) {
+      alert('Please complete the captcha verification');
+      return;
+    }
+    
     setSubmitting(true);
     
-    // Simulate submission (in production, this would send to a backend/database)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log("Project request submitted:", formData);
-    setSubmitted(true);
-    setSubmitting(false);
+    try {
+      const response = await fetch('/api/request-project', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          'h-captcha-response': captchaToken,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit request');
+      }
+
+      console.log('Project request submitted successfully:', result);
+      setSubmitted(true);
+      // Reset captcha after successful submission
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken(null);
+    } catch (error: any) {
+      console.error('Error submitting request:', error);
+      alert(`Failed to submit request: ${error.message}. Please try again or contact support.`);
+      // Reset captcha on error
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken(null);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -92,6 +132,9 @@ export default function RequestProjectPage() {
                   contactMethod: "Email",
                   contactHandle: "",
                 });
+                // Reset captcha
+                captchaRef.current?.resetCaptcha();
+                setCaptchaToken(null);
               }}
             >
               Submit Another
@@ -108,8 +151,8 @@ export default function RequestProjectPage() {
       <div className="relative mx-auto max-w-7xl px-4 py-8">
         {/* Terminal-style header */}
         <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="border rounded flex items-center justify-center flex-shrink-0" style={{ 
                 width: '56px', 
                 height: '56px',
@@ -117,29 +160,29 @@ export default function RequestProjectPage() {
               }}>
                 <FileText className="w-10 h-10 text-zinc-300" />
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/request</span>
-                <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight break-words">
                   REQUEST_PROJECT
                 </h1>
-                <p className="text-xs text-zinc-300/70 mt-1">
+                <p className="text-xs text-zinc-300/70 mt-1 break-words">
                   Project Listing Request • Community Submission
                 </p>
               </div>
             </div>
-            <div className="flex flex-col gap-2 items-end">
-              <div className="flex items-center gap-2 text-xs">
+            <div className="flex flex-col gap-2 items-end flex-shrink-0">
+              <div className="flex items-center gap-2 text-xs whitespace-nowrap">
                 <span className="text-zinc-300">
                   {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
                 </span>
-                <Database className="w-3 h-3 text-zinc-300" />
+                <Database className="w-3 h-3 text-zinc-300 flex-shrink-0" />
               </div>
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded border whitespace-nowrap ${
                 isOrderbookPaused 
                   ? 'bg-red-950/30 border-red-500/50' 
                   : 'bg-green-950/30 border-green-500/50'
               }`}>
-                <div className={`w-2 h-2 rounded-full ${
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                   isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
                 }`} />
                 <span className={`text-xs font-mono font-semibold ${
@@ -148,9 +191,10 @@ export default function RequestProjectPage() {
                   {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
-                <span>BLOCK #{blockNumber?.toString() || '...'}</span>
-                <Cpu className="w-3 h-3" />
+              <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono whitespace-nowrap">
+                <span className="hidden sm:inline">BLOCK #{blockNumber?.toString() || '...'}</span>
+                <span className="sm:hidden">#{blockNumber?.toString() || '...'}</span>
+                <Cpu className="w-3 h-3 flex-shrink-0" />
               </div>
             </div>
           </div>
@@ -180,18 +224,23 @@ export default function RequestProjectPage() {
               <label htmlFor="assetType" className="block text-sm font-medium text-zinc-300 mb-2">
                 Asset Type <span className="text-red-400">*</span>
               </label>
-              <select
-                id="assetType"
-                name="assetType"
-                required
-                value={formData.assetType}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded text-white focus:outline-none font-mono text-sm"
-                style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
-              >
-                <option value="Tokens">Tokens</option>
-                <option value="Points">Points</option>
-              </select>
+              <div className="relative">
+                <select
+                  id="assetType"
+                  name="assetType"
+                  required
+                  value={formData.assetType}
+                  onChange={handleChange}
+                  className="w-full pl-4 pr-10 py-3 rounded text-white focus:outline-none font-mono text-sm appearance-none"
+                  style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
+                >
+                  <option value="Tokens">Tokens</option>
+                  <option value="Points">Points</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronDown className="w-4 h-4 text-zinc-400" />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -264,19 +313,24 @@ export default function RequestProjectPage() {
               <label htmlFor="contactMethod" className="block text-sm font-medium text-zinc-300 mb-2">
                 Contact Method <span className="text-red-400">*</span>
               </label>
-              <select
-                id="contactMethod"
-                name="contactMethod"
-                required
-                value={formData.contactMethod}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded text-white focus:outline-none font-mono text-sm"
-                style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
-              >
-                <option value="Email">Email</option>
-                <option value="Telegram">Telegram</option>
-                <option value="Discord">Discord</option>
-              </select>
+              <div className="relative">
+                <select
+                  id="contactMethod"
+                  name="contactMethod"
+                  required
+                  value={formData.contactMethod}
+                  onChange={handleChange}
+                  className="w-full pl-4 pr-10 py-3 rounded text-white focus:outline-none font-mono text-sm appearance-none"
+                  style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
+                >
+                  <option value="Email">Email</option>
+                  <option value="Telegram">Telegram</option>
+                  <option value="Discord">Discord</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronDown className="w-4 h-4 text-zinc-400" />
+                </div>
+              </div>
             </div>
 
             <div className="md:col-span-2">
@@ -310,11 +364,22 @@ export default function RequestProjectPage() {
             </div>
           </div>
 
+          {/* hCaptcha */}
+          <div className="flex justify-center">
+            <HCaptcha
+              ref={captchaRef}
+              sitekey="50b2fe65-b00b-4b9e-ad62-3ba471098be2"
+              reCaptchaCompat={false}
+              onVerify={handleCaptchaVerify}
+              theme="dark"
+            />
+          </div>
+
           {/* Submit Button */}
           <div className="pt-2">
             <Button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !captchaToken}
               variant="custom"
               className="w-full md:w-auto md:px-12 border font-mono"
               style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}

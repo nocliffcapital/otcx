@@ -8,7 +8,7 @@ contract AddProjectsScript is Script {
     function run() external {
         // Load environment variables
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address registryAddress = 0xc5e41d8DCD6dE1c35b4A82580B29562bb13dd0D2; // Latest Registry (fixed updateProject)
+        address registryAddress = 0xda54Eac428C533bDD560A9f2f0d9641CBfE742B4; // Latest Registry V2 (fresh deployment)
         
         vm.startBroadcast(deployerPrivateKey);
         

@@ -78,8 +78,8 @@ export default function HowItWorksPage() {
       <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Terminal-style header */}
       <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="border rounded flex items-center justify-center flex-shrink-0" style={{ 
               width: '56px', 
               height: '56px',
@@ -87,29 +87,29 @@ export default function HowItWorksPage() {
             }}>
               <BookOpen className="w-10 h-10 text-zinc-300" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/documentation/how-it-works</span>
-              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight break-words">
                 HOW_OTCX_WORKS
               </h1>
-              <p className="text-xs text-zinc-300/70 mt-1">
+              <p className="text-xs text-zinc-300/70 mt-1 break-words">
                 Protocol Overview • Escrow System Guide
               </p>
             </div>
           </div>
-          <div className="flex flex-col gap-2 items-end">
-            <div className="flex items-center gap-2 text-xs">
+          <div className="flex flex-col gap-2 items-end flex-shrink-0">
+            <div className="flex items-center gap-2 text-xs whitespace-nowrap">
               <span className="text-zinc-300">
                 {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
               </span>
-              <Database className="w-3 h-3 text-zinc-300" />
+              <Database className="w-3 h-3 text-zinc-300 flex-shrink-0" />
             </div>
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded border whitespace-nowrap ${
               isOrderbookPaused 
                 ? 'bg-red-950/30 border-red-500/50' 
                 : 'bg-green-950/30 border-green-500/50'
             }`}>
-              <div className={`w-2 h-2 rounded-full ${
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                 isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
               }`} />
               <span className={`text-xs font-mono font-semibold ${
@@ -118,9 +118,10 @@ export default function HowItWorksPage() {
                 {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
-              <span>BLOCK #{blockNumber?.toString() || '...'}</span>
-              <Cpu className="w-3 h-3" />
+            <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono whitespace-nowrap">
+              <span className="hidden sm:inline">BLOCK #{blockNumber?.toString() || '...'}</span>
+              <span className="sm:hidden">#{blockNumber?.toString() || '...'}</span>
+              <Cpu className="w-3 h-3 flex-shrink-0" />
             </div>
           </div>
         </div>
