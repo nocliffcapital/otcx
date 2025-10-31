@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { FileText, Info } from "lucide-react";
+import { FileText, Info, Database, Cpu } from "lucide-react";
+import { useReadContract, useBlockNumber } from "wagmi";
+import { ORDERBOOK_ADDRESS } from "@/lib/contracts";
 import Link from "next/link";
 
 export default function RequestProjectPage() {
@@ -20,6 +22,22 @@ export default function RequestProjectPage() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Get current block number
+  const { data: blockNumber } = useBlockNumber({ watch: true });
+
+  // Check if orderbook is paused
+  const { data: isOrderbookPaused } = useReadContract({
+    address: ORDERBOOK_ADDRESS as `0x${string}`,
+    abi: [{
+      name: "paused",
+      type: "function",
+      stateMutability: "view",
+      inputs: [],
+      outputs: [{ type: "bool" }],
+    }],
+    functionName: "paused",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,14 +106,48 @@ export default function RequestProjectPage() {
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: '#06060c' }}>
       <div className="relative mx-auto max-w-7xl px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3">
-            <FileText className="w-8 h-8 md:w-10 md:h-10 text-zinc-300" />
-            <span className="text-white">REQUEST PROJECT</span>
-          </h1>
-          <p className="text-lg text-zinc-400">
-            Want to see a specific pre-TGE project listed? Fill out the form below.
-          </p>
+        {/* Terminal-style header */}
+        <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <FileText className="w-8 h-8 text-zinc-300 flex-shrink-0" />
+              <div>
+                <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/request</span>
+                <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                  REQUEST_PROJECT
+                </h1>
+                <p className="text-xs text-zinc-300/70 mt-1">
+                  Project Listing Request • Community Submission
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 items-end">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-zinc-300">
+                  {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+                </span>
+                <Database className="w-3 h-3 text-zinc-300" />
+              </div>
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+                isOrderbookPaused 
+                  ? 'bg-red-950/30 border-red-500/50' 
+                  : 'bg-green-950/30 border-green-500/50'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
+                }`} />
+                <span className={`text-xs font-mono font-semibold ${
+                  isOrderbookPaused ? 'text-red-400' : 'text-green-400'
+                }`}>
+                  {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+                <span>BLOCK #{blockNumber?.toString() || '...'}</span>
+                <Cpu className="w-3 h-3" />
+              </div>
+            </div>
+          </div>
         </div>
 
       <Card>

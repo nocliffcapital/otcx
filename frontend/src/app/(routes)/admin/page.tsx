@@ -1331,7 +1331,8 @@ export default function AdminPage() {
                 type="submit"
                 disabled={isPending || isConfirming || uploadingLogo || uploadingIcon || uploadingMetadata}
                 variant="custom"
-                className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700 text-sm py-2"
+                className="text-sm py-2 font-mono uppercase border"
+                style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
               >
                 {uploadingLogo ? (
                   <>
@@ -1588,7 +1589,10 @@ export default function AdminPage() {
 
                               {/* Type */}
                               <td className="py-4 px-4">
-                                <Badge className={project.isPoints ? "bg-purple-600" : "bg-blue-600"}>
+                                <Badge className={project.isPoints 
+                                  ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" 
+                                  : "bg-blue-500/20 text-blue-400 border border-blue-500/50"
+                                }>
                                   {project.isPoints ? "Points" : "Tokens"}
                                 </Badge>
                               </td>
@@ -1596,9 +1600,9 @@ export default function AdminPage() {
                               {/* Lifecycle */}
                               <td className="py-4 px-4">
                                 {projectTgeStatus[project.slug] ? (
-                                  <Badge className="bg-red-600/80">Ended</Badge>
+                                  <Badge className="bg-red-950/30 border border-red-500/50 text-red-400">Ended</Badge>
                                 ) : (
-                                  <Badge className="bg-green-600">Active</Badge>
+                                  <Badge className="bg-green-950/30 border border-green-500/50 text-green-400">Active</Badge>
                                 )}
                               </td>
 

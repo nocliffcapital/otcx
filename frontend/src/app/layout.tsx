@@ -53,7 +53,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="twitter:image" content="https://turquoise-keen-koi-739.mypinata.cloud/ipfs/bafkreigjbxg3uzqm25i4htyl6hk4s7j5ik4lva4uwemjboutmgonplvn4u" />
         <meta name="twitter:image:alt" content="otcX - Decentralized OTC Trading Platform" />
       </head>
-      <body className={`min-h-screen bg-gradient-to-b from-zinc-950 to-black text-zinc-100 ${spaceGrotesk.variable} font-sans relative`}>
+      <body className={`min-h-screen text-zinc-100 ${spaceGrotesk.variable} font-sans relative`} style={{ backgroundColor: '#06060c' }}>
         {/* Tech grid background for all pages */}
         <div className="fixed inset-0 bg-grid-pattern opacity-10 pointer-events-none"></div>
         
