@@ -67,10 +67,9 @@ export default function ProjectsPage() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | "Tokens" | "Points">("all");
-  // Default to cards on mobile, list on desktop
-  const [viewMode, setViewMode] = useState<"cards" | "list">(
-    typeof window !== 'undefined' && window.innerWidth < 768 ? "cards" : "list"
-  );
+  // Default to cards for 1-3 projects, list for 4+ projects
+  // Initial value will be updated in useEffect based on project count
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [marketTab, setMarketTab] = useState<"live" | "ended">("live");
   const [sortBy, setSortBy] = useState<"name" | "price" | "volume" | "orders">("volume");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -115,6 +114,20 @@ export default function ProjectsPage() {
       console.error('[DEBUG] Error details:', error);
     }
   }, [projectsData]);
+
+  // Set default view mode based on project count: cards for 1-3 projects, list for 4+
+  useEffect(() => {
+    if (projects.length > 0) {
+      const projectCount = projects.length;
+      // Only set default if we're at initial state (no user preference stored)
+      // Default to cards for 1-3 projects, list for 4+ projects
+      if (projectCount <= 3) {
+        setViewMode("cards");
+      } else {
+        setViewMode("list");
+      }
+    }
+  }, [projects.length]);
 
   useEffect(() => {
     if (!publicClient || !projects || projects.length === 0) return;
@@ -773,14 +786,12 @@ export default function ProjectsPage() {
                           {stats.highestBid !== null ? `$${formatPrice(stats.highestBid)}` : "null"}
                         </span>
                       </div>
-                      {spread && (
-                        <div className="flex justify-between items-center bg-[#06060c] px-2 py-1.5 rounded">
-                          <span className="text-zinc-500">spread</span>
-                          <span className="font-bold text-orange-400">
-                            {spread}%
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex justify-between items-center bg-[#06060c] px-2 py-1.5 rounded">
+                        <span className="text-zinc-500">spread</span>
+                        <span className="font-bold text-orange-400">
+                          {spread ? `${spread}%` : "null"}
+                        </span>
+                      </div>
                       <div className="flex justify-between items-center bg-gradient-to-r from-[#2b2b30]/50 to-[#2b2b30]/50 px-2 py-1.5 rounded border border-[#2b2b30] mt-3">
                         <span className="text-zinc-300">volume</span>
                         <span className="font-bold text-white">
