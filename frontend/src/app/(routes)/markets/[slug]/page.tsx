@@ -642,16 +642,54 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                 <Button 
                   onClick={() => setSide("BUY")} 
                   variant="custom" 
-                  className={`flex-1 border ${side === 'BUY' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
-                  style={{ borderColor: side === 'BUY' ? 'rgba(34,197,94,0.5)' : '#2b2b30' }}
+                  className="flex-1 border font-mono font-semibold uppercase"
+                  style={{ 
+                    backgroundColor: side === 'BUY' ? 'rgba(34, 197, 94, 0.25)' : '#121218', // Green background when selected
+                    borderColor: side === 'BUY' ? '#22c55e' : '#2b2b30', // Green border when selected, gray when unselected
+                    color: side === 'BUY' ? '#22c55e' : '#6b7280', // Green text when selected, muted gray when unselected
+                    borderWidth: side === 'BUY' ? '2px' : '1px' // Thicker border when selected
+                  }}
+                  onMouseEnter={(e) => {
+                    if (side !== 'BUY') { // Only apply hover to unselected button
+                      e.currentTarget.style.backgroundColor = 'rgba(34, 197, 94, 0.1)'; // Subtle green hover
+                      e.currentTarget.style.borderColor = '#22c55e';
+                      e.currentTarget.style.color = '#22c55e';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (side !== 'BUY') {
+                      e.currentTarget.style.backgroundColor = '#121218';
+                      e.currentTarget.style.borderColor = '#2b2b30';
+                      e.currentTarget.style.color = '#6b7280';
+                    }
+                  }}
                 >
                   BUY
                 </Button>
                 <Button 
                   onClick={() => setSide("SELL")} 
                   variant="custom" 
-                  className={`flex-1 border ${side === 'SELL' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
-                  style={{ borderColor: side === 'SELL' ? 'rgba(239,68,68,0.5)' : '#2b2b30' }}
+                  className="flex-1 border font-mono font-semibold uppercase"
+                  style={{ 
+                    backgroundColor: side === 'SELL' ? 'rgba(239, 68, 68, 0.25)' : '#121218', // Red background when selected
+                    borderColor: side === 'SELL' ? '#ef4444' : '#2b2b30', // Red border when selected, gray when unselected
+                    color: side === 'SELL' ? '#ef4444' : '#6b7280', // Red text when selected, muted gray when unselected
+                    borderWidth: side === 'SELL' ? '2px' : '1px' // Thicker border when selected
+                  }}
+                  onMouseEnter={(e) => {
+                    if (side !== 'SELL') { // Only apply hover to unselected button
+                      e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'; // Subtle red hover
+                      e.currentTarget.style.borderColor = '#ef4444';
+                      e.currentTarget.style.color = '#ef4444';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (side !== 'SELL') {
+                      e.currentTarget.style.backgroundColor = '#121218';
+                      e.currentTarget.style.borderColor = '#2b2b30';
+                      e.currentTarget.style.color = '#6b7280';
+                    }
+                  }}
                 >
                   SELL
                 </Button>
@@ -719,10 +757,10 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                     ) : (
                       <>
                         <p className="text-xs text-zinc-300">
-                          You receive: <span className="font-semibold text-green-400">{(parseFloat(amount) * feeMultiplier).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} {project?.assetType === "Points" ? "points worth of tokens" : "tokens"}</span>
+                          You receive: <span className="font-semibold text-green-400">{(parseFloat(amount) * feeMultiplier).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} {project?.isPoints === false ? "tokens" : "points worth of tokens"}</span>
                         </p>
                         <p className="text-[10px] text-zinc-500">
-                          ({parseFloat(amount).toLocaleString()} {project?.assetType === "Points" ? "points" : "tokens"} - {feePercentage}% fee)
+                          ({parseFloat(amount).toLocaleString()} {project?.isPoints === false ? "tokens" : "points"} - {feePercentage}% fee)
                         </p>
                       </>
                     )}
@@ -856,15 +894,33 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               variant="custom"
                               onClick={() => handleTakeBuy(order)}
                               disabled={!!actionLoading}
-                              className="text-xs h-7 px-3 border"
-                              style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
+                              className="text-xs h-7 px-3 border font-mono font-semibold uppercase"
+                              style={{ 
+                                backgroundColor: '#121218', 
+                                borderColor: '#ef4444', // Red border
+                                color: '#ef4444' // Red text
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!actionLoading) {
+                                  e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'; // Subtle red glow
+                                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.6)'; // Brighter red border
+                                  e.currentTarget.style.color = '#ef4444';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!actionLoading) {
+                                  e.currentTarget.style.backgroundColor = '#121218';
+                                  e.currentTarget.style.borderColor = '#ef4444';
+                                  e.currentTarget.style.color = '#ef4444';
+                                }
+                              }}
                             >
                               {actionLoading === order.id.toString() ? (
                                 <>
                                   <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                                   Selling...
                                 </>
-                              ) : "Sell"}
+                              ) : "SELL"}
                             </Button>
                           ) : address && address.toLowerCase() === order.maker.toLowerCase() ? (
                             <div className="flex items-center justify-center">
@@ -963,15 +1019,33 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               variant="custom"
                               onClick={() => handleTakeSell(order)}
                               disabled={!!actionLoading}
-                              className="text-xs h-7 px-3 border"
-                              style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
+                              className="text-xs h-7 px-3 border font-mono font-semibold uppercase"
+                              style={{ 
+                                backgroundColor: '#121218', 
+                                borderColor: '#22c55e', // Green border
+                                color: '#22c55e' // Green text
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!actionLoading) {
+                                  e.currentTarget.style.backgroundColor = 'rgba(34, 197, 94, 0.15)'; // Subtle green glow
+                                  e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.6)'; // Brighter green border
+                                  e.currentTarget.style.color = '#22c55e';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!actionLoading) {
+                                  e.currentTarget.style.backgroundColor = '#121218';
+                                  e.currentTarget.style.borderColor = '#22c55e';
+                                  e.currentTarget.style.color = '#22c55e';
+                                }
+                              }}
                             >
                               {actionLoading === order.id.toString() ? (
                                 <>
                                   <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                                   Buying...
                                 </>
-                              ) : "Buy"}
+                              ) : "BUY"}
                             </Button>
                           ) : address && address.toLowerCase() === order.maker.toLowerCase() ? (
                             <div className="flex items-center justify-center">
