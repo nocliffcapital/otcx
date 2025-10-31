@@ -744,7 +744,7 @@ export default function ProjectsPage() {
                 </div>
 
                 <div className="p-4">
-                  <div className="flex items-center justify-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-4">
                     {/* Project Icon */}
                     <div className="relative">
                       <ProjectImage 
@@ -756,7 +756,7 @@ export default function ProjectsPage() {
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black"></div>
                     </div>
                     
-                    {/* Project Title - Centered with logo */}
+                    {/* Project Title */}
                     <h3 className="font-bold text-lg text-white">{project.name}</h3>
                   </div>
                   
