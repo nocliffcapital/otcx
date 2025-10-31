@@ -372,7 +372,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
       {/* Terminal-style header */}
       <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="flex flex-col gap-3 min-w-0 flex-1">
+            {/* Title above logo */}
+            <p className="text-xs font-bold text-zinc-300/70 whitespace-nowrap sm:whitespace-normal">
+              {(project?.name || slug.toUpperCase())} • Pre-TGE OTC Trading
+            </p>
+            
+            {/* Logo */}
             <div className="flex-shrink-0">
               <ProjectImage 
                 metadataURI={project?.metadataURI}
@@ -381,71 +387,77 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                 fallbackText={project?.name || slug.toUpperCase()}
               />
             </div>
-            <div>
-              <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/markets/{slug}</span>
-              <p className="text-xs font-bold text-zinc-300/70 whitespace-nowrap sm:whitespace-normal">
-                {(project?.name || slug.toUpperCase())} • Pre-TGE OTC Trading
-              </p>
-              {/* Social Links */}
-              {(metadata?.twitterUrl || metadata?.websiteUrl) && (
-                <div className="flex items-center gap-2.5 flex-wrap mt-1">
-                {metadata?.twitterUrl && (
-                  <a
-                    href={ensureHttps(metadata.twitterUrl)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-medium text-zinc-400 hover:text-zinc-300 transition-all"
-                    style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                    </svg>
-                    Twitter
-                  </a>
-                )}
-                
-                {metadata?.websiteUrl && (
-                  <a
-                    href={ensureHttps(metadata.websiteUrl)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-medium text-zinc-400 hover:text-zinc-300 transition-all"
-                    style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                    </svg>
-                    Website
-                  </a>
-                )}
+            
+            {/* Social Links below logo */}
+            {(metadata?.twitterUrl || metadata?.websiteUrl) && (
+              <div className="flex items-center gap-2.5 flex-wrap">
+              {metadata?.twitterUrl && (
+                <a
+                  href={ensureHttps(metadata.twitterUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-medium text-zinc-400 hover:text-zinc-300 transition-all"
+                  style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}
+                >
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                  Twitter
+                </a>
+              )}
+              
+              {metadata?.websiteUrl && (
+                <a
+                  href={ensureHttps(metadata.websiteUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-medium text-zinc-400 hover:text-zinc-300 transition-all"
+                  style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                  </svg>
+                  Website
+                </a>
+              )}
               </div>
             )}
-            </div>
           </div>
           <div className="flex flex-col gap-2 items-end sm:items-end">
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className={`inline-flex items-center px-3 py-1.5 rounded border ${
-                project?.isPoints === false
-                  ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' 
-                  : 'bg-purple-500/20 text-purple-400 border-purple-500/50'
-              }`}>
-                <span className="text-xs font-semibold">{project?.isPoints === false ? 'Tokens' : 'Points'}</span>
-              </div>
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
-                isOrderbookPaused 
-                  ? 'bg-red-950/30 border-red-500/50' 
-                  : 'bg-green-950/30 border-green-500/50'
-              }`}>
-                <div className={`w-2 h-2 rounded-full ${
-                  isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
-                }`} />
-                <span className={`text-xs font-mono font-semibold ${
-                  isOrderbookPaused ? 'text-red-400' : 'text-green-400'
-                }`}>
-                  {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
-                </span>
-              </div>
+            {/* Contract Address */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-zinc-300">
+                {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+              </span>
+              <Database className="w-3 h-3 text-zinc-300" />
             </div>
+            
+            {/* ONLINE badge */}
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+              isOrderbookPaused 
+                ? 'bg-red-950/30 border-red-500/50' 
+                : 'bg-green-950/30 border-green-500/50'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                isOrderbookPaused ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse'
+              }`} />
+              <span className={`text-xs font-mono font-semibold ${
+                isOrderbookPaused ? 'text-red-400' : 'text-green-400'
+              }`}>
+                {isOrderbookPaused ? 'PAUSED' : 'ONLINE'}
+              </span>
+            </div>
+            
+            {/* Points/Tokens badge below ONLINE */}
+            <div className={`inline-flex items-center px-3 py-1.5 rounded border ${
+              project?.isPoints === false
+                ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' 
+                : 'bg-purple-500/20 text-purple-400 border-purple-500/50'
+            }`}>
+              <span className="text-xs font-semibold">{project?.isPoints === false ? 'Tokens' : 'Points'}</span>
+            </div>
+            
+            {/* Block Number */}
             <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
               <span className="hidden sm:inline">BLOCK #{blockNumber?.toString() || '...'}</span>
               <span className="sm:hidden">#{blockNumber?.toString() || '...'}</span>

@@ -88,7 +88,13 @@ export default function DocsPage() {
       <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <BookOpen className="w-8 h-8 text-zinc-300 flex-shrink-0" />
+            <div className="border rounded flex items-center justify-center flex-shrink-0" style={{ 
+              width: '56px', 
+              height: '56px',
+              borderColor: '#2b2b30'
+            }}>
+              <BookOpen className="w-10 h-10 text-zinc-300" />
+            </div>
             <div>
               <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/documentation/technical-docs</span>
               <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">

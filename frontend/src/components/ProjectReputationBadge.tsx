@@ -170,11 +170,11 @@ export default function ProjectReputationBadge({
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline gap-1.5">
           <span className={`${style.score} font-bold ${tier.textColor} leading-tight`}>
-            {formatScore(reputation.score)}
-          </span>
+        {formatScore(reputation.score)}
+      </span>
           <span className={`${style.label} text-zinc-500 group-hover:text-zinc-400 leading-tight`}>
-            {tier.label}
-          </span>
+        {tier.label}
+      </span>
         </div>
         
         {/* Review Breakdown */}

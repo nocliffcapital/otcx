@@ -102,7 +102,13 @@ export default function PrivateOrderPage() {
         <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Lock className="w-8 h-8 text-zinc-300 flex-shrink-0" />
+              <div className="border rounded flex items-center justify-center flex-shrink-0" style={{ 
+                width: '56px', 
+                height: '56px',
+                borderColor: '#2b2b30'
+              }}>
+                <Lock className="w-10 h-10 text-zinc-300" />
+              </div>
               <div>
                 <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/private-order</span>
                 <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
@@ -294,7 +300,7 @@ export default function PrivateOrderPage() {
                       <ProjectImage 
                         metadataURI={project.metadataURI}
                         imageType="icon"
-                        className="w-10 h-10 rounded-full object-cover border-2 border-zinc-700 group-hover:border-purple-500/50 transition-all"
+                        className="w-10 h-10 rounded object-cover border-2 border-zinc-700 group-hover:border-purple-500/50 transition-all"
                         fallbackText={project.name ? project.name.charAt(0).toUpperCase() : "?"}
                       />
                       <div className="flex-1">
@@ -319,7 +325,7 @@ export default function PrivateOrderPage() {
                   <ProjectImage 
                     metadataURI={selectedProjectData?.metadataURI}
                     imageType="icon"
-                    className="w-10 h-10 rounded-full object-cover border-2 border-zinc-700"
+                    className="w-10 h-10 rounded object-cover border-2 border-zinc-700"
                     fallbackText={selectedProjectData?.name.charAt(0).toUpperCase()}
                   />
                   <div>

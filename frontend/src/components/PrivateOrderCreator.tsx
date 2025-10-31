@@ -196,7 +196,7 @@ export function PrivateOrderCreator({
           {/* Amount */}
           <div>
             <label className="text-sm font-medium text-zinc-300 mb-2 block">
-              Amount ({assetType})
+              Amount ({assetType}) <span className="text-red-400">*</span>
             </label>
             <Input
               type="number"
@@ -205,13 +205,14 @@ export function PrivateOrderCreator({
               onChange={(e) => setAmount(e.target.value)}
               step="0.01"
               min="0"
+              required
             />
           </div>
 
           {/* Unit Price */}
           <div>
             <label className="text-sm font-medium text-zinc-300 mb-2 block">
-              Price per Token (USDC)
+              Price per Token (USDC) <span className="text-red-400">*</span>
             </label>
             <Input
               type="number"
@@ -220,6 +221,7 @@ export function PrivateOrderCreator({
               onChange={(e) => setUnitPrice(e.target.value)}
               step="0.01"
               min="0"
+              required
             />
           </div>
 

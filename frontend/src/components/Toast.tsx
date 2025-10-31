@@ -73,38 +73,52 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
   const config = {
     success: {
       icon: CheckCircle,
-      className: "bg-green-950/90 border-green-500/50 text-green-400",
       iconColor: "text-green-400",
+      borderColor: "border-green-500/50",
     },
     error: {
       icon: XCircle,
-      className: "bg-red-950/90 border-red-500/50 text-red-400",
       iconColor: "text-red-400",
+      borderColor: "border-red-500/50",
     },
     warning: {
       icon: AlertCircle,
-      className: "bg-yellow-950/90 border-yellow-500/50 text-yellow-400",
       iconColor: "text-yellow-400",
+      borderColor: "border-yellow-500/50",
     },
     info: {
       icon: Clock,
-      className: "bg-blue-950/90 border-blue-500/50 text-blue-400",
-      iconColor: "text-blue-400",
+      iconColor: "text-zinc-300",
+      borderColor: "border-[#2b2b30]",
     },
   };
 
-  const { icon: Icon, className, iconColor } = config[toast.type];
+  const { icon: Icon, iconColor, borderColor } = config[toast.type];
+
+  const getBorderColor = () => {
+    switch(toast.type) {
+      case 'success': return 'rgba(16, 185, 129, 0.5)'; // green-500/50
+      case 'error': return 'rgba(239, 68, 68, 0.5)'; // red-500/50
+      case 'warning': return 'rgba(234, 179, 8, 0.5)'; // yellow-500/50
+      case 'info': return '#2b2b30';
+      default: return '#2b2b30';
+    }
+  };
 
   return (
     <div
       className={`
         pointer-events-auto
         min-w-[320px] max-w-md
-        rounded-lg border backdrop-blur-xl
+        rounded border backdrop-blur-xl
         p-4 shadow-2xl
         animate-in slide-in-from-right-full duration-300
-        ${className}
+        font-mono
       `}
+      style={{ 
+        backgroundColor: '#121218', 
+        borderColor: getBorderColor()
+      }}
     >
       <div className="flex items-start gap-3">
         <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${iconColor}`} />

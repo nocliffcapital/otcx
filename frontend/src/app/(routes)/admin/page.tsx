@@ -293,7 +293,7 @@ export default function AdminPage() {
     e.preventDefault();
     
     if (!isAddress(formData.tokenAddress) && formData.tokenAddress !== "") {
-      alert("Invalid token address");
+      toast.error("Invalid token address", "Please enter a valid Ethereum address");
       return;
     }
 
@@ -320,7 +320,7 @@ export default function AdminPage() {
           console.log('✅ Logo uploaded to IPFS:', logoUrl);
         } catch (error) {
           console.error('❌ Logo upload failed:', error);
-          alert(`Failed to upload logo: ${(error as Error).message}`);
+          toast.error("Upload failed", `Failed to upload logo: ${(error as Error).message}`);
           return;
         } finally {
           setUploadingLogo(false);
@@ -336,7 +336,7 @@ export default function AdminPage() {
           console.log('✅ Icon uploaded to IPFS:', iconUrl);
         } catch (error) {
           console.error('❌ Icon upload failed:', error);
-          alert(`Failed to upload icon: ${(error as Error).message}`);
+          toast.error("Upload failed", `Failed to upload icon: ${(error as Error).message}`);
           return;
         } finally {
           setUploadingIcon(false);
@@ -363,13 +363,18 @@ export default function AdminPage() {
         console.log('✅ Metadata uploaded to IPFS:', metadataURI);
       } catch (error) {
         console.error('❌ Metadata upload failed:', error);
-        alert(`Failed to upload metadata: ${(error as Error).message}`);
+        toast.error("Upload failed", `Failed to upload metadata: ${(error as Error).message}`);
         return;
       } finally {
         setUploadingMetadata(false);
       }
 
       // Step 4: Register on-chain (V3)
+      toast.info(
+        "Adding project",
+        "Transaction pending..."
+      );
+
       writeContract({
         address: REGISTRY_ADDRESS,
         abi: PROJECT_REGISTRY_ABI,
@@ -384,7 +389,7 @@ export default function AdminPage() {
       });
     } catch (error) {
       console.error("Error adding project:", error);
-      alert("Failed to add project. See console for details.");
+      toast.error("Failed to add project", "See console for details");
     }
   };
 
@@ -393,7 +398,7 @@ export default function AdminPage() {
     e.preventDefault();
     
     if (!isAddress(formData.tokenAddress) && formData.tokenAddress !== "") {
-      alert("Invalid token address");
+      toast.error("Invalid token address", "Please enter a valid Ethereum address");
       return;
     }
 
@@ -459,6 +464,11 @@ export default function AdminPage() {
           setTimeout(() => {
             // V4: updateProject(bytes32 id, string name, address tokenAddress)
             // Note: Active status is managed separately via setProjectStatus()
+            toast.info(
+              "Updating project",
+              "Transaction pending..."
+            );
+
             writeContract({
               address: REGISTRY_ADDRESS,
               abi: PROJECT_REGISTRY_ABI,
@@ -468,13 +478,18 @@ export default function AdminPage() {
           }, 2000);
         } catch (error) {
           console.error('❌ Failed to update metadata:', error);
-          alert(`Failed to update metadata: ${(error as Error).message}`);
+          toast.error("Update failed", `Failed to update metadata: ${(error as Error).message}`);
           return;
         } finally {
           setUploadingMetadata(false);
         }
       } else {
         // No metadata changes, just update on-chain data
+        toast.info(
+          "Updating project",
+          "Transaction pending..."
+        );
+
         writeContract({
           address: REGISTRY_ADDRESS,
           abi: PROJECT_REGISTRY_ABI,
@@ -484,12 +499,17 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error("Error updating project:", error);
-      alert("Failed to update project. See console for details.");
+      toast.error("Failed to update project", "See console for details");
     }
   };
 
   // V3: Toggle project status using projectId directly
   const handleToggleStatus = (projectId: `0x${string}`, currentStatus: boolean) => {
+    toast.info(
+      `${!currentStatus ? 'Activating' : 'Deactivating'} project`,
+      "Transaction pending..."
+    );
+
     writeContract({
       address: REGISTRY_ADDRESS,
       abi: PROJECT_REGISTRY_ABI,
@@ -523,6 +543,11 @@ export default function AdminPage() {
     
     if (!confirmed) return;
     
+    toast.info(
+      "Updating token address",
+      "Transaction pending..."
+    );
+
     writeContract({
       address: REGISTRY_ADDRESS,
       abi: PROJECT_REGISTRY_ABI,
@@ -536,6 +561,11 @@ export default function AdminPage() {
     if (!confirm(`Are you sure you want to ${isContractPaused ? 'UNPAUSE' : 'PAUSE'} the orderbook contract? This will ${isContractPaused ? 'enable' : 'disable'} all trading.`)) {
       return;
     }
+
+    toast.info(
+      `${isContractPaused ? 'Resuming' : 'Pausing'} trading`,
+      "Transaction pending..."
+    );
 
     writeContract({
       address: ORDERBOOK_ADDRESS,
@@ -661,14 +691,14 @@ export default function AdminPage() {
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Invalid file type. Please upload an image (PNG, JPG, GIF, or WebP).');
+      toast.error("Invalid file type", "Please upload an image (PNG, JPG, GIF, or WebP)");
       return;
     }
 
     // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('File too large. Maximum size is 5MB.');
+      toast.error("File too large", "Maximum size is 5MB");
       return;
     }
 
@@ -688,14 +718,14 @@ export default function AdminPage() {
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Invalid file type. Please upload an image (PNG, JPG, GIF, or WebP).');
+      toast.error("Invalid file type", "Please upload an image (PNG, JPG, GIF, or WebP)");
       return;
     }
 
     // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('File too large. Maximum size is 5MB.');
+      toast.error("File too large", "Maximum size is 5MB");
       return;
     }
 
@@ -739,6 +769,16 @@ export default function AdminPage() {
   // Refresh after successful transaction
   const [hasRefreshed, setHasRefreshed] = useState(false);
   
+  // Handle transaction errors
+  useEffect(() => {
+    if (error && hash) {
+      toast.error(
+        "Transaction failed",
+        error.message || "Please check the console for details"
+      );
+    }
+  }, [error, hash, toast]);
+
   useEffect(() => {
     if (isSuccess && !hasRefreshed) {
       setHasRefreshed(true);
@@ -805,7 +845,13 @@ export default function AdminPage() {
       <div className="border rounded p-4 mb-6 backdrop-blur-sm font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Settings className="w-8 h-8 text-zinc-300 flex-shrink-0" />
+            <div className="border rounded flex items-center justify-center flex-shrink-0" style={{ 
+              width: '56px', 
+              height: '56px',
+              borderColor: '#2b2b30'
+            }}>
+              <Settings className="w-10 h-10 text-zinc-300" />
+            </div>
             <div>
               <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/admin/control-panel</span>
               <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
@@ -846,44 +892,36 @@ export default function AdminPage() {
       </div>
 
       {/* Emergency Controls */}
-      <Card className={`mb-6 p-4 transition-all ${
-        isContractPaused 
-          ? "border-red-500/50 bg-red-950/20" 
-          : "border-green-500/30 bg-green-950/10"
-      }`}>
+      <Card className="mb-6 p-4 transition-all" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${
-              isContractPaused 
-                ? "bg-red-500/20" 
-                : "bg-green-500/20"
-            }`}>
-              <AlertTriangle className={`w-5 h-5 ${
-                isContractPaused 
-                  ? "text-red-400" 
-                  : "text-green-400"
-              }`} />
+            <div className="p-2 rounded-lg" style={{ backgroundColor: '#2b2b30' }}>
+              <AlertTriangle className="w-5 h-5 text-red-400" />
             </div>
             <div>
-              <h3 className={`text-lg font-bold ${
-                isContractPaused 
-                  ? "text-red-400" 
-                  : "text-green-400"
-              }`}>
+              <h3 className="text-lg font-bold text-zinc-100">
                 Emergency Controls
               </h3>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-xs text-zinc-400">Orderbook Status:</span>
                 {isContractPaused ? (
-                  <Badge className="bg-red-600 text-white text-[10px] px-2 py-0.5">
-                    <PauseCircle className="w-2.5 h-2.5 mr-1" />
-                    PAUSED
-                  </Badge>
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+                    'bg-red-950/30 border-red-500/50'
+                  }`}>
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-xs font-mono font-semibold text-red-400">
+                      PAUSED
+                    </span>
+                  </div>
                 ) : (
-                  <Badge className="bg-green-600 text-white text-[10px] px-2 py-0.5">
-                    <PlayCircle className="w-2.5 h-2.5 mr-1" />
-                    ACTIVE
-                  </Badge>
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+                    'bg-green-950/30 border-green-500/50'
+                  }`}>
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-xs font-mono font-semibold text-green-400">
+                      ACTIVE
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
@@ -893,11 +931,10 @@ export default function AdminPage() {
             onClick={handlePauseOrderbook}
             disabled={isPending || isConfirming}
             variant="custom"
-            className={`min-w-[150px] h-10 transition-all ${
-              isContractPaused 
-                ? "bg-green-600 hover:bg-green-700 border-2 border-green-500/50 shadow-lg shadow-green-500/20"
-                : "bg-red-600 hover:bg-red-700 border-2 border-red-500/50 shadow-lg shadow-red-500/20"
+            className={`min-w-[150px] h-10 border font-mono uppercase ${
+              isContractPaused ? '' : 'bg-red-600 hover:bg-red-700'
             }`}
+            style={isContractPaused ? { backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' } : { borderColor: '#dc2626', color: 'white' }}
           >
             {isPending || isConfirming ? (
               <>
@@ -1580,7 +1617,7 @@ export default function AdminPage() {
                                   <ProjectImage 
                                     metadataURI={project.metadataURI}
                                     imageType="icon"
-                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-zinc-700"
+                                    className="w-8 h-8 rounded object-cover flex-shrink-0 border border-zinc-700"
                                     fallbackText={project.name.charAt(0).toUpperCase()}
                                   />
                                   <span className="text-base font-semibold text-white">{project.name}</span>
@@ -1667,10 +1704,11 @@ export default function AdminPage() {
                                 <Button
                                   onClick={() => openTGEManager(project.slug)}
                                   variant="custom"
-                                  className="hover:opacity-80 text-zinc-300 border text-xs px-2 py-1"
-                                  style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}
+                                  className="hover:opacity-80 text-white border text-xs px-2 py-1 bg-red-600 hover:bg-red-700"
+                                  style={{ borderColor: '#dc2626' }}
                                 >
-                                  🚀 TGE
+                                  <AlertTriangle className="w-3 h-3 mr-1 inline" />
+                                  TGE
                                 </Button>
                               </td>
 

@@ -106,6 +106,23 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
     fetchProofStatuses();
   }, [orders, publicClient, isSuccess]); // Refetch after successful transactions
 
+  // Handle transaction success
+  useEffect(() => {
+    if (isSuccess && hash) {
+      toast.success("Transaction confirmed!", "Changes will be reflected shortly");
+    }
+  }, [isSuccess, hash, toast]);
+
+  // Handle transaction errors
+  useEffect(() => {
+    if (error && hash) {
+      toast.error(
+        "Transaction failed",
+        error.message || "Please check the console for details"
+      );
+    }
+  }, [error, hash, toast]);
+
   // Show all orders - let admin decide which to activate
   // V4 Status: 0=OPEN, 1=FUNDED, 2=SETTLED, 3=DEFAULTED, 4=CANCELED
   const fundedOrders = orders.filter((o) => o.status === 1); // Only FUNDED orders for batch activation
@@ -196,6 +213,8 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
     if (!confirm(`Manually settle order #${orderId}?\nThis should only be used for Points after off-chain verification.`)) {
       return;
     }
+
+    toast.info("Settling order manually", `Order #${orderId}`);
 
     writeContract({
       address: ORDERBOOK_ADDRESS,
@@ -310,27 +329,7 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
         </div>
       </div>
 
-      {/* Status Messages */}
-      {isPending && (
-        <div className="mb-4 p-3 bg-blue-950/30 border border-blue-800/30 rounded-lg">
-          <p className="text-sm text-blue-400">⏳ Confirming transaction...</p>
-        </div>
-      )}
-      {isConfirming && (
-        <div className="mb-4 p-3 bg-blue-950/30 border border-blue-800/30 rounded-lg">
-          <p className="text-sm text-blue-400">⏳ Waiting for confirmation...</p>
-        </div>
-      )}
-      {isSuccess && (
-        <div className="mb-4 p-3 bg-green-950/30 border border-green-800/30 rounded-lg">
-          <p className="text-sm text-green-400">✅ Transaction confirmed! Refresh to see updated status.</p>
-        </div>
-      )}
-      {isError && (
-        <div className="mb-4 p-3 bg-red-950/30 border border-red-800/30 rounded-lg">
-          <p className="text-sm text-red-400">❌ Error: {error?.message}</p>
-        </div>
-      )}
+      {/* Toast notifications handle all messages */}
 
       {/* V4: Project-Level TGE Activation - Single Global Command */}
       <div className="mb-6 p-6 bg-gradient-to-br from-green-950/30 to-violet-950/30 border border-green-800/30 rounded-lg">

@@ -170,7 +170,7 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
     }
 
     // V4: Individual order TGE activation removed - admin must use project-level activation
-    alert("V4 uses project-level TGE activation. Please use the admin panel to activate TGE for all orders in this project.");
+    toast.error("Feature removed", "V4 uses project-level TGE activation. Please use the admin panel to activate TGE for all orders in this project.");
     return;
   };
 
@@ -178,6 +178,8 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
     if (!confirm(`Extend settlement for order #${order.id} by ${hours} hours?`)) {
       return;
     }
+
+    toast.info("Extending settlement", `Adding ${hours} hours to deadline`);
 
     writeContract({
       address: ORDERBOOK_ADDRESS,
@@ -284,31 +286,7 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
 
   return (
     <div className="space-y-2">
-      {/* Status Messages - Only show transaction status, not settlement status (already shown at top) */}
-      {isPending && (
-        <p className="text-xs text-blue-400 flex items-center gap-1">
-          <Loader2 className="w-3 h-3 animate-spin" />
-          Confirming transaction...
-        </p>
-      )}
-      {isConfirming && (
-        <p className="text-xs text-blue-400 flex items-center gap-1">
-          <Loader2 className="w-3 h-3 animate-spin" />
-          Waiting for confirmation...
-        </p>
-      )}
-      {isSuccess && (
-        <p className="text-xs text-green-400 flex items-center gap-1">
-          <CheckCircle className="w-3 h-3" />
-          Transaction confirmed!
-        </p>
-      )}
-      {isError && (
-        <p className="text-xs text-red-400 flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" />
-          Error: {error?.message}
-        </p>
-      )}
+      {/* Toast notifications handle all messages */}
 
       {/* Admin Controls - Activate TGE (TOKENS ONLY) - V4: This is now project-level */}
       {isOwner && isTokenProject && !projectTgeActivated && (
