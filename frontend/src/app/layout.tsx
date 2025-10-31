@@ -28,9 +28,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
         
         {/* Favicons */}
-        <link rel="icon" type="image/png" sizes="32x32" href="https://dweb.link/ipfs/bafkreigl53kuhbw5tvj5emburifd7fkgzj5ibzqgv3xh67oervnmp3qnx4" />
-        <link rel="icon" type="image/png" sizes="16x16" href="https://dweb.link/ipfs/bafkreigl53kuhbw5tvj5emburifd7fkgzj5ibzqgv3xh67oervnmp3qnx4" />
-        <link rel="shortcut icon" href="https://dweb.link/ipfs/bafkreigl53kuhbw5tvj5emburifd7fkgzj5ibzqgv3xh67oervnmp3qnx4" />
+        <link rel="icon" type="image/png" sizes="32x32" href="https://turquoise-keen-koi-739.mypinata.cloud/ipfs/bafkreihgp4jzy66ibcazle7gp3jb6lycqkvfcmo4rknp3sn67rnjl7ooei" />
+        <link rel="icon" type="image/png" sizes="16x16" href="https://turquoise-keen-koi-739.mypinata.cloud/ipfs/bafkreihgp4jzy66ibcazle7gp3jb6lycqkvfcmo4rknp3sn67rnjl7ooei" />
+        <link rel="shortcut icon" href="https://turquoise-keen-koi-739.mypinata.cloud/ipfs/bafkreihgp4jzy66ibcazle7gp3jb6lycqkvfcmo4rknp3sn67rnjl7ooei" />
         
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         
@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta property="og:url" content="https://otcx.trade" />
         <meta property="og:title" content="otcX - Decentralized OTC Marketplace" />
         <meta property="og:description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
-        <meta property="og:image" content="https://dweb.link/ipfs/bafkreigl53kuhbw5tvj5emburifd7fkgzj5ibzqgv3xh67oervnmp3qnx4" />
+        <meta property="og:image" content="https://turquoise-keen-koi-739.mypinata.cloud/ipfs/bafkreigjbxg3uzqm25i4htyl6hk4s7j5ik4lva4uwemjboutmgonplvn4u" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="otcX - Decentralized OTC Trading Platform" />
@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="twitter:url" content="https://otcx.trade" />
         <meta name="twitter:title" content="otcX - Decentralized OTC Marketplace" />
         <meta name="twitter:description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
-        <meta name="twitter:image" content="https://dweb.link/ipfs/bafkreigl53kuhbw5tvj5emburifd7fkgzj5ibzqgv3xh67oervnmp3qnx4" />
+        <meta name="twitter:image" content="https://turquoise-keen-koi-739.mypinata.cloud/ipfs/bafkreigjbxg3uzqm25i4htyl6hk4s7j5ik4lva4uwemjboutmgonplvn4u" />
         <meta name="twitter:image:alt" content="otcX - Decentralized OTC Trading Platform" />
       </head>
       <body className={`min-h-screen bg-gradient-to-b from-zinc-950 to-black text-zinc-100 ${spaceGrotesk.variable} font-sans relative`}>
