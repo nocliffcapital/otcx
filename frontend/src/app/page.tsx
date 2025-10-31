@@ -744,7 +744,7 @@ export default function ProjectsPage() {
                 </div>
 
                 <div className="p-4">
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center justify-center gap-3 mb-4">
                     {/* Project Icon */}
                     <div className="relative">
                       <ProjectImage 
@@ -756,13 +756,8 @@ export default function ProjectsPage() {
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black"></div>
                     </div>
                     
-                    {/* Project Info */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-lg text-white mb-0.5">{project.name}</h3>
-                      <div className="font-mono text-xs text-zinc-500">
-                        ID: {slugToProjectId(project.slug).slice(0, 10)}...
-                      </div>
-                    </div>
+                    {/* Project Title - Centered with logo */}
+                    <h3 className="font-bold text-lg text-white">{project.name}</h3>
                   </div>
                   
                   {/* Price Stats - Terminal Style */}
