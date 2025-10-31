@@ -1116,9 +1116,14 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                   return (
                     <tr key={order.id.toString()} className="border-b transition-colors" style={{ borderColor: '#2b2b30' }}>
                       <td className="py-3 px-3">
-                        <Badge className="bg-zinc-700 text-zinc-300 text-xs">
+                        <span 
+                          className="text-xs font-mono font-semibold uppercase"
+                          style={{ 
+                            color: order.isSell ? '#ef4444' : '#22c55e' // Red for SELL, Green for BUY
+                          }}
+                        >
                           {order.isSell ? "SELL" : "BUY"}
-                        </Badge>
+                        </span>
                       </td>
                       <td className="py-3 px-3 font-medium text-zinc-100">
                         ${Number(formatUnits(order.unitPrice, STABLE_DECIMALS)).toLocaleString()}
