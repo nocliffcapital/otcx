@@ -250,7 +250,7 @@ export function PrivateOrderCreator({
           {/* Unit Price */}
           <div>
             <label className="text-sm font-medium text-zinc-300 mb-2 block">
-              Price per Token (USDC) <span className="text-red-400">*</span>
+              Price per {assetType === "Points" ? "Point" : "Token"} (USDC) <span className="text-red-400">*</span>
             </label>
             <Input
               type="number"

@@ -14,7 +14,7 @@ import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDR
 import { useState, useEffect, useMemo } from "react";
 import { useReadContract, usePublicClient, useBlockNumber, useChainId } from "wagmi";
 import { getExplorerUrl } from "@/lib/chains";
-import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight, FileText, Search, AlertCircle, Link as LinkIcon, Copy, Loader2, Terminal, Database, Cpu, ChevronDown } from "lucide-react";
+import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight, FileText, Search, AlertCircle, Link as LinkIcon, Copy, Loader2, Terminal, Database, Cpu, ChevronDown, X } from "lucide-react";
 import Link from "next/link";
 
 // V4: Simplified status enum (no TGE_ACTIVATED status)
@@ -40,12 +40,15 @@ export default function MyOrdersPage() {
   const chainId = useChainId();
   const [canceling, setCanceling] = useState<string | null>(null);
   const [locking, setLocking] = useState<string | null>(null);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState<boolean>(false);
+  const [orderToCancel, setOrderToCancel] = useState<{ id: bigint; totalValue: number; fee: number; netRefund: number } | null>(null);
   const [projectNames, setProjectNames] = useState<Record<string, string>>({});
   const [projectMetadata, setProjectMetadata] = useState<Record<string, string>>({}); // token address -> metadataURI
   const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({}); // projectId -> TGE activated
   const [showCanceled, setShowCanceled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sideFilter, setSideFilter] = useState<"all" | "buy" | "sell">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "private" | "public">("all");
   const [activeTab, setActiveTab] = useState<"open" | "filled" | "settlement" | "ended">("open");
 
   const publicClient = usePublicClient();
@@ -62,6 +65,13 @@ export default function MyOrdersPage() {
       outputs: [{ type: "bool" }],
     }],
     functionName: "paused",
+  });
+
+  // Fetch cancellation fee rate
+  const { data: cancellationFeeBps } = useReadContract({
+    address: ORDERBOOK_ADDRESS as `0x${string}`,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "cancellationFeeBps",
   });
 
   // Fetch all projects to map token addresses to names and metadata URIs
@@ -140,13 +150,19 @@ export default function MyOrdersPage() {
       filtered = filtered.filter(o => o.isSell);
     }
 
-    // Search filter
+    // Type filter
+    if (typeFilter === "private") {
+      filtered = filtered.filter(o => o.allowedTaker && o.allowedTaker !== "0x0000000000000000000000000000000000000000");
+    } else if (typeFilter === "public") {
+      filtered = filtered.filter(o => !o.allowedTaker || o.allowedTaker === "0x0000000000000000000000000000000000000000");
+    }
+
+    // Search filter (only by project name now)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(o => {
         const projectName = projectNames[o.projectToken.toLowerCase()] || "";
-        const orderId = o.id.toString();
-        return projectName.toLowerCase().includes(query) || orderId.includes(query);
+        return projectName.toLowerCase().includes(query);
       });
     }
 
@@ -156,7 +172,7 @@ export default function MyOrdersPage() {
     }
 
     return filtered;
-  }, [orders, activeTab, sideFilter, searchQuery, showCanceled, projectNames, projectTgeStatus]);
+  }, [orders, activeTab, sideFilter, typeFilter, searchQuery, showCanceled, projectNames, projectTgeStatus]);
 
   // Calculate summary stats (always based on all orders)
   const stats = useMemo(() => {
@@ -197,10 +213,49 @@ export default function MyOrdersPage() {
     };
   }, [orders, projectTgeStatus]);
 
-  const handleCancel = async (orderId: bigint) => {
+  // Calculate cancellation fee for an order
+  const calculateCancelFee = (order: typeof orders[0]) => {
+    // Calculate order value in USDC
+    const orderValue = (order.amount * order.unitPrice) / BigInt(10 ** 18);
+    const orderValueUsd = Number(formatUnits(orderValue, STABLE_DECIMALS));
+    
+    // Get actual refund amount (collateral locked by maker)
+    const refund = order.isSell ? order.sellerCollateral : order.buyerFunds;
+    const refundUsd = Number(formatUnits(refund, STABLE_DECIMALS));
+    
+    // Calculate fee based on order value (not refund)
+    const feeBps = cancellationFeeBps ? Number(cancellationFeeBps) : 10; // Default 0.1%
+    const fee = (orderValue * BigInt(feeBps)) / BigInt(10000);
+    const feeUsd = Number(formatUnits(fee, STABLE_DECIMALS));
+    
+    // Safety check: fee can't exceed refund (per contract logic)
+    const finalFee = feeUsd > refundUsd ? 0 : feeUsd;
+    const netRefund = refundUsd - finalFee;
+    
+    return {
+      totalValue: orderValueUsd,
+      fee: finalFee,
+      netRefund,
+      feeBps
+    };
+  };
+
+  const handleCancelClick = (orderId: bigint) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    
+    const feeInfo = calculateCancelFee(order);
+    setOrderToCancel({ id: orderId, ...feeInfo });
+    setCancelConfirmOpen(true);
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!orderToCancel) return;
+    
     try {
-      setCanceling(orderId.toString());
-      await cancel(orderId);
+      setCanceling(orderToCancel.id.toString());
+      setCancelConfirmOpen(false);
+      await cancel(orderToCancel.id);
       toast.success(
         "Order canceled successfully!",
         "Your order has been removed from the orderbook."
@@ -215,6 +270,7 @@ export default function MyOrdersPage() {
       );
     } finally {
       setCanceling(null);
+      setOrderToCancel(null);
     }
   };
 
@@ -583,12 +639,29 @@ export default function MyOrdersPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                 <input
                   type="text"
-                  placeholder="Search by project name or order ID..."
+                  placeholder="Search by project name"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 rounded text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none font-mono"
                   style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
                 />
+              </div>
+
+              {/* Type Filter */}
+              <div className="relative">
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value as "all" | "private" | "public")}
+                  className="pl-4 pr-10 py-2 rounded text-sm text-zinc-100 focus:outline-none font-mono cursor-pointer appearance-none"
+                  style={{ backgroundColor: '#121218', borderColor: '#2b2b30', border: '1px solid' }}
+                >
+                  <option value="all">ALL TYPES</option>
+                  <option value="private">PRIVATE ONLY</option>
+                  <option value="public">PUBLIC ONLY</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronDown className="w-4 h-4 text-zinc-400" />
+                </div>
               </div>
 
               {/* Side Filter */}
@@ -683,8 +756,6 @@ export default function MyOrdersPage() {
                 key={order.id.toString()}
                 className="border-b transition-all group"
                 style={{ borderColor: '#2b2b30' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2b2b30'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 {/* Project */}
                 <td className="py-4 px-4">
@@ -725,9 +796,42 @@ export default function MyOrdersPage() {
                 {/* Status */}
                 <td className="py-4 px-4">
                   <div className="flex flex-col gap-1">
-                    <Badge className={`${STATUS_COLORS[order.status]} text-xs w-fit`}>
-                      {STATUS_LABELS[order.status]}
-                    </Badge>
+                    {(() => {
+                      // Status colors matching tabs: Open (Blue), Filled (Green), Settlement (Orange), Ended (Red)
+                      let statusBadgeClass = '';
+                      let statusLabel = STATUS_LABELS[order.status];
+                      
+                      if (order.status === 0) {
+                        // OPEN → Blue (matches OPEN tab)
+                        statusBadgeClass = 'bg-blue-500/20 text-blue-400 border border-blue-500/50';
+                      } else if (order.status === 1) {
+                        // FUNDED → Check if in settlement (TGE activated)
+                        if (isInSettlement) {
+                          // In Settlement → Orange (matches SETTLEMENT tab)
+                          statusBadgeClass = 'bg-orange-500/20 text-orange-400 border border-orange-500/50';
+                          statusLabel = 'SETTLEMENT';
+                        } else {
+                          // Filled but not in settlement → Green (matches FILLED tab)
+                          statusBadgeClass = 'bg-green-500/20 text-green-400 border border-green-500/50';
+                          statusLabel = 'FILLED';
+                        }
+                      } else if (order.status === 2 || order.status === 3 || order.status === 4) {
+                        // SETTLED, DEFAULTED, CANCELED → Red (matches ENDED tab)
+                        statusBadgeClass = 'bg-red-500/20 text-red-400 border border-red-500/50';
+                        if (order.status === 2) statusLabel = 'SETTLED';
+                        else if (order.status === 3) statusLabel = 'DEFAULTED';
+                        else statusLabel = 'CANCELED';
+                      } else {
+                        // Fallback
+                        statusBadgeClass = 'bg-zinc-500/20 text-zinc-400 border border-zinc-500/50';
+                      }
+                      
+                      return (
+                        <Badge className={`${statusBadgeClass} text-xs w-fit font-mono font-semibold`}>
+                          {statusLabel}
+                        </Badge>
+                      );
+                    })()}
                     {isInSettlement && order.settlementDeadline > 0n && (() => {
                       const deadline = Number(order.settlementDeadline) * 1000;
                       const now = Date.now();
@@ -770,30 +874,39 @@ export default function MyOrdersPage() {
                 {/* Progress */}
                 <td className="py-4 px-4">
                   <div className="flex items-center gap-1 justify-center">
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono ${
+                    {/* Step 1: OPEN */}
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono border ${
                       order.status >= 0 ? 'text-white' : 'text-zinc-600'
-                    }`} style={{ backgroundColor: order.status >= 0 ? '#f97316' : '#121218', border: `1px solid ${order.status >= 0 ? '#f97316' : '#2b2b30'}` }}>1</div>
-                    <div className={`h-0.5 w-3`} style={{ backgroundColor: order.status >= 1 ? '#3b82f6' : '#2b2b30' }}></div>
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono ${
-                      order.status >= 1 ? 'text-white' : 'text-zinc-600'
-                    }`} style={{ backgroundColor: order.status >= 1 ? '#3b82f6' : '#121218', border: `1px solid ${order.status >= 1 ? '#3b82f6' : '#2b2b30'}` }}>2</div>
-                    <div className={`h-0.5 w-3`} style={{ backgroundColor: order.status >= 2 ? '#8b5cf6' : '#2b2b30' }}></div>
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono ${
-                      order.status >= 2 ? 'text-white' : 'text-zinc-600'
-                    }`} style={{ backgroundColor: order.status >= 2 ? '#8b5cf6' : '#121218', border: `1px solid ${order.status >= 2 ? '#8b5cf6' : '#2b2b30'}` }}>3</div>
-                    <div className={`h-0.5 w-3`} style={{ backgroundColor: order.status === 3 ? '#10b981' : order.status >= 4 ? '#dc2626' : '#2b2b30' }}></div>
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono ${
-                      order.status === 3 ? 'text-white' : 
-                      order.status === 4 ? 'text-white' : 
-                      order.status === 5 ? 'text-white' : 
-                      'text-zinc-600'
                     }`} style={{ 
-                      backgroundColor: order.status === 3 ? '#10b981' : 
-                        order.status === 4 ? '#ea580c' : 
-                        order.status === 5 ? '#dc2626' : 
-                        '#121218',
-                      border: `1px solid ${order.status === 3 ? '#10b981' : order.status === 4 ? '#ea580c' : order.status === 5 ? '#dc2626' : '#2b2b30'}`
-                    }}>{order.status === 3 ? '✓' : order.status === 4 ? 'D' : order.status === 5 ? '✗' : '4'}</div>
+                      backgroundColor: order.status >= 0 ? '#3b82f6' : '#121218', 
+                      borderColor: order.status >= 0 ? '#3b82f6' : '#2b2b30' 
+                    }}>1</div>
+                    <div className={`h-0.5 w-3`} style={{ backgroundColor: order.status >= 1 ? '#22c55e' : '#2b2b30' }}></div>
+                    {/* Step 2: FILLED */}
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono border ${
+                      order.status >= 1 ? 'text-white' : 'text-zinc-600'
+                    }`} style={{ 
+                      backgroundColor: order.status >= 1 ? '#22c55e' : '#121218', 
+                      borderColor: order.status >= 1 ? '#22c55e' : '#2b2b30' 
+                    }}>2</div>
+                    <div className={`h-0.5 w-3`} style={{ backgroundColor: isInSettlement ? '#f97316' : order.status >= 2 ? '#f97316' : '#2b2b30' }}></div>
+                    {/* Step 3: SETTLEMENT */}
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono border ${
+                      isInSettlement ? 'text-white' : order.status >= 2 ? 'text-white' : 'text-zinc-600'
+                    }`} style={{ 
+                      backgroundColor: isInSettlement ? '#f97316' : order.status >= 2 ? '#f97316' : '#121218', 
+                      borderColor: isInSettlement ? '#f97316' : order.status >= 2 ? '#f97316' : '#2b2b30' 
+                    }}>3</div>
+                    <div className={`h-0.5 w-3`} style={{ backgroundColor: order.status === 2 || order.status === 3 || order.status === 4 ? '#ef4444' : '#2b2b30' }}></div>
+                    {/* Step 4: ENDED */}
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold font-mono border ${
+                      order.status === 2 || order.status === 3 || order.status === 4 ? 'text-white' : 'text-zinc-600'
+                    }`} style={{ 
+                      backgroundColor: order.status === 2 || order.status === 3 || order.status === 4 ? '#ef4444' : '#121218', 
+                      borderColor: order.status === 2 || order.status === 3 || order.status === 4 ? '#ef4444' : '#2b2b30' 
+                    }}>
+                      {order.status === 2 ? '✓' : order.status === 3 ? 'D' : order.status === 4 ? '✗' : '4'}
+                    </div>
                   </div>
                 </td>
 
@@ -877,11 +990,23 @@ export default function MyOrdersPage() {
                         variant="custom"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleCancel(order.id);
+                          handleCancelClick(order.id);
                         }}
                         disabled={!!canceling}
-                        className="text-xs px-2 py-1 h-7 font-mono border"
-                        style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
+                        className="text-xs px-2 py-1 h-7 font-mono font-semibold border uppercase"
+                        style={{ 
+                          backgroundColor: canceling === order.id.toString() ? '#dc2626' : '#dc2626', 
+                          borderColor: '#ef4444', 
+                          color: 'white' 
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!canceling) {
+                            e.currentTarget.style.backgroundColor = '#ef4444';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#dc2626';
+                        }}
                       >
                         {canceling === order.id.toString() ? (
                           <>
@@ -898,6 +1023,97 @@ export default function MyOrdersPage() {
           })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Cancel Confirmation Modal */}
+        {cancelConfirmOpen && orderToCancel && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}>
+            <div className="border rounded p-6 max-w-md w-full font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white">CANCEL ORDER</h3>
+                <button
+                  onClick={() => {
+                    setCancelConfirmOpen(false);
+                    setOrderToCancel(null);
+                  }}
+                  className="text-zinc-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Warning Message */}
+              <div className="mb-6 p-4 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#ef4444' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-5 h-5 text-red-400" />
+                  <span className="text-sm font-semibold text-red-400">Are you sure you want to cancel this order?</span>
+                </div>
+                <p className="text-xs text-zinc-400">
+                  This action cannot be undone. Your order will be removed from the orderbook.
+                </p>
+              </div>
+
+              {/* Fee Breakdown */}
+              <div className="mb-6 space-y-3">
+                <div className="text-xs text-zinc-500 mb-2">CANCELLATION FEE BREAKDOWN</div>
+                
+                <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: '#2b2b30' }}>
+                  <span className="text-sm text-zinc-400">Order Value</span>
+                  <span className="text-sm font-semibold text-white">${orderToCancel.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                
+                <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: '#2b2b30' }}>
+                  <div className="flex flex-col">
+                    <span className="text-sm text-zinc-400">Cancellation Fee</span>
+                    <span className="text-xs text-zinc-500">({(orderToCancel.feeBps / 100).toFixed(2)}% of order value)</span>
+                  </div>
+                  <span className="text-sm font-semibold text-red-400">-${orderToCancel.fee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                
+                <div className="flex justify-between items-center py-2 pt-3">
+                  <span className="text-sm font-semibold text-white">You Will Receive</span>
+                  <span className="text-base font-bold text-green-400">${orderToCancel.netRefund.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    setCancelConfirmOpen(false);
+                    setOrderToCancel(null);
+                  }}
+                  variant="custom"
+                  className="flex-1 border font-mono font-semibold uppercase"
+                  style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
+                >
+                  KEEP ORDER
+                </Button>
+                <Button
+                  onClick={handleCancelConfirm}
+                  disabled={!!canceling}
+                  variant="custom"
+                  className="flex-1 border font-mono font-semibold uppercase"
+                  style={{ 
+                    backgroundColor: '#dc2626', 
+                    borderColor: '#ef4444', 
+                    color: 'white',
+                    opacity: canceling ? 0.6 : 1
+                  }}
+                >
+                  {canceling ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 inline animate-spin" />
+                      CANCELING...
+                    </>
+                  ) : (
+                    'CONFIRM CANCEL'
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
