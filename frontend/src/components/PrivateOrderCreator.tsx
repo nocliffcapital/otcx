@@ -5,7 +5,7 @@ import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Badge } from "./ui/Badge";
-import { Lock, Copy, Check, AlertCircle, User, Loader2, Info } from "lucide-react";
+import { Lock, Copy, Check, AlertCircle, User, Loader2, Info, XCircle } from "lucide-react";
 import { parseUnits, formatUnits, isAddress } from "viem";
 import { useToast } from "./Toast";
 import { STABLE_DECIMALS, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
@@ -283,9 +283,10 @@ export function PrivateOrderCreator({
             )}
           </div>
 
-          {/* Minimum Order Info */}
-          {!isBelowMinimum && totalValue === 0 && (
-            <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+          {/* Info Cards - Inline */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Minimum Order Info */}
+            <div className="p-3 rounded border flex flex-col h-full" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
               <div className="flex gap-2">
                 <Info className="w-4 h-4 text-zinc-300 flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-zinc-300">
@@ -296,18 +297,31 @@ export function PrivateOrderCreator({
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Info Box */}
-          <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
-            <div className="flex gap-2">
-              <User className="w-4 h-4 text-zinc-300 flex-shrink-0 mt-0.5" />
-              <div className="text-xs text-zinc-300">
-                <p className="font-semibold text-zinc-100 mb-1">Private Order</p>
-                <p>
-                  Only the specified address will be able to take this order. 
-                  This order will not appear in the public orderbook.
-                </p>
+            {/* Private Order Info */}
+            <div className="p-3 rounded border flex flex-col h-full" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+              <div className="flex gap-2">
+                <User className="w-4 h-4 text-zinc-300 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-zinc-300">
+                  <p className="font-semibold text-zinc-100 mb-1">Private Order</p>
+                  <p>
+                    Only the specified address will be able to take this order. 
+                    This order will not appear in the public orderbook.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Cancel Order Info */}
+            <div className="p-3 rounded border flex flex-col h-full" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+              <div className="flex gap-2">
+                <XCircle className="w-4 h-4 text-zinc-300 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-zinc-300">
+                  <p className="font-semibold text-zinc-100 mb-1">Cancel Anytime</p>
+                  <p>
+                    You can cancel this order at any time up until it has been filled by the recipient.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
