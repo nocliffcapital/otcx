@@ -853,7 +853,7 @@ export default function AdminPage() {
               <Settings className="w-10 h-10 text-zinc-300" />
             </div>
             <div className="min-w-0 flex-1">
-              <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/admin/control-panel</span>
+              <span className="text-zinc-300/70 text-xs mb-1 block">otcX://protocol/admin/control-panel</span>
               <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight break-words">
                 ADMIN_CONTROL_PANEL
               </h1>

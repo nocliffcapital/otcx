@@ -110,7 +110,7 @@ export default function PrivateOrderPage() {
                 <Lock className="w-10 h-10 text-zinc-300" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/private-order</span>
+                <span className="text-zinc-300/70 text-xs mb-1 block">otcX://protocol/private-order</span>
                 <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight break-words">
                   PRIVATE_ORDER_CREATOR
                 </h1>

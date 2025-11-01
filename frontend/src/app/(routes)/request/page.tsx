@@ -206,7 +206,7 @@ export default function RequestProjectPage() {
                 <FileText className="w-10 h-10 text-zinc-300" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="text-zinc-300 text-xs mb-1 block">otcX://protocol/request</span>
+                <span className="text-zinc-300/70 text-xs mb-1 block">otcX://protocol/request</span>
                 <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight break-words">
                   REQUEST_PROJECT
                 </h1>
@@ -412,7 +412,7 @@ export default function RequestProjectPage() {
           </div>
 
           {/* hCaptcha */}
-          <div className="flex justify-center">
+          <div className="hcaptcha-wrapper">
             <HCaptcha
               ref={captchaRef}
               sitekey="50b2fe65-b00b-4b9e-ad62-3ba471098be2"
