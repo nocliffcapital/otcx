@@ -298,26 +298,40 @@ export default function PrivateOrderPage() {
                       console.log('Clicked project:', project.slug);
                       setSelectedProject(project.slug);
                     }}
-                    className="w-full p-4 border transition-all text-left group rounded hover:border-zinc-500 hover:shadow-lg hover:shadow-zinc-500/20"
-                    style={{ 
-                      backgroundColor: '#121218',
-                      borderColor: '#2b2b30'
-                    }}
+                    className="w-full bg-[#121218] border border-[#2b2b30] hover:border-zinc-500 hover:shadow-lg hover:shadow-zinc-500/20 cursor-pointer h-full group transition-all backdrop-blur-sm rounded text-left"
                   >
-                    <div className="flex items-center gap-3">
-                      <ProjectImage 
-                        metadataURI={project.metadataURI}
-                        imageType="icon"
-                        className="w-10 h-10 rounded object-cover border-2 border-zinc-700 group-hover:border-purple-500/50 transition-all"
-                        fallbackText={project.name ? project.name.charAt(0).toUpperCase() : "?"}
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-white">{project.name || "Unknown"}</h3>
-                        <p className="text-xs text-zinc-500">{project.slug || "unknown"}</p>
+                    {/* Terminal-style header */}
+                    <div className="bg-gradient-to-r from-[#2b2b30]/50 to-[#2b2b30]/50 border-b border-[#2b2b30] px-3 py-2 font-mono text-xs flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                        <span className="text-zinc-300 uppercase">{project.slug || "unknown"}</span>
                       </div>
-                      <Badge className={project.assetType === "Points" ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" : "bg-blue-500/20 text-blue-400 border border-blue-500/50"}>
+                      <Badge className={`text-xs font-mono ${project.assetType === "Points" ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" : "bg-blue-500/20 text-blue-400 border border-blue-500/50"}`}>
                         {project.assetType}
                       </Badge>
+                    </div>
+
+                    <div className="p-4">
+                      <div className="flex items-center gap-3 mb-4">
+                        {/* Project Icon */}
+                        <div className="relative">
+                          <ProjectImage 
+                            metadataURI={project.metadataURI}
+                            imageType="icon"
+                            className="w-14 h-14 rounded object-cover flex-shrink-0 border-2 border-[#2b2b30] group-hover:border-zinc-500 transition-all"
+                            fallbackText={project.name ? project.name.charAt(0).toUpperCase() : "?"}
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black"></div>
+                        </div>
+                        
+                        {/* Project Title */}
+                        <h3 className="font-bold text-lg text-white">{project.name || "Unknown"}</h3>
+                      </div>
+                      
+                      <div className="mt-4 text-xs font-mono text-zinc-300 group-hover:text-white transition-colors flex items-center gap-2 justify-center py-2 border border-[#2b2b30] rounded group-hover:bg-[#2b2b30]">
+                        <span>SELECT PROJECT</span>
+                        <span className="group-hover:translate-x-1 transition-transform">→</span>
+                      </div>
                     </div>
                   </button>
                 ))
