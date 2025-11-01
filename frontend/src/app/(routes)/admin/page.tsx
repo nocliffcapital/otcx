@@ -288,7 +288,7 @@ export default function AdminPage() {
 
   // Write contract hook
   const { writeContract, data: hash, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: isConfirming, isSuccess, error } = useWaitForTransactionReceipt({ hash });
 
   // Handle form submission for adding project
   const handleAddProject = async (e: React.FormEvent) => {
@@ -776,7 +776,7 @@ export default function AdminPage() {
     if (error && hash) {
       toast.error(
         "Transaction failed",
-        error.message || "Please check the console for details"
+        (error as Error)?.message || "Please check the console for details"
       );
     }
   }, [error, hash, toast]);
