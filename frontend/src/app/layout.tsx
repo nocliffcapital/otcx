@@ -2,7 +2,7 @@
 
 import "@rainbow-me/rainbowkit/styles.css";
 import "./globals.css";
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -21,19 +21,43 @@ const spaceGrotesk = Space_Grotesk({
 export default function RootLayout({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
+  useEffect(() => {
+    // Dynamically add favicon links
+    const faviconUrl = "https://turquoise-keen-koi-739.mypinata.cloud/ipfs/bafkreihj7gupr4tgotsrrdnex777npp5gbmlqujxkkrouaeekea4q7kjcy";
+
+    // Remove any existing favicons
+    const existingFavicons = document.querySelectorAll('link[rel*="icon"]');
+    existingFavicons.forEach(link => link.remove());
+
+    // Add new favicon links
+    const link32 = document.createElement('link');
+    link32.rel = 'icon';
+    link32.type = 'image/png';
+    link32.sizes = '32x32';
+    link32.href = faviconUrl;
+    document.head.appendChild(link32);
+
+    const link16 = document.createElement('link');
+    link16.rel = 'icon';
+    link16.type = 'image/png';
+    link16.sizes = '16x16';
+    link16.href = faviconUrl;
+    document.head.appendChild(link16);
+
+    const linkShortcut = document.createElement('link');
+    linkShortcut.rel = 'shortcut icon';
+    linkShortcut.href = faviconUrl;
+    document.head.appendChild(linkShortcut);
+  }, []);
+
   return (
     <html lang="en" className="h-full">
       <head>
         <title>otcX - Decentralized OTC Marketplace</title>
         <meta name="description" content="Trade pre-TGE tokens & points with secure on-chain escrow. No middlemen. No trust required." />
-        
-        {/* Favicons */}
-        <link rel="icon" type="image/png" sizes="32x32" href="https://turquoise-keen-koi-739.mypinata.cloud/ipfs/bafkreihgp4jzy66ibcazle7gp3jb6lycqkvfcmo4rknp3sn67rnjl7ooei" />
-        <link rel="icon" type="image/png" sizes="16x16" href="https://turquoise-keen-koi-739.mypinata.cloud/ipfs/bafkreihgp4jzy66ibcazle7gp3jb6lycqkvfcmo4rknp3sn67rnjl7ooei" />
-        <link rel="shortcut icon" href="https://turquoise-keen-koi-739.mypinata.cloud/ipfs/bafkreihgp4jzy66ibcazle7gp3jb6lycqkvfcmo4rknp3sn67rnjl7ooei" />
-        
+
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        
+
         {/* Open Graph / Facebook / LinkedIn / Telegram */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://otcx.trade" />
@@ -44,7 +68,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="otcX - Decentralized OTC Trading Platform" />
         <meta property="og:site_name" content="otcX" />
-        
+
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:url" content="https://otcx.trade" />

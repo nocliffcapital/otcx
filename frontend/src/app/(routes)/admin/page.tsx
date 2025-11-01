@@ -234,12 +234,26 @@ export default function AdminPage() {
           abi: ESCROW_ORDERBOOK_ABI,
           functionName: "orders",
           args: [BigInt(i)],
-        }) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, number];
+        }) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint, bigint, bigint, boolean, `0x${string}`, number];
         
-        // Fetch settlement proof if order is in TGE_ACTIVATED or later status
+        // V4: Fetch settlement deadline from project-level mapping (not stored in order)
+        const projectId = orderData[4] as `0x${string}`;
+        let settlementDeadline = 0n;
+        try {
+          settlementDeadline = await publicClient.readContract({
+            address: ORDERBOOK_ADDRESS,
+            abi: ESCROW_ORDERBOOK_ABI,
+            functionName: "projectSettlementDeadline",
+            args: [projectId],
+          }) as bigint;
+        } catch (error) {
+          // If project TGE not activated, deadline will be 0
+        }
+        
+        // Fetch settlement proof for Points projects
         let proof: string | undefined;
-        const status = Number(orderData[11]); // V3: status at index 11
-        if (status >= 2) { // TGE_ACTIVATED = 2
+        const status = Number(orderData[12]); // V4: status at index 12
+        if (status === 1) { // FUNDED status - check if proof exists
           try {
             const proofData = await publicClient.readContract({
               address: ORDERBOOK_ADDRESS,
@@ -251,11 +265,12 @@ export default function AdminPage() {
               proof = proofData;
             }
           } catch (error) {
-            console.error(`Failed to load proof for order ${i}:`, error);
+            // Proof might not exist yet
           }
         }
         
-        // Map the raw tuple to an object structure (V3: no tokensDeposited)
+        // V4: Map the raw tuple to an object structure
+        // Order: id, maker, buyer, seller, projectId, amount, unitPrice, buyerFunds, sellerCollateral, createdAt, isSell, allowedTaker, status
         allOrders.push({
           id: orderData[0],
           maker: orderData[1],
@@ -266,10 +281,11 @@ export default function AdminPage() {
           unitPrice: orderData[6],
           buyerFunds: orderData[7],
           sellerCollateral: orderData[8],
-          settlementDeadline: orderData[9],
-          isSell: orderData[10],
-          tokensDeposited: false, // V3: removed from contract, always false
-          status: orderData[11], // V3: status at index 11
+          expiry: 0n, // Not used in V4
+          settlementDeadline: settlementDeadline,
+          isSell: orderData[10], // V4: isSell at index 10
+          tokensDeposited: false, // Not used in V4
+          status: orderData[12], // V4: status at index 12
           proof: proof,
         });
       } catch (error) {

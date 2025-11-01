@@ -7,7 +7,7 @@ import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Badge } from "./ui/Badge";
-import { Clock, PlayCircle, Plus, CheckCircle, AlertTriangle, XCircle, CheckSquare, Square } from "lucide-react";
+import { Clock, PlayCircle, Plus, CheckCircle, AlertTriangle, XCircle, CheckSquare, Square, X } from "lucide-react";
 import { useToast } from "./Toast";
 
 interface Order {
@@ -314,46 +314,50 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
   };
 
   return (
-    <Card className="border-violet-800/30 bg-violet-950/10 max-h-[85vh] overflow-y-auto">
-      <div className="flex items-center gap-3 mb-6 sticky top-0 bg-violet-950/10 backdrop-blur-sm z-10 pb-4 border-b border-violet-800/30">
-        <Clock className="w-6 h-6 text-violet-400" />
-        <div className="flex-1">
-          <h3 className="text-lg font-bold text-violet-400">
-            {isPointsProject ? "Points TGE Management" : "TGE Settlement Management"} {projectName && `- ${projectName}`}
-          </h3>
-          <p className="text-sm text-zinc-400">
-            {isPointsProject 
-              ? "Workflow: Activate TGE → Sellers Submit Proofs → Admin Approves → Anyone Settles Permissionlessly" 
-              : "Activate TGE when the token launches"}
-          </p>
+    <Card className="max-h-[85vh] overflow-y-auto" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+      <div className="flex items-center justify-between mb-6 sticky top-0 backdrop-blur-sm z-10 pb-4 border-b" style={{ borderColor: '#2b2b30' }}>
+        <div className="flex items-center gap-3 flex-1">
+          <div className="p-2 rounded border flex items-center justify-center" style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}>
+            <Clock className="w-5 h-5 text-zinc-300" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-white font-mono">
+              {isPointsProject ? "POINTS_TGE_MANAGEMENT" : "TGE_SETTLEMENT_MANAGEMENT"} {projectName && `• ${projectName.toUpperCase()}`}
+            </h3>
+            <p className="text-xs text-zinc-400 font-mono mt-1">
+              {isPointsProject 
+                ? "Workflow: Activate TGE → Sellers Submit Proofs → Admin Approves → Anyone Settles Permissionlessly" 
+                : "Activate TGE when the token launches"}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Toast notifications handle all messages */}
 
       {/* V4: Project-Level TGE Activation - Single Global Command */}
-      <div className="mb-6 p-6 bg-gradient-to-br from-green-950/30 to-violet-950/30 border border-green-800/30 rounded-lg">
-        <h4 className="text-lg font-bold text-green-400 mb-2 flex items-center gap-2">
+      <div className="mb-6 p-6 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+        <h4 className="text-lg font-bold text-zinc-300 mb-2 flex items-center gap-2 font-mono">
           <PlayCircle className="w-5 h-5" />
-          {isPointsProject ? "Step 1: Activate Project TGE" : "Activate Project TGE"}
+          {isPointsProject ? "STEP_1: ACTIVATE_PROJECT_TGE" : "ACTIVATE_PROJECT_TGE"}
         </h4>
-        <p className="text-sm text-zinc-400 mb-4">
+        <p className="text-xs text-zinc-400 mb-4 font-mono">
           {isPointsProject 
             ? `Activate TGE for ${fundedOrders.length} funded order(s). Sellers will then have 4 hours to submit proofs.`
             : `Set global TGE flag for this project. All ${fundedOrders.length} funded order(s) will become settleable.`}
         </p>
         
         {fundedOrders.length === 0 ? (
-          <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-            <p className="text-sm text-zinc-500 mb-2">No funded orders ready for TGE activation</p>
-            <p className="text-xs text-zinc-600">Orders must have both buyer and seller collateral locked (FUNDED status)</p>
+          <div className="p-4 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
+            <p className="text-sm text-zinc-500 mb-2 font-mono">No funded orders ready for TGE activation</p>
+            <p className="text-xs text-zinc-600 font-mono">Orders must have both buyer and seller collateral locked (FUNDED status)</p>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="flex-1">
                 <label className="text-sm text-zinc-300 mb-2 block font-medium">
-                  Actual Token Address {isPointsProject && <span className="text-zinc-500 font-normal">(optional for off-chain settlement)</span>}
+                  Actual Token Address {isPointsProject && <span className="text-zinc-500 font-normal">(optional)</span>}
                 </label>
                 <Input
                   placeholder={isPointsProject ? "0x... (or leave empty for off-chain settlement)" : "0x... (deployed token contract)"}
@@ -379,23 +383,34 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                 onClick={handleBatchActivateTGE}
                 disabled={isPending || isConfirming}
                 variant="custom"
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border-2 border-green-500/50 shadow-lg shadow-green-500/20 px-6 h-[42px] mt-7"
+                className="px-6 h-[42px] mt-7 font-mono font-semibold uppercase border"
+                style={{ backgroundColor: '#22c55e', borderColor: '#22c55e', color: 'white' }}
+                onMouseEnter={(e) => {
+                  if (!isPending && !isConfirming) {
+                    e.currentTarget.style.backgroundColor = '#16a34a';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isPending && !isConfirming) {
+                    e.currentTarget.style.backgroundColor = '#22c55e';
+                  }
+                }}
               >
                 <PlayCircle className="w-5 h-5 mr-2" />
-                Activate Project TGE
+                ACTIVATE PROJECT TGE
               </Button>
             </div>
             
             {isPointsProject && (
-              <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                <div className="flex items-start gap-2 text-xs text-blue-300">
-                  <AlertTriangle className="w-4 h-4 text-blue-400 mt-0.5" />
+              <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+                <div className="flex items-start gap-2 text-xs text-zinc-300">
+                  <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5" />
                   <div>
-                    <p className="font-medium mb-1">Points Project Settlement</p>
-                    <p className="text-blue-400/80 mb-2">
+                    <p className="font-semibold mb-1 font-mono">POINTS PROJECT SETTLEMENT</p>
+                    <p className="text-zinc-400 mb-2 font-mono">
                       <strong>Option 1 (On-chain):</strong> Enter token address if token is deployed on Sepolia
                     </p>
-                    <p className="text-blue-400/80">
+                    <p className="text-zinc-400 font-mono">
                       <strong>Option 2 (Off-chain):</strong> Leave empty → Seller sends tokens directly to buyer → Submits proof → Admin manually settles
                     </p>
                   </div>
@@ -408,12 +423,12 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
 
       {/* Step 2 Placeholder: Waiting for proofs (Points Projects) */}
       {isPointsProject && fundedOrders.length > 0 && ordersWithProofs.length === 0 && (
-        <div className="mb-6 p-6 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-          <div className="flex items-center gap-2 text-lg font-bold text-zinc-400 mb-2">
+        <div className="mb-6 p-6 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+          <div className="flex items-center gap-2 text-lg font-bold text-zinc-300 mb-2 font-mono">
             <Clock className="w-6 h-6" />
-            <span>Step 2: Waiting for Sellers to Submit Proofs</span>
+            <span>STEP_2: WAITING_FOR_PROOFS</span>
           </div>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-zinc-400 font-mono">
             {fundedOrders.length} order(s) funded. Sellers must deliver tokens off-chain and submit proof (IPFS hash or transaction proof) before the deadline.
           </p>
         </div>
@@ -422,62 +437,63 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
       {/* V4: Proof Management Section (Points Projects Only) */}
       {isPointsProject && ordersWithProofs.length > 0 && (
         <div className="mb-6">
-          <div className="flex items-center gap-2 text-lg font-bold text-violet-400 mb-4">
-            <CheckCircle className="w-6 h-6" />
-            <span>Step 3: Proof Management - {ordersWithProofs.length} proof(s) submitted</span>
+          <div className="flex items-center gap-2 text-lg font-bold text-zinc-300 mb-4 font-mono">
+            <CheckCircle className="w-6 h-6 text-zinc-300" />
+            <span>STEP_3: PROOF_MANAGEMENT • {ordersWithProofs.length} PROOF(S) SUBMITTED</span>
           </div>
 
-          <div className="space-y-6 p-6 bg-gradient-to-br from-purple-950/30 to-cyan-950/30 border border-purple-800/30 rounded-lg">
+          <div className="space-y-6 p-6 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             {/* Summary Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-yellow-950/20 border-yellow-500/30 p-4">
+                <div className="p-4 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
                   <div className="flex items-center gap-3">
-                    <Clock className="w-8 h-8 text-yellow-400" />
+                    <Clock className="w-8 h-8 text-zinc-300" />
                     <div>
-                      <div className="text-xs text-yellow-300/70">Pending Review</div>
-                      <div className="text-2xl font-bold text-yellow-300">{ordersWithPendingProofs.length}</div>
+                      <div className="text-xs text-zinc-400 font-mono">PENDING REVIEW</div>
+                      <div className="text-2xl font-bold text-white">{ordersWithPendingProofs.length}</div>
                     </div>
                   </div>
-                </Card>
+                </div>
 
-                <Card className="bg-green-950/20 border-green-500/30 p-4">
+                <div className="p-4 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
                   <div className="flex items-center gap-3">
                     <CheckCircle className="w-8 h-8 text-green-400" />
                     <div>
-                      <div className="text-xs text-green-300/70">Accepted</div>
-                      <div className="text-2xl font-bold text-green-300">{ordersWithAcceptedProofs.length}</div>
+                      <div className="text-xs text-zinc-400 font-mono">ACCEPTED</div>
+                      <div className="text-2xl font-bold text-green-400">{ordersWithAcceptedProofs.length}</div>
                     </div>
                   </div>
-                </Card>
+                </div>
 
-                <Card className="bg-purple-950/20 border-purple-500/30 p-4">
+                <div className="p-4 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
                   <div className="flex items-center gap-3">
-                    <PlayCircle className="w-8 h-8 text-purple-400" />
+                    <PlayCircle className="w-8 h-8 text-zinc-300" />
                     <div>
-                      <div className="text-xs text-purple-300/70">Selected</div>
-                      <div className="text-2xl font-bold text-purple-300">{selectedOrderIds.size}</div>
+                      <div className="text-xs text-zinc-400 font-mono">SELECTED</div>
+                      <div className="text-2xl font-bold text-white">{selectedOrderIds.size}</div>
                     </div>
                   </div>
-                </Card>
+                </div>
               </div>
 
               {/* Batch Actions */}
               {ordersWithPendingProofs.length > 0 && (
-                <div className="flex flex-wrap gap-3 p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                <div className="flex flex-wrap gap-3 p-4 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
                   <Button
                     onClick={toggleSelectAll}
                     variant="custom"
-                    className="bg-zinc-700 hover:bg-zinc-600 text-white"
+                    className="font-mono font-semibold uppercase border"
+                    style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
                   >
                     {selectedOrderIds.size === ordersWithPendingProofs.length ? (
                       <>
                         <Square className="w-4 h-4 mr-2" />
-                        Deselect All
+                        DESELECT ALL
                       </>
                     ) : (
                       <>
                         <CheckSquare className="w-4 h-4 mr-2" />
-                        Select All ({ordersWithPendingProofs.length})
+                        SELECT ALL ({ordersWithPendingProofs.length})
                       </>
                     )}
                   </Button>
@@ -486,10 +502,11 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                     onClick={handleBatchAcceptProofs}
                     disabled={selectedOrderIds.size === 0 || isPending || isConfirming}
                     variant="custom"
-                    className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="font-mono font-semibold uppercase border"
+                    style={{ backgroundColor: '#22c55e', borderColor: '#22c55e', color: 'white', opacity: selectedOrderIds.size === 0 ? 0.5 : 1 }}
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    Accept Selected ({selectedOrderIds.size})
+                    ACCEPT SELECTED ({selectedOrderIds.size})
                   </Button>
                 </div>
               )}
@@ -497,13 +514,13 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
               {/* Pending Proofs List */}
               {ordersWithPendingProofs.length > 0 && (
                 <div>
-                  <h5 className="text-sm font-bold text-yellow-400 mb-3 flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Pending Review ({ordersWithPendingProofs.length})
+                  <h5 className="text-sm font-bold text-zinc-300 mb-3 flex items-center gap-2 font-mono">
+                    <Clock className="w-4 h-4 text-zinc-300" />
+                    PENDING REVIEW ({ordersWithPendingProofs.length})
                   </h5>
                   <div className="space-y-3">
                     {ordersWithPendingProofs.map((order) => (
-                      <div key={order.id.toString()} className="p-4 bg-zinc-900/70 rounded-lg border border-yellow-500/30">
+                      <div key={order.id.toString()} className="p-4 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
                         <div className="flex items-start gap-4">
                           {/* Checkbox */}
                           <button
@@ -511,7 +528,7 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                             className="mt-1 p-1 hover:bg-zinc-800 rounded transition-colors"
                           >
                             {selectedOrderIds.has(order.id) ? (
-                              <CheckSquare className="w-5 h-5 text-purple-400" />
+                              <CheckSquare className="w-5 h-5 text-green-400" />
                             ) : (
                               <Square className="w-5 h-5 text-zinc-500" />
                             )}
@@ -520,13 +537,13 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                           {/* Order Details */}
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="text-sm font-bold text-white">Order #{order.id.toString()}</span>
-                              <Badge className="bg-yellow-600">Pending Review</Badge>
+                              <span className="text-sm font-bold text-white font-mono">ORDER #{order.id.toString()}</span>
+                              <Badge className="bg-yellow-950/30 border border-yellow-500/50 text-yellow-400 text-xs font-mono font-semibold uppercase">PENDING REVIEW</Badge>
                             </div>
                             
-                            <div className="p-3 bg-purple-900/30 border border-purple-500/30 rounded mb-3">
-                              <div className="text-xs font-semibold text-purple-300 mb-1">Submitted Proof:</div>
-                              <p className="text-xs text-purple-200 font-mono break-all">{order.proof}</p>
+                            <div className="p-3 rounded border mb-3" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
+                              <div className="text-xs font-semibold text-zinc-300 mb-1 font-mono">SUBMITTED PROOF:</div>
+                              <p className="text-xs text-zinc-400 font-mono break-all">{order.proof}</p>
                             </div>
 
                             {/* Actions */}
@@ -542,9 +559,10 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                                   onClick={() => handleRejectProof(order.id, rejectReason)}
                                   disabled={!rejectReason || isPending}
                                   variant="custom"
-                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                  className="font-mono font-semibold uppercase border"
+                                  style={{ backgroundColor: '#ef4444', borderColor: '#ef4444', color: 'white' }}
                                 >
-                                  Confirm
+                                  CONFIRM
                                 </Button>
                                 <Button
                                   onClick={() => {
@@ -552,9 +570,10 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                                     setRejectReason("");
                                   }}
                                   variant="custom"
-                                  className="bg-zinc-700 hover:bg-zinc-600 text-white"
+                                  className="font-mono font-semibold uppercase border"
+                                  style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
                                 >
-                                  Cancel
+                                  CANCEL
                                 </Button>
                               </div>
                             ) : (
@@ -563,19 +582,21 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                                   onClick={() => handleAcceptProof(order.id)}
                                   disabled={isPending || isConfirming}
                                   variant="custom"
-                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  className="font-mono font-semibold uppercase border"
+                                  style={{ backgroundColor: '#22c55e', borderColor: '#22c55e', color: 'white' }}
                                 >
                                   <CheckCircle className="w-4 h-4 mr-1" />
-                                  Accept Proof
+                                  ACCEPT PROOF
                                 </Button>
                                 <Button
                                   onClick={() => setRejectingOrderId(order.id)}
                                   disabled={isPending || isConfirming}
                                   variant="custom"
-                                  className="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30"
+                                  className="font-mono font-semibold uppercase border"
+                                  style={{ backgroundColor: '#121218', borderColor: '#ef4444', color: '#ef4444' }}
                                 >
                                   <XCircle className="w-4 h-4 mr-1" />
-                                  Reject
+                                  REJECT
                                 </Button>
                               </div>
                             )}
@@ -591,16 +612,16 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
               {ordersWithAcceptedProofs.length > 0 && (
                 <div>
                   <div className="mb-3">
-                    <h5 className="text-sm font-bold text-green-400 flex items-center gap-2 mb-2">
-                      <CheckCircle className="w-4 h-4" />
-                      Step 4: Permissionless Settlement ({ordersWithAcceptedProofs.length} ready)
+                    <h5 className="text-sm font-bold text-green-400 flex items-center gap-2 mb-2 font-mono">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      STEP_4: PERMISSIONLESS_SETTLEMENT • {ordersWithAcceptedProofs.length} READY
                     </h5>
-                    <div className="p-3 bg-purple-900/20 border border-purple-500/30 rounded-lg">
-                      <div className="flex items-start gap-2 text-xs text-purple-300">
-                        <AlertTriangle className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                    <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+                      <div className="flex items-start gap-2 text-xs text-zinc-300">
+                        <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="font-medium mb-1">🎉 Fully Permissionless!</p>
-                          <p className="text-purple-400/80">
+                          <p className="font-semibold mb-1 font-mono">FULLY PERMISSIONLESS!</p>
+                          <p className="text-zinc-400 font-mono">
                             Once proofs are accepted, <strong>anyone</strong> can settle these orders by calling the contract directly.
                             Buyers/sellers can settle themselves—no need to wait for admin action!
                           </p>
@@ -612,22 +633,22 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                     {ordersWithAcceptedProofs.map((order) => {
                       const status = proofStatuses[order.id.toString()];
                       return (
-                        <div key={order.id.toString()} className="p-4 bg-zinc-900/70 rounded-lg border border-green-500/30">
+                        <div key={order.id.toString()} className="p-4 rounded border" style={{ backgroundColor: '#121218', borderColor: '#22c55e' }}>
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
-                                <span className="text-sm font-bold text-white">Order #{order.id.toString()}</span>
-                                <Badge className="bg-green-600">✓ Accepted</Badge>
+                                <span className="text-sm font-bold text-white font-mono">ORDER #{order.id.toString()}</span>
+                                <Badge className="bg-green-950/30 border border-green-500/50 text-green-400 text-xs font-mono font-semibold uppercase">ACCEPTED</Badge>
                                 {status?.acceptedAt && (
-                                  <span className="text-xs text-zinc-500">
+                                  <span className="text-xs text-zinc-500 font-mono">
                                     {new Date(Number(status.acceptedAt) * 1000).toLocaleString()}
                                   </span>
                                 )}
                               </div>
                               
-                              <div className="p-3 bg-green-900/20 border border-green-500/30 rounded">
-                                <div className="text-xs font-semibold text-green-300 mb-1">Verified Proof:</div>
-                                <p className="text-xs text-green-200 font-mono break-all">{order.proof}</p>
+                              <div className="p-3 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
+                                <div className="text-xs font-semibold text-zinc-300 mb-1 font-mono">VERIFIED PROOF:</div>
+                                <p className="text-xs text-zinc-400 font-mono break-all">{order.proof}</p>
                               </div>
                             </div>
                           </div>
@@ -639,7 +660,7 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
               )}
 
             {ordersWithProofs.length === 0 && (
-              <div className="text-center py-8 text-zinc-500">
+              <div className="text-center py-8 text-zinc-500 font-mono">
                 No proofs submitted yet. Sellers must submit proof after delivering tokens.
               </div>
             )}
@@ -716,9 +737,9 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                     
                     {/* Show settlement instructions based on asset type */}
                     {isPointsProject && (
-                      <div className="mt-3 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                        <div className="flex items-start gap-2 text-xs text-blue-300">
-                          <AlertTriangle className="w-4 h-4 text-blue-400 mt-0.5" />
+                      <div className="mt-3 p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+                        <div className="flex items-start gap-2 text-xs text-zinc-300">
+                          <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5" />
                           <div>
                             <p className="font-medium mb-1">Points Project Settlement</p>
                             <p className="text-blue-400/80">After TGE: Seller sends tokens directly to buyer → Submits proof → Admin manually settles</p>
@@ -741,51 +762,59 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card className="max-w-md w-full mx-4 p-6 bg-zinc-900 border-cyan-500/30">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}>
+          <Card className="max-w-md w-full p-6 font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
             <div className="mb-4">
-              <h3 className="text-xl font-bold text-white mb-2">Activate Project TGE</h3>
-              <p className="text-sm text-zinc-400 mb-3">
-                Set global TGE flag for this entire project. This enables settlement for <span className="font-semibold text-cyan-400">{fundedOrders.length}</span> funded order(s).
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-bold text-white font-mono">ACTIVATE PROJECT TGE</h3>
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="text-zinc-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-xs text-zinc-400 mb-3 font-mono">
+                Set global TGE flag for this entire project. This enables settlement for <span className="font-semibold text-green-400">{fundedOrders.length}</span> funded order(s).
               </p>
-              <div className="p-3 bg-violet-950/30 border border-violet-500/30 rounded-lg">
-                <p className="text-xs text-violet-300">
-                  <strong>V4 Change:</strong> This is a <strong>single global command</strong> - not a batch operation. Once activated, anyone can permissionlessly settle individual orders.
+              <div className="p-3 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
+                <p className="text-xs text-zinc-300 font-mono">
+                  <strong>V4 CHANGE:</strong> This is a <strong>single global command</strong> - not a batch operation. Once activated, anyone can permissionlessly settle individual orders.
                 </p>
               </div>
             </div>
 
             <div className="space-y-3 mb-6">
               <div className="flex items-start gap-2 text-sm">
-                <Clock className="w-4 h-4 text-blue-400 mt-0.5" />
+                <Clock className="w-4 h-4 text-zinc-300 mt-0.5" />
                 <div>
-                  <p className="font-medium text-blue-400">Settlement Window</p>
-                  <p className="text-zinc-400">Opens a 4-hour window for anyone to settle orders</p>
+                  <p className="font-semibold text-zinc-300 font-mono">SETTLEMENT WINDOW</p>
+                  <p className="text-zinc-400 text-xs font-mono">Opens a 4-hour window for anyone to settle orders</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-2 text-sm">
                 <CheckCircle className="w-4 h-4 text-green-400 mt-0.5" />
                 <div>
-                  <p className="font-medium text-green-400">Settlement Type</p>
+                  <p className="font-semibold text-green-400 font-mono">SETTLEMENT TYPE</p>
                   {isPointsProject && !batchTokenAddress ? (
-                    <p className="text-zinc-400">Off-chain settlement (proof-based)</p>
+                    <p className="text-zinc-400 text-xs font-mono">Off-chain settlement (proof-based)</p>
                   ) : (
                     <div className="text-zinc-400">
-                      <p>On-chain settlement</p>
-                      <p className="text-xs text-cyan-400 font-mono mt-1">{batchTokenAddress}</p>
+                      <p className="text-xs font-mono">On-chain settlement</p>
+                      <p className="text-xs text-green-400 font-mono mt-1">{batchTokenAddress}</p>
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="flex items-start gap-2 text-sm">
-                <CheckCircle className="w-4 h-4 text-purple-400 mt-0.5" />
+                <CheckCircle className="w-4 h-4 text-zinc-300 mt-0.5" />
                 <div>
-                  <p className="font-medium text-purple-400">Conversion Ratio</p>
-                  <p className="text-zinc-400">
+                  <p className="font-semibold text-zinc-300 font-mono">CONVERSION RATIO</p>
+                  <p className="text-zinc-400 text-xs font-mono">
                     {isPointsProject ? (
-                      <>1 Point = <span className="text-purple-300 font-semibold">{conversionRatio}</span> Tokens</>
+                      <>1 Point = <span className="text-white font-semibold">{conversionRatio}</span> Tokens</>
                     ) : (
                       <>1 Token = 1 Token (1:1)</>
                     )}
@@ -798,17 +827,19 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
               <Button
                 onClick={() => setShowConfirmModal(false)}
                 variant="custom"
-                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                className="flex-1 border font-mono font-semibold uppercase"
+                style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
               >
-                Cancel
+                CANCEL
               </Button>
               <Button
                 onClick={confirmBatchActivate}
                 variant="custom"
-                className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
+                className="flex-1 border font-mono font-semibold uppercase"
+                style={{ backgroundColor: '#22c55e', borderColor: '#22c55e', color: 'white' }}
               >
                 <PlayCircle className="w-4 h-4 mr-2" />
-                Activate Project TGE
+                ACTIVATE PROJECT TGE
               </Button>
             </div>
           </Card>
