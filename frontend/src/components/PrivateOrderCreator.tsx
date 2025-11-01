@@ -145,16 +145,54 @@ export function PrivateOrderCreator({
               <Button
                 onClick={() => setSide("SELL")}
                 variant="custom"
-                className={`flex-1 h-9 text-sm font-semibold border ${side === 'SELL' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
-                style={{ borderColor: side === 'SELL' ? 'rgba(239,68,68,0.5)' : '#2b2b30' }}
+                className="flex-1 h-9 text-sm border font-mono font-semibold uppercase"
+                style={{ 
+                  backgroundColor: side === 'SELL' ? 'rgba(239, 68, 68, 0.25)' : '#121218', // Red background when selected
+                  borderColor: side === 'SELL' ? '#ef4444' : '#2b2b30', // Red border when selected, gray when unselected
+                  color: side === 'SELL' ? '#ef4444' : '#6b7280', // Red text when selected, muted gray when unselected
+                  borderWidth: side === 'SELL' ? '2px' : '1px' // Thicker border when selected
+                }}
+                onMouseEnter={(e) => {
+                  if (side !== 'SELL') { // Only apply hover to unselected button
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'; // Subtle red hover
+                    e.currentTarget.style.borderColor = '#ef4444';
+                    e.currentTarget.style.color = '#ef4444';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (side !== 'SELL') {
+                    e.currentTarget.style.backgroundColor = '#121218';
+                    e.currentTarget.style.borderColor = '#2b2b30';
+                    e.currentTarget.style.color = '#6b7280';
+                  }
+                }}
               >
                 SELL
               </Button>
               <Button
                 onClick={() => setSide("BUY")}
                 variant="custom"
-                className={`flex-1 h-9 text-sm font-semibold border ${side === 'BUY' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
-                style={{ borderColor: side === 'BUY' ? 'rgba(34,197,94,0.5)' : '#2b2b30' }}
+                className="flex-1 h-9 text-sm border font-mono font-semibold uppercase"
+                style={{ 
+                  backgroundColor: side === 'BUY' ? 'rgba(34, 197, 94, 0.25)' : '#121218', // Green background when selected
+                  borderColor: side === 'BUY' ? '#22c55e' : '#2b2b30', // Green border when selected, gray when unselected
+                  color: side === 'BUY' ? '#22c55e' : '#6b7280', // Green text when selected, muted gray when unselected
+                  borderWidth: side === 'BUY' ? '2px' : '1px' // Thicker border when selected
+                }}
+                onMouseEnter={(e) => {
+                  if (side !== 'BUY') { // Only apply hover to unselected button
+                    e.currentTarget.style.backgroundColor = 'rgba(34, 197, 94, 0.1)'; // Subtle green hover
+                    e.currentTarget.style.borderColor = '#22c55e';
+                    e.currentTarget.style.color = '#22c55e';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (side !== 'BUY') {
+                    e.currentTarget.style.backgroundColor = '#121218';
+                    e.currentTarget.style.borderColor = '#2b2b30';
+                    e.currentTarget.style.color = '#6b7280';
+                  }
+                }}
               >
                 BUY
               </Button>
