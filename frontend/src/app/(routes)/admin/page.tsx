@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Switch } from "@/components/ui/Switch";
 import { TGESettlementManager } from "@/components/TGESettlementManager";
-import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, usePublicClient, useBlockNumber } from "wagmi";
+import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, usePublicClient, useBlockNumber, useChainId } from "wagmi";
+import { getExplorerUrl } from "@/lib/chains";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
 import { isAddress, getAddress } from "viem";
 import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings, DollarSign, Shield, Coins, Trash2, Terminal, Database, Cpu, ChevronDown } from "lucide-react";
@@ -29,6 +30,7 @@ type Project = {
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
   const toast = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProject, setEditingProject] = useState<string | null>(null);
@@ -864,10 +866,17 @@ export default function AdminPage() {
           </div>
           <div className="flex flex-col gap-2 items-end flex-shrink-0">
             <div className="flex items-center gap-2 text-xs whitespace-nowrap">
-              <span className="text-zinc-300">
-                {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
-              </span>
-              <Database className="w-3 h-3 text-zinc-300 flex-shrink-0" />
+              <a 
+                href={getExplorerUrl(chainId, ORDERBOOK_ADDRESS)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-xs whitespace-nowrap hover:opacity-80 transition-opacity"
+              >
+                <span className="text-zinc-300/70">
+                  {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+                </span>
+                <Database className="w-3 h-3 text-zinc-300/70 flex-shrink-0" />
+              </a>
             </div>
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded border whitespace-nowrap ${
               isOrderbookPaused 

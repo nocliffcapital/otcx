@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
 import { ProjectImage } from "@/components/ProjectImage";
-import { useReadContract, usePublicClient, useBlockNumber } from "wagmi";
+import { useReadContract, usePublicClient, useBlockNumber, useChainId } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, STABLE_DECIMALS, slugToProjectId } from "@/lib/contracts";
+import { getExplorerUrl } from "@/lib/chains";
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
 import { TrendingUp, SearchX, DollarSign, Clock, Activity, Terminal, Cpu, Zap, Database, GitBranch, Code2, Network } from "lucide-react";
@@ -44,6 +45,7 @@ type ProjectStats = {
 
 export default function ProjectsPage() {
   const publicClient = usePublicClient();
+  const chainId = useChainId();
   const { data: projectsData, isLoading } = useReadContract({
     address: REGISTRY_ADDRESS,
     abi: PROJECT_REGISTRY_ABI,
@@ -388,12 +390,17 @@ export default function ProjectsPage() {
                 </div>
               </div>
               <div className="flex flex-col gap-2 items-end flex-shrink-0">
-                <div className="flex items-center gap-2 text-xs whitespace-nowrap">
-                  <span className="text-zinc-300">
+                <a 
+                  href={getExplorerUrl(chainId, ORDERBOOK_ADDRESS)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs whitespace-nowrap hover:opacity-80 transition-opacity"
+                >
+                  <span className="text-zinc-300/70">
                     {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
                   </span>
-                  <Database className="w-3 h-3 text-zinc-300 flex-shrink-0" />
-                </div>
+                  <Database className="w-3 h-3 text-zinc-300/70 flex-shrink-0" />
+                </a>
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded border whitespace-nowrap ${
                   isOrderbookPaused 
                     ? 'bg-red-950/30 border-red-500/50' 

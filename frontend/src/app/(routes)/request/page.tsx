@@ -5,12 +5,14 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { FileText, Info, Database, Cpu, ChevronDown, CheckCircle2 } from "lucide-react";
-import { useReadContract, useBlockNumber } from "wagmi";
+import { useReadContract, useBlockNumber, useChainId } from "wagmi";
+import { getExplorerUrl } from "@/lib/chains";
 import { ORDERBOOK_ADDRESS } from "@/lib/contracts";
 import Link from "next/link";
 import HCaptcha, { HCaptchaRef } from "@hcaptcha/react-hcaptcha";
 
 export default function RequestProjectPage() {
+  const chainId = useChainId();
   const [formData, setFormData] = useState({
     projectName: "",
     tokenAddress: "",
@@ -217,10 +219,17 @@ export default function RequestProjectPage() {
             </div>
             <div className="flex flex-col gap-2 items-end flex-shrink-0">
               <div className="flex items-center gap-2 text-xs whitespace-nowrap">
-                <span className="text-zinc-300">
-                  {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
-                </span>
-                <Database className="w-3 h-3 text-zinc-300 flex-shrink-0" />
+                <a 
+                  href={getExplorerUrl(chainId, ORDERBOOK_ADDRESS)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs whitespace-nowrap hover:opacity-80 transition-opacity"
+                >
+                  <span className="text-zinc-300/70">
+                    {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+                  </span>
+                  <Database className="w-3 h-3 text-zinc-300/70 flex-shrink-0" />
+                </a>
               </div>
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded border whitespace-nowrap ${
                 isOrderbookPaused 

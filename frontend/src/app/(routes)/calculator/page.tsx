@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Percent, TrendingUp, Users, Coins, Calculator, AlertCircle, Terminal, Database, Cpu } from "lucide-react";
-import { useBlockNumber, useReadContract } from "wagmi";
+import { useBlockNumber, useReadContract, useChainId } from "wagmi";
+import { getExplorerUrl } from "@/lib/chains";
 import { ORDERBOOK_ADDRESS } from "@/lib/contracts";
 
 // Slider component with proper state management
@@ -167,6 +168,7 @@ function SliderComponent({
 
 export default function CalculatorPage() {
   const { data: blockNumber } = useBlockNumber({ watch: true });
+  const chainId = useChainId();
   
   // Check if orderbook is paused
   const { data: isOrderbookPaused } = useReadContract({
@@ -261,10 +263,17 @@ export default function CalculatorPage() {
             </div>
             <div className="flex flex-col gap-2 items-end flex-shrink-0">
               <div className="flex items-center gap-2 text-xs whitespace-nowrap">
-                <span className="text-zinc-300">
-                  {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
-                </span>
-                <Database className="w-3 h-3 text-zinc-300 flex-shrink-0" />
+                <a 
+                  href={getExplorerUrl(chainId, ORDERBOOK_ADDRESS)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs whitespace-nowrap hover:opacity-80 transition-opacity"
+                >
+                  <span className="text-zinc-300/70">
+                    {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+                  </span>
+                  <Database className="w-3 h-3 text-zinc-300/70 flex-shrink-0" />
+                </a>
               </div>
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded border whitespace-nowrap ${
                 isOrderbookPaused 

@@ -20,10 +20,12 @@ import {
   Database,
   Cpu
 } from "lucide-react";
-import { usePublicClient, useBlockNumber, useReadContract } from "wagmi";
+import { usePublicClient, useBlockNumber, useReadContract, useChainId } from "wagmi";
+import { getExplorerUrl } from "@/lib/chains";
 import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 
 export default function HowItWorksPage() {
+  const chainId = useChainId();
   const [activeTab, setActiveTab] = useState<"overview" | "process" | "private" | "risks" | "faq">("overview");
   const [settlementFee, setSettlementFee] = useState<string>("0.5");
   const [cancellationFee, setCancellationFee] = useState<string>("0.1");
@@ -99,10 +101,17 @@ export default function HowItWorksPage() {
           </div>
           <div className="flex flex-col gap-2 items-end flex-shrink-0">
             <div className="flex items-center gap-2 text-xs whitespace-nowrap">
-              <span className="text-zinc-300">
-                {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
-              </span>
-              <Database className="w-3 h-3 text-zinc-300 flex-shrink-0" />
+              <a 
+                href={getExplorerUrl(chainId, ORDERBOOK_ADDRESS)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-xs whitespace-nowrap hover:opacity-80 transition-opacity"
+              >
+                <span className="text-zinc-300/70">
+                  {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+                </span>
+                <Database className="w-3 h-3 text-zinc-300/70 flex-shrink-0" />
+              </a>
             </div>
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded border whitespace-nowrap ${
               isOrderbookPaused 

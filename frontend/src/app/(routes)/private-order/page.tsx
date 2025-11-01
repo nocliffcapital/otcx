@@ -4,7 +4,8 @@ import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { PrivateOrderCreator } from "@/components/PrivateOrderCreator";
 import { useOrderbook } from "@/hooks/useOrderbook";
-import { useReadContract, useBlockNumber } from "wagmi";
+import { useReadContract, useBlockNumber, useChainId } from "wagmi";
+import { getExplorerUrl } from "@/lib/chains";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, slugToProjectId, ORDERBOOK_ADDRESS } from "@/lib/contracts";
 import { Lock, Search, UserPlus, Users, ShieldCheck, Calendar, Coins, CheckCircle, ArrowRight, Terminal, Database, Cpu, AlertTriangle } from "lucide-react";
 import { ProjectImage } from "@/components/ProjectImage";
@@ -14,6 +15,7 @@ import Link from "next/link";
 
 export default function PrivateOrderPage() {
   const { address, createPrivateOrder } = useOrderbook();
+  const chainId = useChainId();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -121,10 +123,17 @@ export default function PrivateOrderPage() {
             </div>
             <div className="flex flex-col gap-2 items-end flex-shrink-0">
               <div className="flex items-center gap-2 text-xs whitespace-nowrap">
-                <span className="text-zinc-300">
-                  {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
-                </span>
-                <Database className="w-3 h-3 text-zinc-300 flex-shrink-0" />
+                <a 
+                  href={getExplorerUrl(chainId, ORDERBOOK_ADDRESS)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs whitespace-nowrap hover:opacity-80 transition-opacity"
+                >
+                  <span className="text-zinc-300/70">
+                    {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
+                  </span>
+                  <Database className="w-3 h-3 text-zinc-300/70 flex-shrink-0" />
+                </a>
               </div>
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded border whitespace-nowrap ${
                 isOrderbookPaused 

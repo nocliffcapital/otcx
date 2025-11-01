@@ -12,7 +12,8 @@ import { TGEOrderControls } from "@/components/TGEOrderControls";
 import { formatUnits } from "viem";
 import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { useState, useEffect, useMemo } from "react";
-import { useReadContract, usePublicClient, useBlockNumber } from "wagmi";
+import { useReadContract, usePublicClient, useBlockNumber, useChainId } from "wagmi";
+import { getExplorerUrl } from "@/lib/chains";
 import { User, TrendingUp, Clock, CheckCircle2, Lock, DollarSign, ArrowUpRight, ArrowDownRight, FileText, Search, AlertCircle, Link as LinkIcon, Copy, Loader2, Terminal, Database, Cpu, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
@@ -36,6 +37,7 @@ export default function MyOrdersPage() {
   const { address, cancel, takeSellOrder, takeBuyOrder } = useOrderbook();
   const { orders, loading, refresh } = useMyOrders(address);
   const toast = useToast();
+  const chainId = useChainId();
   const [canceling, setCanceling] = useState<string | null>(null);
   const [locking, setLocking] = useState<string | null>(null);
   const [projectNames, setProjectNames] = useState<Record<string, string>>({});
@@ -281,12 +283,17 @@ export default function MyOrdersPage() {
               </div>
             </div>
             <div className="flex flex-col gap-2 items-end flex-shrink-0">
-              <div className="flex items-center gap-2 text-xs whitespace-nowrap">
-                <span className="text-zinc-300">
+              <a 
+                href={getExplorerUrl(chainId, ORDERBOOK_ADDRESS)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-xs whitespace-nowrap hover:opacity-80 transition-opacity"
+              >
+                <span className="text-zinc-300/70">
                   {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
                 </span>
-                <Database className="w-3 h-3 text-zinc-300 flex-shrink-0" />
-              </div>
+                <Database className="w-3 h-3 text-zinc-300/70 flex-shrink-0" />
+              </a>
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded border whitespace-nowrap ${
                 isOrderbookPaused 
                   ? 'bg-red-950/30 border-red-500/50' 

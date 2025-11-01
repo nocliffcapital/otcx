@@ -11,7 +11,8 @@ import { useToast } from "@/components/Toast";
 import { ProjectImage } from "@/components/ProjectImage";
 import { parseUnits, formatUnits } from "viem";
 import { STABLE_DECIMALS, STABLE_ADDRESS, ERC20_ABI, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
-import { useReadContract, useBlockNumber } from "wagmi";
+import { useReadContract, useBlockNumber, useChainId } from "wagmi";
+import { getExplorerUrl } from "@/lib/chains";
 import { PriceChart } from "@/components/PriceChart";
 import { TrendingUp, Calculator, ArrowUpCircle, ArrowDownCircle, LineChart, PlusCircle, MinusCircle, ShoppingCart, Package, CheckCircle, DollarSign, ArrowDown, ArrowUp, Percent, Activity, Clock, User, Loader2, AlertCircle, Terminal, Database, Cpu } from "lucide-react";
 import Link from "next/link";
@@ -23,6 +24,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   const { slug } = use(params);
   const { address, createSellOrder, createBuyOrder, takeSellOrder, takeBuyOrder, mintTestUSDC, mintTestTokens } = useOrderbook();
   const toast = useToast();
+  const chainId = useChainId();
   
   // V3: Fetch project details from registry using slug
   const { data: project } = useReadContract({
@@ -428,12 +430,17 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
               </div>
               <div className="flex flex-col gap-2 items-end sm:items-end flex-shrink-0">
                 {/* Contract Address */}
-                <div className="flex items-center gap-2 text-xs whitespace-nowrap">
-                  <span className="text-zinc-300">
+                <a 
+                  href={getExplorerUrl(chainId, ORDERBOOK_ADDRESS)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs whitespace-nowrap hover:opacity-80 transition-opacity"
+                >
+                  <span className="text-zinc-300/70">
                     {ORDERBOOK_ADDRESS.slice(0, 6)}...{ORDERBOOK_ADDRESS.slice(-4)}
                   </span>
-                  <Database className="w-3 h-3 text-zinc-300 flex-shrink-0" />
-                </div>
+                  <Database className="w-3 h-3 text-zinc-300/70 flex-shrink-0" />
+                </a>
                 
                 {/* ONLINE badge */}
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded border whitespace-nowrap ${
