@@ -7,7 +7,7 @@ import { useOrderbook } from "@/hooks/useOrderbook";
 import { useReadContract, useBlockNumber, useChainId } from "wagmi";
 import { getExplorerUrl } from "@/lib/chains";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, slugToProjectId, ORDERBOOK_ADDRESS } from "@/lib/contracts";
-import { Lock, Search, UserPlus, Users, ShieldCheck, Calendar, Coins, CheckCircle, ArrowRight, Terminal, Database, Cpu, AlertTriangle } from "lucide-react";
+import { Lock, Search, UserPlus, Users, ShieldCheck, Calendar, Coins, CheckCircle, ArrowRight, Terminal, Database, Cpu, AlertTriangle, ChevronDown, Info } from "lucide-react";
 import { ProjectImage } from "@/components/ProjectImage";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
@@ -20,6 +20,7 @@ export default function PrivateOrderPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [assetTypeFilter, setAssetTypeFilter] = useState<"all" | "points" | "tokens">("all");
+  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
 
   // Get current block number
   const { data: blockNumber } = useBlockNumber({ watch: true });
@@ -298,40 +299,25 @@ export default function PrivateOrderPage() {
                       console.log('Clicked project:', project.slug);
                       setSelectedProject(project.slug);
                     }}
-                    className="w-full bg-[#121218] border border-[#2b2b30] hover:border-zinc-500 hover:shadow-lg hover:shadow-zinc-500/20 cursor-pointer h-full group transition-all backdrop-blur-sm rounded text-left"
+                    className="w-full p-4 border border-zinc-700 transition-all text-left group rounded hover:border-zinc-500"
+                    style={{ 
+                      backgroundColor: '#121218'
+                    }}
                   >
-                    {/* Terminal-style header */}
-                    <div className="bg-gradient-to-r from-[#2b2b30]/50 to-[#2b2b30]/50 border-b border-[#2b2b30] px-3 py-2 font-mono text-xs flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                        <span className="text-zinc-300 uppercase">{project.slug || "unknown"}</span>
+                    <div className="flex items-center gap-3">
+                      <ProjectImage 
+                        metadataURI={project.metadataURI}
+                        imageType="icon"
+                        className="w-10 h-10 rounded object-cover border-2 border-zinc-700 group-hover:border-zinc-500 transition-all"
+                        fallbackText={project.name ? project.name.charAt(0).toUpperCase() : "?"}
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white">{project.name || "Unknown"}</h3>
+                        <p className="text-xs text-zinc-500">{project.slug || "unknown"}</p>
                       </div>
-                      <Badge className={`text-xs font-mono ${project.assetType === "Points" ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" : "bg-blue-500/20 text-blue-400 border border-blue-500/50"}`}>
+                      <Badge className={project.assetType === "Points" ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" : "bg-blue-500/20 text-blue-400 border border-blue-500/50"}>
                         {project.assetType}
                       </Badge>
-                    </div>
-
-                    <div className="p-4">
-                      <div className="flex items-center gap-3 mb-4">
-                        {/* Project Icon */}
-                        <div className="relative">
-                          <ProjectImage 
-                            metadataURI={project.metadataURI}
-                            imageType="icon"
-                            className="w-14 h-14 rounded object-cover flex-shrink-0 border-2 border-[#2b2b30] group-hover:border-zinc-500 transition-all"
-                            fallbackText={project.name ? project.name.charAt(0).toUpperCase() : "?"}
-                          />
-                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black"></div>
-                        </div>
-                        
-                        {/* Project Title */}
-                        <h3 className="font-bold text-lg text-white">{project.name || "Unknown"}</h3>
-                      </div>
-                      
-                      <div className="mt-4 text-xs font-mono text-zinc-300 group-hover:text-white transition-colors flex items-center gap-2 justify-center py-2 border border-[#2b2b30] rounded group-hover:bg-[#2b2b30]">
-                        <span>SELECT PROJECT</span>
-                        <span className="group-hover:translate-x-1 transition-transform">→</span>
-                      </div>
                     </div>
                   </button>
                 ))
@@ -382,19 +368,39 @@ export default function PrivateOrderPage() {
         )}
 
         {/* Info Section - How It Works */}
-        <Card className="mt-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-              <Lock className="w-5 h-5 text-zinc-300" />
-            How Private Orders Work
-          </h3>
-            <p className="text-sm text-zinc-400">
-              Secure peer-to-peer trading with on-chain escrow protection
-            </p>
-          </div>
+        <Card className="my-6">
+          <button
+            onClick={() => setIsHowItWorksOpen(!isHowItWorksOpen)}
+            className="w-full flex items-center justify-between py-3 px-4 rounded border transition-all text-left group hover:bg-[#2b2b30]/50 hover:border-zinc-500"
+            style={{ borderColor: '#2b2b30' }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded border flex items-center justify-center" style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30' }}>
+                <Info className="w-5 h-5 text-zinc-300" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold mb-1 flex items-center gap-2 text-white">
+                  How Private Orders Work
+                </h3>
+                <p className="text-xs text-zinc-400 font-mono">
+                  Secure peer-to-peer trading • On-chain escrow protection
+                </p>
+              </div>
+            </div>
+            <ChevronDown 
+              className={`w-5 h-5 text-zinc-300 transition-transform duration-300 flex-shrink-0 ml-4 ${
+                isHowItWorksOpen ? 'transform rotate-180' : ''
+              }`}
+            />
+          </button>
 
-          {/* Step-by-step flow */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Step-by-step flow - Smooth dropdown */}
+          <div 
+            className={`overflow-hidden transition-all duration-300 ease-in-out pb-0 ${
+              isHowItWorksOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Step 1 */}
             <div className="relative p-4 rounded-lg border transition-all" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
               <div className="flex items-start gap-3">
@@ -502,10 +508,13 @@ export default function PrivateOrderPage() {
                 </div>
               </div>
             </div>
-          </div>
+            </div>
 
-          {/* Key Features */}
-          <div className="mt-6 pt-6 border-t border-zinc-800">
+            {/* Key Features */}
+            <div 
+              className={`mt-6 pt-6 pb-2 border-t`}
+              style={{ borderColor: '#2b2b30' }}
+            >
             <h4 className="text-sm font-semibold text-zinc-300 mb-3">Key Features</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-start gap-2">
@@ -537,6 +546,7 @@ export default function PrivateOrderPage() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </Card>
       </div>
