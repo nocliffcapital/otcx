@@ -372,7 +372,21 @@ export function PrivateOrderCreator({
                 <Button
                   onClick={handleCopyLink}
                   variant="custom"
-                  className="bg-purple-600 hover:bg-purple-700 px-4"
+                  className="px-4 border font-mono font-semibold uppercase"
+                  style={{ 
+                    backgroundColor: '#121218', 
+                    borderColor: '#2b2b30', 
+                    color: '#ffffff',
+                    minWidth: '44px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#2b2b30';
+                    e.currentTarget.style.borderColor = '#3f3f46';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#121218';
+                    e.currentTarget.style.borderColor = '#2b2b30';
+                  }}
                 >
                   {copied ? (
                     <Check className="w-4 h-4" />

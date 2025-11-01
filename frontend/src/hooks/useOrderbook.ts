@@ -19,7 +19,13 @@ export function useOrderbook() {
         functionName: "approve",
         args: [ORDERBOOK_ADDRESS, amount],
       });
-      await publicClient?.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash });
+      
+      // Check if transaction actually succeeded
+      if (receipt && receipt.status !== 'success') {
+        throw new Error(`Transaction failed: ${receipt.status}. Unable to approve USDC spending.`);
+      }
+      
       return hash;
     },
     [walletClient, publicClient]
@@ -104,7 +110,12 @@ export function useOrderbook() {
         functionName: "createOrder",
         args: [projectId, amount, unitPrice, true, "0x0000000000000000000000000000000000000000"], // isSell = true, public order
       });
-      await publicClient?.waitForTransactionReceipt({ hash: createHash });
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash: createHash });
+      
+      // Check if transaction actually succeeded
+      if (receipt && receipt.status !== 'success') {
+        throw new Error(`Transaction failed: ${receipt.status}. Unable to create sell order.`);
+      }
       
       const orderId = nextIdBefore;
       console.log('Created sell order ID:', orderId.toString());
@@ -164,7 +175,12 @@ export function useOrderbook() {
         functionName: "createOrder",
         args: [projectId, amount, unitPrice, false, "0x0000000000000000000000000000000000000000"], // isSell = false, public order
       });
-      await publicClient?.waitForTransactionReceipt({ hash: createHash });
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash: createHash });
+      
+      // Check if transaction actually succeeded
+      if (receipt && receipt.status !== 'success') {
+        throw new Error(`Transaction failed: ${receipt.status}. Unable to create buy order.`);
+      }
       
       const orderId = nextIdBefore;
       console.log('Created buy order ID:', orderId.toString());
@@ -238,7 +254,12 @@ export function useOrderbook() {
         functionName: "createOrder",
         args: [projectId, amount, unitPrice, isSell, allowedTaker],
       });
-      await publicClient?.waitForTransactionReceipt({ hash: createHash });
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash: createHash });
+      
+      // Check if transaction actually succeeded
+      if (receipt && receipt.status !== 'success') {
+        throw new Error(`Transaction failed: ${receipt.status}. Unable to create private order.`);
+      }
       
       const orderId = nextIdBefore;
       console.log('Created private order ID:', orderId.toString());
@@ -268,7 +289,12 @@ export function useOrderbook() {
         functionName: "takeOrder",
         args: [orderId],
       });
-      await publicClient?.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash });
+      
+      // Check if transaction actually succeeded
+      if (receipt && receipt.status !== 'success') {
+        throw new Error(`Transaction failed: ${receipt.status}. The order may have been filled, cancelled, or the status changed.`);
+      }
       
       return hash;
     },
@@ -295,7 +321,12 @@ export function useOrderbook() {
         functionName: "takeOrder",
         args: [orderId],
       });
-      await publicClient?.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash });
+      
+      // Check if transaction actually succeeded
+      if (receipt && receipt.status !== 'success') {
+        throw new Error(`Transaction failed: ${receipt.status}. The order may have been filled, cancelled, or the status changed.`);
+      }
       
       return hash;
     },
@@ -313,7 +344,13 @@ export function useOrderbook() {
         functionName: "cancelOrder",
         args: [orderId],
       });
-      await publicClient?.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash });
+      
+      // Check if transaction actually succeeded
+      if (receipt && receipt.status !== 'success') {
+        throw new Error(`Transaction failed: ${receipt.status}. Unable to cancel order.`);
+      }
+      
       return hash;
     },
     [walletClient, publicClient]
@@ -328,7 +365,13 @@ export function useOrderbook() {
         functionName: "mint",
         args: [address, amount],
       });
-      await publicClient?.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash });
+      
+      // Check if transaction actually succeeded
+      if (receipt && receipt.status !== 'success') {
+        throw new Error(`Transaction failed: ${receipt.status}. Unable to mint test USDC.`);
+      }
+      
       return hash;
     },
     [walletClient, publicClient, address]
@@ -343,7 +386,13 @@ export function useOrderbook() {
         functionName: "mint",
         args: [address, amount],
       });
-      await publicClient?.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash });
+      
+      // Check if transaction actually succeeded
+      if (receipt && receipt.status !== 'success') {
+        throw new Error(`Transaction failed: ${receipt.status}. Unable to mint test tokens.`);
+      }
+      
       return hash;
     },
     [walletClient, publicClient, address]
@@ -422,7 +471,12 @@ export function useOrderbook() {
         functionName: "takeOrder",
         args: [orderId],
       });
-      await publicClient?.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash });
+      
+      // Check if transaction actually succeeded
+      if (receipt && receipt.status !== 'success') {
+        throw new Error(`Transaction failed: ${receipt.status}. The order may have been filled, cancelled, or the status changed.`);
+      }
       
       return hash;
     },

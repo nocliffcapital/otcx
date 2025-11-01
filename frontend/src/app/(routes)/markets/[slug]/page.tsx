@@ -163,13 +163,22 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
   
   // Sort orders by best price first
   // Sell orders: lowest price first (best for buyers)
+  // Filter out: private orders, orders if TGE is activated (can't take orders after TGE activation)
+  const zeroAddress = '0x0000000000000000000000000000000000000000';
   const sellOrders = orders
-    .filter(o => o.isSell && o.status === 0)
+    .filter(o => {
+      const isPrivate = o.allowedTaker && o.allowedTaker.toLowerCase() !== zeroAddress.toLowerCase();
+      return o.isSell && o.status === 0 && !isTgeActivated && !isPrivate;
+    })
     .sort((a, b) => Number(a.unitPrice) - Number(b.unitPrice));
   
   // Buy orders: highest price first (best for sellers)
+  // Filter out: private orders, orders if TGE is activated (can't take orders after TGE activation)
   const buyOrders = orders
-    .filter(o => !o.isSell && o.status === 0)
+    .filter(o => {
+      const isPrivate = o.allowedTaker && o.allowedTaker.toLowerCase() !== zeroAddress.toLowerCase();
+      return !o.isSell && o.status === 0 && !isTgeActivated && !isPrivate;
+    })
     .sort((a, b) => Number(b.unitPrice) - Number(a.unitPrice));
   
   // V3: Filled orders = FUNDED (1), TGE_ACTIVATED (2), and SETTLED (3)
@@ -274,11 +283,27 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         "Order taken successfully!",
         "Collateral locked. You can now mark it as filled after settlement."
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      
+      // Parse error message to provide more specific feedback
+      let errorMessage = error?.message || "Unable to take order. Please try again.";
+      
+      if (error?.message?.includes("InvalidStatus")) {
+        errorMessage = "Order is no longer available. It may have been filled, cancelled, or the status changed.";
+      } else if (error?.message?.includes("NotAuthorized")) {
+        errorMessage = "You cannot take this order. It may be a private order or you are the maker.";
+      } else if (error?.message?.includes("TGEAlreadyActivated")) {
+        errorMessage = "TGE is activated for this project. Orders can no longer be filled.";
+      } else if (error?.message?.includes("allowance") || error?.message?.includes("ERC20")) {
+        errorMessage = "Insufficient USDC allowance. Please approve the contract to spend your USDC.";
+      } else if (error?.message?.includes("balance")) {
+        errorMessage = "Insufficient USDC balance. Please mint test USDC first.";
+      }
+      
       toast.error(
         "Transaction failed",
-        error?.message || "Unable to take order. Please try again."
+        errorMessage
       );
     } finally {
       setActionLoading(null);
@@ -289,8 +314,8 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     try {
       setActionLoading(order.id.toString());
       // Convert from 24 decimals to 6 decimals (USDC)
-      // Seller must post 110% collateral
-      const total = ((order.amount * order.unitPrice) / BigInt(10 ** 18)) * 110n / 100n;
+      // Contract requires 100% collateral, but we check for 100% balance to be safe
+      const total = (order.amount * order.unitPrice) / BigInt(10 ** 18);
       
       // Check if user has sufficient balance
       const balance = userBalance as bigint || 0n;
@@ -299,7 +324,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         const requiredFormatted = parseFloat(formatUnits(total, STABLE_DECIMALS)).toFixed(2);
         toast.error(
           "Insufficient USDC Balance",
-          `You need $${requiredFormatted} USDC (110% collateral) but only have $${balanceFormatted} USDC. Use the "Mint Test USDC" button in the navbar to get test tokens.`
+          `You need $${requiredFormatted} USDC but only have $${balanceFormatted} USDC. Use the "Mint Test USDC" button in the navbar to get test tokens.`
         );
         setActionLoading(null);
         return;
@@ -310,11 +335,27 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         "Order taken successfully!",
         "Collateral locked. You can now mark it as filled after settlement."
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      
+      // Parse error message to provide more specific feedback
+      let errorMessage = error?.message || "Unable to take order. Please try again.";
+      
+      if (error?.message?.includes("InvalidStatus")) {
+        errorMessage = "Order is no longer available. It may have been filled, cancelled, or the status changed.";
+      } else if (error?.message?.includes("NotAuthorized")) {
+        errorMessage = "You cannot take this order. It may be a private order or you are the maker.";
+      } else if (error?.message?.includes("TGEAlreadyActivated")) {
+        errorMessage = "TGE is activated for this project. Orders can no longer be filled.";
+      } else if (error?.message?.includes("allowance") || error?.message?.includes("ERC20")) {
+        errorMessage = "Insufficient USDC allowance. Please approve the contract to spend your USDC.";
+      } else if (error?.message?.includes("balance")) {
+        errorMessage = "Insufficient USDC balance. Please mint test USDC first.";
+      }
+      
       toast.error(
         "Transaction failed",
-        error?.message || "Unable to take order. Please try again."
+        errorMessage
       );
     } finally {
       setActionLoading(null);
@@ -863,7 +904,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                     const total = (order.amount * order.unitPrice) / BigInt(10 ** 18);
                     const hasSellerLock = order.sellerCollateral > 0n;
                     const hasBuyerLock = order.buyerFunds > 0n;
-                    const canTake = address && address.toLowerCase() !== order.maker.toLowerCase() && !hasSellerLock;
+                    
+                    // Can take if: user connected, not maker, not already filled, TGE not activated
+                    // Note: Private orders are already filtered out at the top level
+                    const canTake = address && 
+                      address.toLowerCase() !== order.maker.toLowerCase() && 
+                      !hasSellerLock && 
+                      !isTgeActivated;
                     
                     // For buy orders: buyer posts buyerFunds, seller posts sellerCollateral
                     const buyerCollateral = hasBuyerLock ? formatUnits(order.buyerFunds, STABLE_DECIMALS) : "0";
@@ -983,7 +1030,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                     const total = (order.amount * order.unitPrice) / BigInt(10 ** 18);
                     const hasSellerLock = order.sellerCollateral > 0n;
                     const hasBuyerLock = order.buyerFunds > 0n;
-                    const canTake = address && address.toLowerCase() !== order.maker.toLowerCase() && !hasBuyerLock;
+                    
+                    // Can take if: user connected, not maker, not already filled, TGE not activated
+                    // Note: Private orders are already filtered out at the top level
+                    const canTake = address && 
+                      address.toLowerCase() !== order.maker.toLowerCase() && 
+                      !hasBuyerLock && 
+                      !isTgeActivated;
                     
                     // For sell orders: seller posts sellerCollateral, buyer posts buyerFunds
                     const sellerCollateral = hasSellerLock ? formatUnits(order.sellerCollateral, STABLE_DECIMALS) : "0";
