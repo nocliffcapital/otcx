@@ -397,7 +397,7 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                 }}
               >
                 <PlayCircle className="w-5 h-5 mr-2" />
-                ACTIVATE PROJECT TGE
+                ACTIVATE
               </Button>
             </div>
             
@@ -777,9 +777,10 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
               <p className="text-xs text-zinc-400 mb-3 font-mono">
                 Set global TGE flag for this entire project. This enables settlement for <span className="font-semibold text-green-400">{fundedOrders.length}</span> funded order(s).
               </p>
-              <div className="p-3 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
-                <p className="text-xs text-zinc-300 font-mono">
-                  <strong>V4 CHANGE:</strong> This is a <strong>single global command</strong> - not a batch operation. Once activated, anyone can permissionlessly settle individual orders.
+              <div className="p-3 rounded border flex items-start gap-2" style={{ backgroundColor: '#1f1f15', borderColor: '#ca8a04' }}>
+                <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-yellow-400 font-mono">
+                  <strong>WARNING:</strong> This action is <strong>NOT REVERSIBLE</strong>. Once activated, the TGE settlement window cannot be undone.
                 </p>
               </div>
             </div>
@@ -808,18 +809,23 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                 </div>
               </div>
 
-              <div className="flex items-start gap-2 text-sm">
-                <CheckCircle className="w-4 h-4 text-zinc-300 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-zinc-300 font-mono">CONVERSION RATIO</p>
-                  <p className="text-zinc-400 text-xs font-mono">
+              <div className="p-3 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                  <p className="font-semibold text-yellow-400 text-sm font-mono uppercase">Conversion Ratio</p>
+                </div>
+                <div className="mb-2">
+                  <p className="text-base font-bold text-white font-mono">
                     {isPointsProject ? (
-                      <>1 Point = <span className="text-white font-semibold">{conversionRatio}</span> Tokens</>
+                      <>1 Point = <span className="text-green-400">{conversionRatio}</span> Tokens</>
                     ) : (
                       <>1 Token = 1 Token (1:1)</>
                     )}
                   </p>
                 </div>
+                <p className="text-xs text-yellow-400 font-mono">
+                  ⚠️ Please <strong>DOUBLE CHECK</strong> this ratio before activating - it cannot be changed after activation.
+                </p>
               </div>
             </div>
 
@@ -839,7 +845,7 @@ export function TGESettlementManager({ orders, assetType, projectName }: { order
                 style={{ backgroundColor: '#22c55e', borderColor: '#22c55e', color: 'white' }}
               >
                 <PlayCircle className="w-4 h-4 mr-2" />
-                ACTIVATE PROJECT TGE
+                ACTIVATE
               </Button>
             </div>
           </Card>

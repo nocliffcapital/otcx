@@ -167,7 +167,7 @@ export default function ProjectReputationBadge({
         </div>
 
         {/* Compact Content */}
-        <div className="p-3 flex gap-3">
+        <div className="p-3 flex gap-3 items-center">
           {/* Left: Shield Icon & Score */}
           <div className="flex flex-col items-center justify-center min-w-[60px]">
             <Shield 
@@ -193,7 +193,7 @@ export default function ProjectReputationBadge({
           </div>
 
           {/* Right: Statistics - stacked vertically */}
-          <div className="flex-1 flex flex-col gap-1.5">
+          <div className="flex-1 flex flex-col gap-1.5 justify-center">
             {/* POSITIVE */}
             <div 
               className="flex items-center justify-between px-3 py-0.5 rounded border"

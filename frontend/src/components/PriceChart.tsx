@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { formatUnits } from "viem";
 import { STABLE_DECIMALS } from "@/lib/contracts";
 
@@ -16,6 +16,7 @@ interface Order {
 interface PriceChartProps {
   orders: Order[];
   allOrders: Order[]; // All historical orders including filled/cancelled
+  isPoints?: boolean; // true for Points projects, false for Token projects
 }
 
 type TimeRange = "24h" | "7d" | "1m" | "all";
@@ -37,10 +38,18 @@ function formatPrice(value: number): string {
   }
 }
 
-export function PriceChart({ orders, allOrders }: PriceChartProps) {
+export function PriceChart({ orders, allOrders, isPoints = false }: PriceChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
+  
+  // Green color with 70% opacity
+  const lineColor = '#22c55eb3'; // Green with 70% opacity
 
   const chartData = useMemo(() => {
+    // Check if allOrders is available
+    if (!allOrders || !Array.isArray(allOrders)) {
+      return [{ time: 1, price: 0, orderId: 0, volume: 0, amount: 0 }];
+    }
+    
     // V4: Filter for FUNDED (1) and SETTLED (2) orders to show in chart
     // These are orders that have been matched and have real price data
     const filledOrders = allOrders.filter(order => order.status === 1 || order.status === 2);
@@ -112,19 +121,25 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-lg">
-          <p className="text-sm font-semibold mb-1">Order #{data.orderId}</p>
-          <p className="text-xs text-zinc-400 mb-1">{data.type} Order • Filled</p>
-          <p className="text-sm mb-1">
-            <span className="text-zinc-400">Price:</span>{" "}
-            <span className="font-semibold text-green-400">${formatPrice(data.price)}</span>
-          </p>
-          <p className="text-xs text-zinc-400 mb-1">
-            Amount: {data.amount.toLocaleString()} tokens
-          </p>
-          <p className="text-xs text-blue-400">
-            Volume: ${data.volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 shadow-xl font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+          <div className="border-b border-zinc-800 pb-2 mb-2">
+            <p className="text-xs font-semibold uppercase text-zinc-300 mb-0.5">Order #{data.orderId}</p>
+            <p className="text-[10px] text-zinc-500 uppercase">{data.type} Order • Filled</p>
+          </div>
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-zinc-400 uppercase">Price:</span>
+              <span className="font-semibold text-green-400">${formatPrice(data.price)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-zinc-400 uppercase">Amount:</span>
+              <span className="text-zinc-300">{data.amount.toLocaleString()} tokens</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 pt-1 border-t border-zinc-800">
+              <span className="text-zinc-400 uppercase">Volume:</span>
+              <span className="font-semibold text-white">${data.volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          </div>
         </div>
       );
     }
@@ -184,7 +199,7 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
         </div>
 
         {/* Compact Stats */}
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <div className="bg-zinc-900/50 rounded-md px-2.5 py-1.5 border border-zinc-800">
             <div className="text-[10px] text-zinc-400 mb-0.5">Latest</div>
             <div className="text-xs font-semibold text-white">
@@ -209,6 +224,14 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
               ${formatPrice(stats.max)}
             </div>
           </div>
+          {chartData.length > 0 && chartData[0].price > 0 && (
+            <div className="bg-zinc-900/50 rounded-md px-2.5 py-1.5 border border-zinc-800">
+              <div className="text-[10px] text-zinc-400 mb-0.5">Filled Orders</div>
+              <div className="text-xs font-semibold text-white">
+                {chartData.length}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -216,7 +239,7 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
       <div className="bg-zinc-900/30 rounded-lg p-4 border border-zinc-800">
         {chartData.length > 0 && chartData[0].price > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+            <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
               <XAxis 
                 dataKey="time" 
@@ -234,15 +257,21 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
                 width={45}
               />
               <Tooltip content={<CustomTooltip />} />
+              <Area 
+                type="monotone" 
+                dataKey="price" 
+                fill="#22c55e0D"
+                stroke="none"
+              />
               <Line 
                 type="monotone" 
                 dataKey="price" 
-                stroke="#22c55e" 
-                strokeWidth={2}
-                dot={{ fill: '#22c55e', r: 2 }}
-                activeDot={{ r: 4 }}
+                stroke={lineColor}
+                strokeWidth={1.2}
+                dot={{ fill: lineColor, r: 2 }}
+                activeDot={{ r: 4, fill: lineColor }}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         ) : (
           <div className="h-[300px] flex items-center justify-center text-zinc-500 text-sm">
@@ -250,16 +279,6 @@ export function PriceChart({ orders, allOrders }: PriceChartProps) {
           </div>
         )}
       </div>
-      
-      {chartData.length > 0 && chartData[0].price > 0 && (
-        <div className="mt-3 text-xs text-zinc-500 text-center">
-          Showing {chartData.length} filled order{chartData.length !== 1 ? 's' : ''} 
-          {timeRange === "24h" && " (last 24 hours)"}
-          {timeRange === "7d" && " (last 7 days)"}
-          {timeRange === "1m" && " (last 30 days)"}
-          {timeRange === "all" && " (all time)"}
-        </div>
-      )}
     </div>
   );
 }

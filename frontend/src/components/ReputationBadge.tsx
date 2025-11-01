@@ -104,33 +104,53 @@ export default function ReputationBadge({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 shadow-2xl min-w-[200px]">
-              <div className="flex items-center justify-between mb-2">
-                <span className={`text-xs font-bold ${tier.color}`}>{tier.label}</span>
-                <span className="text-xs text-zinc-400">Score: {reputation.score}</span>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 shadow-xl min-w-[200px] font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+              <div className="flex items-center justify-between mb-2 pb-2 border-b border-zinc-800">
+                <span className={`text-xs font-semibold uppercase ${tier.color}`}>{tier.label}</span>
+                <span className="text-xs text-zinc-400 uppercase">Score: {reputation.score}</span>
               </div>
-              <div className="space-y-1 text-[10px] text-zinc-400">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3 h-3 text-green-400" />
-                  <span>{reputation.positiveReviews} positive reviews</span>
-                </div>
-                {reputation.negativeReviews > 0 && (
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-3 h-3 text-red-400" />
-                    <span>{reputation.negativeReviews} negative reviews</span>
+                    <CheckCircle2 className="w-3 h-3 text-green-400 flex-shrink-0" />
+                    <span className="text-zinc-400 uppercase">Positive Reviews:</span>
                   </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Shield className="w-3 h-3 text-blue-400" />
-                  <span>{reputation.vouchesReceived} vouches</span>
+                  <span className="text-zinc-300 font-semibold">{reputation.positiveReviews}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-3 h-3 text-red-400 flex-shrink-0" />
+                    <span className="text-zinc-400 uppercase">Negative Reviews:</span>
+                  </div>
+                  <span className="text-zinc-300 font-semibold">{reputation.negativeReviews}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                    <span className="text-zinc-400 uppercase">Vouches:</span>
+                  </div>
+                  <span className="text-zinc-300 font-semibold">{reputation.vouchesReceived}</span>
                 </div>
               </div>
-              <div className="mt-2 pt-2 border-t border-zinc-700">
+              <div className="mt-2 pt-2 border-t border-zinc-800">
                 <a 
                   href={`https://app.ethos.network/profile/${address}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[10px] text-cyan-400 hover:text-cyan-300 transition-colors"
+                  className="block w-full text-center text-[10px] py-2 px-3 rounded border uppercase transition-colors"
+                  style={{ 
+                    backgroundColor: '#2b2b30', 
+                    borderColor: '#2b2b30', 
+                    color: '#d4d4d8'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#3f3f46';
+                    e.currentTarget.style.borderColor = '#3f3f46';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#2b2b30';
+                    e.currentTarget.style.borderColor = '#2b2b30';
+                  }}
                 >
                   View on Ethos →
                 </a>

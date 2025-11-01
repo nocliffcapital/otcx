@@ -11,7 +11,7 @@ import { useAccount, useWriteContract, useReadContract, useWaitForTransactionRec
 import { getExplorerUrl } from "@/lib/chains";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, slugToProjectId } from "@/lib/contracts";
 import { isAddress, getAddress } from "viem";
-import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings, DollarSign, Shield, Coins, Trash2, Terminal, Database, Cpu, ChevronDown } from "lucide-react";
+import { Plus, Edit2, AlertTriangle, PlayCircle, PauseCircle, Upload, CheckCircle, Settings, DollarSign, Shield, Coins, Trash2, Terminal, Database, Cpu, ChevronDown, X } from "lucide-react";
 import { uploadImageToPinata, uploadMetadataToPinata } from "@/lib/pinata";
 import { useToast } from "@/components/Toast";
 import { ProjectImage } from "@/components/ProjectImage";
@@ -63,6 +63,14 @@ export default function AdminPage() {
   const [newCancellationFee, setNewCancellationFee] = useState("");
   const [newMinOrderValue, setNewMinOrderValue] = useState("");
   const [showFeeManager, setShowFeeManager] = useState(false);
+  
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // V3: Use getActiveProjects to fetch all projects directly
   const [projects, setProjects] = useState<Project[]>([]);
@@ -553,42 +561,41 @@ export default function AdminPage() {
       return;
     }
     
-    const confirmed = confirm(
-      `Update token address for ${projectName}?\n\n` +
-      `New Address: ${newTokenAddress}\n\n` +
-      `This will allow the project to use token-based settlement instead of proof-based settlement.`
-    );
-    
-    if (!confirmed) return;
-    
-    toast.info(
-      "Updating token address",
-      "Transaction pending..."
-    );
-
-    writeContract({
-      address: REGISTRY_ADDRESS,
-      abi: PROJECT_REGISTRY_ABI,
-      functionName: "updateTokenAddress",
-      args: [projectId, getAddress(newTokenAddress)],
+    setConfirmModal({
+      show: true,
+      title: "UPDATE TOKEN ADDRESS",
+      message: `Update token address for ${projectName}?\n\nNew Address: ${newTokenAddress}\n\nThis will allow the project to use token-based settlement instead of proof-based settlement.`,
+      onConfirm: () => {
+        setConfirmModal(null);
+        toast.info("Updating token address", "Transaction pending...");
+        writeContract({
+          address: REGISTRY_ADDRESS,
+          abi: PROJECT_REGISTRY_ABI,
+          functionName: "updateTokenAddress",
+          args: [projectId, getAddress(newTokenAddress)],
+        });
+      },
     });
   };
 
   // Pause/Unpause orderbook
   const handlePauseOrderbook = () => {
-    if (!confirm(`Are you sure you want to ${isContractPaused ? 'UNPAUSE' : 'PAUSE'} the orderbook contract? This will ${isContractPaused ? 'enable' : 'disable'} all trading.`)) {
-      return;
-    }
-
-    toast.info(
-      `${isContractPaused ? 'Resuming' : 'Pausing'} trading`,
-      "Transaction pending..."
-    );
-
-    writeContract({
-      address: ORDERBOOK_ADDRESS,
-      abi: ESCROW_ORDERBOOK_ABI,
-      functionName: isContractPaused ? "unpause" : "pause",
+    setConfirmModal({
+      show: true,
+      title: isContractPaused ? "RESUME TRADING" : "PAUSE TRADING",
+      message: `Are you sure you want to ${isContractPaused ? 'UNPAUSE' : 'PAUSE'} the orderbook contract? This will ${isContractPaused ? 'enable' : 'disable'} all trading.`,
+      onConfirm: () => {
+        setConfirmModal(null);
+        toast.info(
+          `${isContractPaused ? 'Resuming' : 'Pausing'} trading`,
+          "Transaction pending..."
+        );
+        writeContract({
+          address: ORDERBOOK_ADDRESS,
+          abi: ESCROW_ORDERBOOK_ABI,
+          functionName: isContractPaused ? "unpause" : "pause",
+        });
+      },
     });
   };
 
@@ -600,17 +607,20 @@ export default function AdminPage() {
       return;
     }
 
-    if (!confirm(`Update settlement fee to ${(feeBps / 100).toFixed(2)}%?`)) {
-      return;
-    }
-
-    toast.info("Updating settlement fee", "Transaction pending");
-    
-    writeContract({
-      address: ORDERBOOK_ADDRESS,
-      abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "setSettlementFee",
-      args: [BigInt(feeBps)],
+    setConfirmModal({
+      show: true,
+      title: "UPDATE SETTLEMENT FEE",
+      message: `Update settlement fee to ${(feeBps / 100).toFixed(2)}%?`,
+      onConfirm: () => {
+        setConfirmModal(null);
+        toast.info("Updating settlement fee", "Transaction pending");
+        writeContract({
+          address: ORDERBOOK_ADDRESS,
+          abi: ESCROW_ORDERBOOK_ABI,
+          functionName: "setSettlementFee",
+          args: [BigInt(feeBps)],
+        });
+      },
     });
   };
 
@@ -622,17 +632,20 @@ export default function AdminPage() {
       return;
     }
 
-    if (!confirm(`Update cancellation fee to ${(feeBps / 100).toFixed(2)}%?`)) {
-      return;
-    }
-
-    toast.info("Updating cancellation fee", "Transaction pending");
-    
-    writeContract({
-      address: ORDERBOOK_ADDRESS,
-      abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "setCancellationFee",
-      args: [BigInt(feeBps)],
+    setConfirmModal({
+      show: true,
+      title: "UPDATE CANCELLATION FEE",
+      message: `Update cancellation fee to ${(feeBps / 100).toFixed(2)}%?`,
+      onConfirm: () => {
+        setConfirmModal(null);
+        toast.info("Updating cancellation fee", "Transaction pending");
+        writeContract({
+          address: ORDERBOOK_ADDRESS,
+          abi: ESCROW_ORDERBOOK_ABI,
+          functionName: "setCancellationFee",
+          args: [BigInt(feeBps)],
+        });
+      },
     });
   };
 
@@ -648,17 +661,20 @@ export default function AdminPage() {
     const stableDecimals = 6; // USDC has 6 decimals
     const valueInStableUnits = BigInt(Math.floor(valueUSD * (10 ** stableDecimals)));
 
-    if (!confirm(`Update minimum order value to $${valueUSD}?`)) {
-      return;
-    }
-
-    toast.info("Updating minimum order value", "Transaction pending");
-    
-    writeContract({
-      address: ORDERBOOK_ADDRESS,
-      abi: ESCROW_ORDERBOOK_ABI,
-      functionName: "setMinOrderValue",
-      args: [valueInStableUnits],
+    setConfirmModal({
+      show: true,
+      title: "UPDATE MINIMUM ORDER VALUE",
+      message: `Update minimum order value to $${valueUSD}?`,
+      onConfirm: () => {
+        setConfirmModal(null);
+        toast.info("Updating minimum order value", "Transaction pending");
+        writeContract({
+          address: ORDERBOOK_ADDRESS,
+          abi: ESCROW_ORDERBOOK_ABI,
+          functionName: "setMinOrderValue",
+          args: [valueInStableUnits],
+        });
+      },
     });
   };
 
@@ -1086,7 +1102,20 @@ export default function AdminPage() {
                     onClick={handleUpdateSettlementFee}
                     disabled={!newSettlementFee || isPending}
                     variant="custom"
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                    className="font-mono font-semibold uppercase border"
+                    style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
+                    onMouseEnter={(e) => {
+                      if (!e.currentTarget.disabled) {
+                        e.currentTarget.style.backgroundColor = '#3f3f46';
+                        e.currentTarget.style.borderColor = '#3f3f46';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!e.currentTarget.disabled) {
+                        e.currentTarget.style.backgroundColor = '#2b2b30';
+                        e.currentTarget.style.borderColor = '#2b2b30';
+                      }
+                    }}
                   >
                     Update
                   </Button>
@@ -1115,7 +1144,20 @@ export default function AdminPage() {
                     onClick={handleUpdateCancellationFee}
                     disabled={!newCancellationFee || isPending}
                     variant="custom"
-                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                    className="font-mono font-semibold uppercase border"
+                    style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
+                    onMouseEnter={(e) => {
+                      if (!e.currentTarget.disabled) {
+                        e.currentTarget.style.backgroundColor = '#3f3f46';
+                        e.currentTarget.style.borderColor = '#3f3f46';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!e.currentTarget.disabled) {
+                        e.currentTarget.style.backgroundColor = '#2b2b30';
+                        e.currentTarget.style.borderColor = '#2b2b30';
+                      }
+                    }}
                   >
                     Update
                   </Button>
@@ -1146,7 +1188,20 @@ export default function AdminPage() {
                       onClick={handleUpdateMinOrderValue}
                       disabled={!newMinOrderValue || isPending}
                       variant="custom"
-                      className="bg-violet-600 hover:bg-violet-700 text-white"
+                      className="font-mono font-semibold uppercase border"
+                      style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
+                      onMouseEnter={(e) => {
+                        if (!e.currentTarget.disabled) {
+                          e.currentTarget.style.backgroundColor = '#3f3f46';
+                          e.currentTarget.style.borderColor = '#3f3f46';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!e.currentTarget.disabled) {
+                          e.currentTarget.style.backgroundColor = '#2b2b30';
+                          e.currentTarget.style.borderColor = '#2b2b30';
+                        }
+                      }}
                     >
                       Update
                     </Button>
@@ -1766,6 +1821,46 @@ export default function AdminPage() {
             );
           })()}
       </Card>
+
+      {/* Confirmation Modal */}
+      {confirmModal && confirmModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}>
+          <Card className="max-w-md w-full p-6 font-mono" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-bold text-white font-mono uppercase">{confirmModal.title}</h3>
+                <button
+                  onClick={() => setConfirmModal(null)}
+                  className="text-zinc-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-zinc-300 font-mono whitespace-pre-line">
+                {confirmModal.message}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setConfirmModal(null)}
+                variant="custom"
+                className="flex-1 border font-mono font-semibold uppercase"
+                style={{ backgroundColor: '#2b2b30', borderColor: '#2b2b30', color: 'white' }}
+              >
+                CANCEL
+              </Button>
+              <Button
+                onClick={confirmModal.onConfirm}
+                variant="custom"
+                className="flex-1 border font-mono font-semibold uppercase"
+                style={{ backgroundColor: '#22c55e', borderColor: '#22c55e', color: 'white' }}
+              >
+                CONFIRM
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
       </div>
     </div>
   );

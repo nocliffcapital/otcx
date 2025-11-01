@@ -388,7 +388,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                   <ProjectImage 
                     metadataURI={project?.metadataURI}
                     imageType="logo"
-                    className="h-8 w-auto max-w-[160px] sm:max-w-[180px] md:h-10 md:max-w-[200px] object-contain"
+                    className="h-10 w-auto max-w-[192px] sm:max-w-[216px] md:h-12 md:max-w-[240px] object-contain"
                     fallbackText={project?.name || slug.toUpperCase()}
                   />
                 </div>
@@ -587,7 +587,13 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
             <LineChart className="w-4 h-4 text-zinc-300" />
             Price History
           </h2>
-          <PriceChart orders={orders} allOrders={allOrders} />
+          {loading || !allOrders ? (
+            <div className="h-[300px] flex items-center justify-center text-zinc-500 text-sm">
+              Loading chart data...
+            </div>
+          ) : (
+            <PriceChart orders={orders} allOrders={allOrders || []} isPoints={project?.isPoints} />
+          )}
         </Card>
 
         {/* Create Order - Right (1 column, thinner) */}
@@ -838,9 +844,9 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           )}
           
           {!loading && buyOrders.length > 0 && (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '640px' }}>
               <table className="w-full text-xs">
-                <thead>
+                <thead className="sticky top-0 z-10" style={{ backgroundColor: '#121218' }}>
                   <tr className="border-b" style={{ borderColor: '#2b2b30' }}>
                     <th className="text-left py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">price</th>
                     <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">amount</th>
@@ -896,11 +902,12 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               variant="custom"
                               onClick={() => handleTakeBuy(order)}
                               disabled={!!actionLoading}
-                              className="text-xs h-7 px-3 border font-mono font-semibold uppercase"
+                              className="text-xs h-7 px-3 border font-mono font-semibold uppercase whitespace-nowrap"
                               style={{ 
                                 backgroundColor: '#121218', 
                                 borderColor: '#ef4444', // Red border
-                                color: '#ef4444' // Red text
+                                color: '#ef4444', // Red text
+                                minWidth: '60px'
                               }}
                               onMouseEnter={(e) => {
                                 if (!actionLoading) {
@@ -918,10 +925,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               }}
                             >
                               {actionLoading === order.id.toString() ? (
-                                <>
-                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                  Selling...
-                                </>
+                                <Loader2 className="w-3 h-3 animate-spin" />
                               ) : "SELL"}
                             </Button>
                           ) : address && address.toLowerCase() === order.maker.toLowerCase() ? (
@@ -960,9 +964,9 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
           )}
           
           {!loading && sellOrders.length > 0 && (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '640px' }}>
               <table className="w-full text-xs">
-                <thead>
+                <thead className="sticky top-0 z-10" style={{ backgroundColor: '#121218' }}>
                   <tr className="border-b" style={{ borderColor: '#2b2b30' }}>
                     <th className="text-left py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">price</th>
                     <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">amount</th>
@@ -1021,11 +1025,12 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               variant="custom"
                               onClick={() => handleTakeSell(order)}
                               disabled={!!actionLoading}
-                              className="text-xs h-7 px-3 border font-mono font-semibold uppercase"
+                              className="text-xs h-7 px-3 border font-mono font-semibold uppercase whitespace-nowrap"
                               style={{ 
                                 backgroundColor: '#121218', 
                                 borderColor: '#22c55e', // Green border
-                                color: '#22c55e' // Green text
+                                color: '#22c55e', // Green text
+                                minWidth: '60px'
                               }}
                               onMouseEnter={(e) => {
                                 if (!actionLoading) {
@@ -1043,10 +1048,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                               }}
                             >
                               {actionLoading === order.id.toString() ? (
-                                <>
-                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                  Buying...
-                                </>
+                                <Loader2 className="w-3 h-3 animate-spin" />
                               ) : "BUY"}
                             </Button>
                           ) : address && address.toLowerCase() === order.maker.toLowerCase() ? (
@@ -1085,17 +1087,17 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
         )}
         
         {!loading && filledOrders.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '640px' }}>
             <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-zinc-800">
-                  <th className="text-left py-3 px-3 text-zinc-400 font-medium">Type</th>
-                  <th className="text-left py-3 px-3 text-zinc-400 font-medium">Price</th>
-                  <th className="text-center py-3 px-3 text-zinc-400 font-medium">Amount</th>
-                  <th className="text-center py-3 px-3 text-zinc-400 font-medium">Total</th>
-                  <th className="text-center py-3 px-3 text-zinc-400 font-medium">Seller</th>
-                  <th className="text-center py-3 px-3 text-zinc-400 font-medium">Buyer</th>
-                  <th className="text-center py-3 px-3 text-zinc-400 font-medium">Order ID</th>
+              <thead className="sticky top-0 z-10" style={{ backgroundColor: '#121218' }}>
+                <tr className="border-b" style={{ borderColor: '#2b2b30' }}>
+                  <th className="text-left py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Type</th>
+                  <th className="text-left py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Price</th>
+                  <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Amount</th>
+                  <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Total</th>
+                  <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Seller</th>
+                  <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Buyer</th>
+                  <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Order ID</th>
                 </tr>
               </thead>
               <tbody>
