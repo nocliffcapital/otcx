@@ -298,13 +298,11 @@ export default function PrivateOrderPage() {
                       console.log('Clicked project:', project.slug);
                       setSelectedProject(project.slug);
                     }}
-                    className="w-full p-4 hover:bg-zinc-800/50 border transition-all text-left group rounded"
+                    className="w-full p-4 border transition-all text-left group rounded hover:border-zinc-500 hover:shadow-lg hover:shadow-zinc-500/20"
                     style={{ 
                       backgroundColor: '#121218',
                       borderColor: '#2b2b30'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#2b2b30'}
-                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#2b2b30'}
                   >
                     <div className="flex items-center gap-3">
                       <ProjectImage 
