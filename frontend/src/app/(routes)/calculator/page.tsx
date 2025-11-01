@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { Percent, TrendingUp, Users, Coins, Calculator, AlertCircle, Terminal, Database, Cpu } from "lucide-react";
+import { Percent, TrendingUp, Users, Coins, Calculator, AlertCircle, Terminal, Database, Cpu, Lightbulb } from "lucide-react";
 import { useBlockNumber, useReadContract, useChainId } from "wagmi";
 import { getExplorerUrl } from "@/lib/chains";
 import { ORDERBOOK_ADDRESS } from "@/lib/contracts";
@@ -157,10 +157,13 @@ function SliderComponent({
       </div>
 
       <div className="mt-4 p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
-        <p className="text-xs text-zinc-300">
-          💡 <span className="font-medium">Tip:</span> Drag the slider or click the markers to explore different launch scenarios. 
-          <span className="text-zinc-100 font-semibold"> 1x</span> is your break-even point at ${formatPrice(valuePerPoint)} per point.
-        </p>
+        <div className="flex items-start gap-2">
+          <Lightbulb className="w-4 h-4 text-zinc-300 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-zinc-300">
+            <span className="font-medium font-mono">TIP:</span> Drag the slider or click the markers to explore different launch scenarios. 
+            <span className="text-zinc-100 font-semibold"> 1x</span> is your break-even point at ${formatPrice(valuePerPoint)} per point.
+          </p>
+        </div>
       </div>
     </>
   );
@@ -314,7 +317,7 @@ export default function CalculatorPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Inputs */}
-          <div className="space-y-4">
+          <div className="space-y-4 flex flex-col">
             <Card>
               <div className="flex items-center gap-2 mb-4">
                 <Coins className="w-5 h-5 text-zinc-300" />
@@ -404,32 +407,40 @@ export default function CalculatorPage() {
               </div>
             </Card>
 
-            <Card>
+            <Card className="flex-1 flex flex-col">
               <div className="flex items-center gap-2 mb-4">
                 <Users className="w-5 h-5 text-zinc-300" />
                 <h2 className="font-semibold text-lg">Your Points</h2>
               </div>
               
-              <div>
-                <label className="text-xs text-zinc-400 block mb-1">
-                  Your Point Balance
-                </label>
-                <Input
-                  type="text"
-                  value={formatInputNumber(myPoints)}
-                  onChange={(e) => setMyPoints(parseInputNumber(e.target.value))}
-                  onBlur={(e) => setMyPoints(parseInputNumber(e.target.value))}
-                  placeholder="10,000"
-                />
-                <p className="text-xs text-zinc-500 mt-1">
-                  {myPointsNum.toLocaleString()} points ({myAirdropShare.toFixed(4)}% of total)
-                </p>
+              <div className="flex-1 flex flex-col justify-start space-y-3">
+                <div>
+                  <label className="text-xs text-zinc-400 block mb-1">
+                    Your Point Balance
+                  </label>
+                  <Input
+                    type="text"
+                    value={formatInputNumber(myPoints)}
+                    onChange={(e) => setMyPoints(parseInputNumber(e.target.value))}
+                    onBlur={(e) => setMyPoints(parseInputNumber(e.target.value))}
+                    placeholder="10,000"
+                  />
+                </div>
+                <div className="p-2 rounded border flex-1" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
+                  <p className="text-[10px] text-zinc-400 mb-0.5">Your Share of Total</p>
+                  <p className="text-lg font-bold text-white">
+                    {myAirdropShare.toFixed(4)}%
+                  </p>
+                  <p className="text-[9px] text-zinc-500 mt-0.5">
+                    {myPointsNum.toLocaleString()} of {totalPointsNum.toLocaleString()} points
+                  </p>
+                </div>
               </div>
             </Card>
           </div>
 
           {/* Right: Results */}
-          <div className="space-y-4">
+          <div className="space-y-4 flex flex-col">
             <Card>
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-zinc-300" />
@@ -472,13 +483,13 @@ export default function CalculatorPage() {
               </div>
             </Card>
 
-            <Card className="border-green-900/30 bg-gradient-to-br from-green-950/20 to-emerald-950/20">
+            <Card className="flex-1 flex flex-col border-green-900/30 bg-gradient-to-br from-green-950/20 to-emerald-950/20">
               <div className="flex items-center gap-2 mb-2">
                 <Percent className="w-4 h-4 text-green-400" />
                 <h2 className="font-semibold text-base">Your Estimated Airdrop</h2>
               </div>
               
-              <div className="space-y-2">
+              <div className="flex-1 flex flex-col space-y-2">
                 {/* My Airdrop Value */}
                 <div className="p-2 rounded border" style={{ backgroundColor: '#06060c', borderColor: '#2b2b30' }}>
                   <p className="text-[10px] text-zinc-400 mb-0.5">Estimated Value</p>
@@ -502,12 +513,17 @@ export default function CalculatorPage() {
                 </div>
 
                 {/* If you buy more points */}
-                <div className="p-2 bg-blue-950/20 rounded-lg border border-blue-800/30">
-                  <p className="text-[9px] text-blue-300 font-medium mb-0.5">💡 Quick Tip</p>
-                  <p className="text-[9px] text-blue-200/70 leading-snug">
-                    If you buy points at ${formatPrice(valuePerPoint)} or less, you&apos;d be getting them at or below 
-                    estimated airdrop value.
-                  </p>
+                <div className="p-3 rounded border" style={{ backgroundColor: '#121218', borderColor: '#2b2b30' }}>
+                  <div className="flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 text-zinc-300 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-zinc-300 font-semibold mb-1 font-mono">QUICK TIP</p>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        If you buy points at ${formatPrice(valuePerPoint)} or less, you&apos;d be getting them at or below 
+                        estimated airdrop value.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Card>
