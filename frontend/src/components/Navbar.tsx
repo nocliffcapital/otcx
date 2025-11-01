@@ -8,7 +8,7 @@ import { BalanceDisplay } from "./BalanceDisplay";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, STABLE_ADDRESS, MOCK_TOKEN_ADDRESS, ERC20_ABI } from "@/lib/contracts";
 import { useState, useRef } from "react";
-import { ChevronDown, Settings, Menu, X, Lock, LayoutDashboard, Percent, BookOpen, Lightbulb, FileText } from "lucide-react";
+import { ChevronDown, Settings, Menu, X, Lock, LayoutDashboard, Calculator, BookOpen, Lightbulb, FileText } from "lucide-react";
 import { parseUnits } from "viem";
 
 export function Navbar() {
@@ -116,7 +116,7 @@ export function Navbar() {
                     : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
-                <Percent className="w-4 h-4" />
+                <Calculator className="w-4 h-4" />
                 CALCULATOR
               </Link>
               
@@ -381,7 +381,7 @@ export function Navbar() {
                     : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
-                <Percent className="w-4 h-4" />
+                <Calculator className="w-4 h-4" />
                 CALCULATOR
               </Link>
               <Link 

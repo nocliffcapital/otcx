@@ -249,7 +249,7 @@ export default function CalculatorPage() {
                 height: '56px',
                 borderColor: '#2b2b30'
               }}>
-                <Percent className="w-10 h-10 text-zinc-300" />
+                <Calculator className="w-10 h-10 text-zinc-300" />
               </div>
               <div className="min-w-0 flex-1">
                 <span className="text-zinc-300/70 text-xs mb-1 block">otcX://protocol/calculator</span>
