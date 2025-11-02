@@ -6,8 +6,11 @@ import { ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, REGISTRY_ADDRESS, PROJECT_REGI
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Badge } from "./ui/Badge";
-import { Clock, PlayCircle, Plus, CheckCircle, AlertCircle, DollarSign, Loader2 } from "lucide-react";
+import { Clock, PlayCircle, Plus, CheckCircle, AlertCircle, DollarSign, Loader2, Link as LinkIcon, ChevronDown, Square, CheckSquare2, Copy, Check } from "lucide-react";
 import { useToast } from "./Toast";
+import { getProjectExplorerUrl } from "./TGESettlementManager";
+import { useChainId } from "wagmi";
+import { getChainConfig } from "@/lib/chains";
 
 interface TGEOrderControlsProps {
   order: {
@@ -30,11 +33,21 @@ interface TGEOrderControlsProps {
 
 export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }: TGEOrderControlsProps) {
   const { address } = useAccount();
+  const chainId = useChainId();
+  
+  // Get expected block explorer URL for this project
+  const expectedExplorerUrl = getProjectExplorerUrl(order.projectToken) || getChainConfig(chainId)?.explorer || "";
   const [tokenAddress, setTokenAddress] = useState("");
   const [showTGEInput, setShowTGEInput] = useState(false);
   const [proof, setProof] = useState("");
   const [showProofInput, setShowProofInput] = useState(false);
   const [showProofConfirmModal, setShowProofConfirmModal] = useState(false);
+  const [showProofDetails, setShowProofDetails] = useState(false);
+  const [showBuyerProofDetails, setShowBuyerProofDetails] = useState(false);
+  const [checkedAmount, setCheckedAmount] = useState(false);
+  const [checkedAddress, setCheckedAddress] = useState(false);
+  const [checkedExplorer, setCheckedExplorer] = useState(false);
+  const [buyerAddressCopied, setBuyerAddressCopied] = useState(false);
 
   const { writeContract, data: hash, isPending, isError, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
@@ -131,9 +144,9 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
   // Show success/error toasts based on transaction status
   useEffect(() => {
     if (isSuccess && hash) {
-      toast.success("✅ Transaction Confirmed", "Your action was completed successfully");
+      toast.success("Transaction Confirmed", "Your action was completed successfully");
     }
-  }, [isSuccess, hash, toast]);
+  }, [isSuccess, hash]); // Removed toast from dependencies - it's stable
 
   useEffect(() => {
     if (isError && error) {
@@ -142,7 +155,7 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
         : error.message;
       toast.error("❌ Transaction Failed", errorMessage);
     }
-  }, [isError, error, toast]);
+  }, [isError, error]); // Removed toast from dependencies - it's stable
 
   // V4: Determine project type from token address read from contract
   const isPointsProject = projectTokenAddress && pointsSentinel && 
@@ -233,6 +246,11 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
       return;
     }
 
+    if (!checkedAmount || !checkedAddress || !checkedExplorer) {
+      toast.error("Please check all boxes", "You must confirm all three requirements before submitting");
+      return;
+    }
+
     toast.info("⏳ Submitting proof...", "Transaction pending");
 
     writeContract({
@@ -244,10 +262,33 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
     
     setShowProofConfirmModal(false);
     setProof("");
+    // Reset checkboxes
+    setCheckedAmount(false);
+    setCheckedAddress(false);
+    setCheckedExplorer(false);
+  };
+
+  const [shouldSettleAfterAccept, setShouldSettleAfterAccept] = useState(false);
+
+  const handleAcceptProofAsBuyer = () => {
+    toast.info("Accepting Proof", "Please confirm the transaction in your wallet");
+
+    writeContract({
+      address: ORDERBOOK_ADDRESS,
+      abi: ESCROW_ORDERBOOK_ABI,
+      functionName: "acceptProofAsBuyer",
+      args: [order.id],
+    });
+  };
+
+  const handleAcceptAndSettle = () => {
+    // Mark that we should settle after accepting
+    setShouldSettleAfterAccept(true);
+    handleAcceptProofAsBuyer();
   };
 
   const handleManualSettle = () => {
-    toast.info("✅ Settling Order", "Please confirm the transaction in your wallet");
+    toast.info("Settling Order", "Please confirm the transaction in your wallet");
 
     writeContract({
       address: ORDERBOOK_ADDRESS,
@@ -256,6 +297,17 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
       args: [order.id],
     });
   };
+
+  // After proof acceptance succeeds, automatically settle if requested
+  useEffect(() => {
+    if (isSuccess && hash && shouldSettleAfterAccept && proofAccepted) {
+      setShouldSettleAfterAccept(false);
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        handleManualSettle();
+      }, 500);
+    }
+  }, [isSuccess, hash, shouldSettleAfterAccept, proofAccepted]);
 
   const formatDeadline = () => {
     if (deadline === 0) return null;
@@ -415,24 +467,77 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
         <Button
           onClick={() => setShowProofConfirmModal(true)}
           variant="custom"
-          className="bg-purple-600 hover:bg-purple-700 border border-purple-500/30 text-xs h-8 w-auto"
+          className="text-xs h-8 px-3 border font-mono font-semibold uppercase whitespace-nowrap"
+          style={{ 
+            backgroundColor: '#121218', 
+            borderColor: '#a855f7', // Purple border
+            color: '#a855f7', // Purple text
+          }}
           disabled={isPending || isConfirming}
+          onMouseEnter={(e) => {
+            if (!e.currentTarget.disabled) {
+              e.currentTarget.style.backgroundColor = 'rgba(168, 85, 247, 0.15)'; // Subtle purple glow
+              e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.6)'; // Brighter purple border
+              e.currentTarget.style.color = '#a855f7';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!e.currentTarget.disabled) {
+              e.currentTarget.style.backgroundColor = '#121218';
+              e.currentTarget.style.borderColor = '#a855f7';
+              e.currentTarget.style.color = '#a855f7';
+            }
+          }}
         >
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Submit Proof
+          <CheckCircle className="w-3 h-3 mr-1.5" />
+          SUBMIT PROOF
         </Button>
       )}
 
       {/* Proof Submitted - Show to Seller (POINTS ONLY) */}
       {isSeller && isPointsProject && submittedProof && (submittedProof as string).length > 0 && isInSettlement && (
-        <div className="bg-green-950/30 border border-green-800/30 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="w-4 h-4 text-green-400" />
-            <span className="text-xs font-bold text-green-400">Proof Submitted - Awaiting Admin Review</span>
-          </div>
-          <div className="bg-zinc-900/50 rounded p-2">
-            <p className="text-xs text-zinc-300 break-all">{submittedProof as string}</p>
-          </div>
+        <div className="bg-green-950/30 border border-green-800/30 rounded-lg">
+          <button
+            onClick={() => setShowProofDetails(!showProofDetails)}
+            className="w-full p-3 flex items-center justify-between hover:bg-green-950/50 transition-colors rounded-lg"
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+              <span className="text-xs font-bold text-green-400">Proof Submitted</span>
+            </div>
+            <ChevronDown 
+              className={`w-4 h-4 text-green-400 transition-transform flex-shrink-0 ${showProofDetails ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {showProofDetails && (
+            <div className="px-3 pb-3 space-y-2 border-t border-green-800/30 pt-3">
+              <div className="bg-zinc-900/50 rounded p-2 text-right">
+                <p className="text-xs text-zinc-400 mb-1 font-mono">Transaction URL:</p>
+                <a 
+                  href={submittedProof as string} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-green-400 break-all hover:text-green-300 hover:underline font-mono block text-right"
+                >
+                  {submittedProof as string}
+                </a>
+              </div>
+              {proofTimestamp && (
+                <div className="bg-zinc-900/50 rounded p-2 text-right">
+                  <p className="text-xs text-zinc-400 mb-1 font-mono">Submitted At:</p>
+                  <p className="text-xs text-zinc-300 font-mono">
+                    {new Date(Number(proofTimestamp) * 1000).toLocaleString()}
+                  </p>
+                </div>
+              )}
+              <div className="bg-blue-950/30 border border-blue-800/30 rounded p-2 text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <Clock className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                    <p className="text-xs text-blue-400 font-mono">Awaiting Review</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -508,17 +613,76 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
 
       {/* Buyer Views Proof (POINTS ONLY) */}
       {isBuyer && isPointsProject && isInSettlement && submittedProof && (submittedProof as string).length > 0 && !proofAccepted && (
-        <div className="bg-blue-950/30 border border-blue-800/30 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="w-4 h-4 text-blue-400" />
-            <span className="text-xs font-bold text-blue-400">Seller Submitted Proof</span>
-          </div>
-          <div className="bg-zinc-900/50 rounded p-2">
-            <p className="text-xs text-zinc-300 break-all font-mono">{submittedProof as string}</p>
-          </div>
-          <p className="text-xs text-zinc-400 mt-2">
-            ⏳ Waiting for admin to verify and accept proof
-          </p>
+        <div className="bg-blue-950/30 border border-blue-800/30 rounded-lg">
+          <button
+            onClick={() => setShowBuyerProofDetails(!showBuyerProofDetails)}
+            className="w-full p-3 flex items-center justify-between hover:bg-blue-950/50 transition-colors rounded-lg"
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <span className="text-xs font-bold text-blue-400">Seller Submitted Proof</span>
+            </div>
+            <ChevronDown 
+              className={`w-4 h-4 text-blue-400 transition-transform flex-shrink-0 ${showBuyerProofDetails ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {showBuyerProofDetails && (
+            <div className="px-3 pb-3 space-y-2 border-t border-blue-800/30 pt-3">
+              <div className="bg-zinc-900/50 rounded p-2 text-right">
+                <p className="text-xs text-zinc-400 mb-1 font-mono">Transaction URL:</p>
+                <a 
+                  href={submittedProof as string} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-400 break-all hover:text-blue-300 hover:underline font-mono block text-right"
+                >
+                  {submittedProof as string}
+                </a>
+              </div>
+              {proofTimestamp && (
+                <div className="bg-zinc-900/50 rounded p-2 text-right">
+                  <p className="text-xs text-zinc-400 mb-1 font-mono">Submitted At:</p>
+                  <p className="text-xs text-zinc-300 font-mono">
+                    {new Date(Number(proofTimestamp) * 1000).toLocaleString()}
+                  </p>
+                </div>
+              )}
+              {!proofAccepted && (
+                <div className="bg-yellow-950/30 border border-yellow-800/30 rounded p-2 text-right mb-2">
+                  <div className="flex items-center justify-end gap-2">
+                    <Clock className="w-3 h-3 text-yellow-400 flex-shrink-0" />
+                    <p className="text-xs text-yellow-400 font-mono">Waiting for Review</p>
+                  </div>
+                </div>
+              )}
+              {!proofAccepted && (
+                <Button
+                  onClick={handleAcceptAndSettle}
+                  disabled={isPending || isConfirming}
+                  variant="custom"
+                  className="w-full border font-mono font-semibold uppercase text-xs h-8"
+                  style={{ 
+                    backgroundColor: '#22c55e', 
+                    borderColor: '#22c55e', 
+                    color: 'white'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isPending && !isConfirming) {
+                      e.currentTarget.style.backgroundColor = '#16a34a';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isPending && !isConfirming) {
+                      e.currentTarget.style.backgroundColor = '#22c55e';
+                    }
+                  }}
+                >
+                  <CheckCircle className="w-3 h-3 mr-1.5" />
+                  ACCEPT & SETTLE
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -527,7 +691,7 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
         <div className="bg-green-950/30 border border-green-800/30 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-4 h-4 text-green-400" />
-            <span className="text-xs font-bold text-green-400">✅ Proof Accepted by Admin</span>
+            <span className="text-xs font-bold text-green-400">✅ Proof Accepted</span>
             {proofAcceptedAt && (
               <span className="text-xs text-zinc-500">
                 {new Date(Number(proofAcceptedAt) * 1000).toLocaleString()}
@@ -591,36 +755,136 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
               <div className="flex items-start gap-2 text-sm border-t border-purple-500/20 pt-3">
                 <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="font-medium text-yellow-400">Buyer Address (Recipient)</p>
-                  <p className="text-zinc-300 font-mono text-xs break-all bg-zinc-950/50 p-2 rounded mt-1">
-                    {order.buyer}
-                  </p>
+                  <p className="font-medium text-yellow-400 mb-1">Buyer Address (Recipient)</p>
+                  <div className="flex items-center gap-2 bg-zinc-950/50 p-2 rounded mt-1">
+                    <p className="text-zinc-300 font-mono text-xs break-all flex-1">
+                      {order.buyer}
+                    </p>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(order.buyer);
+                          setBuyerAddressCopied(true);
+                          setTimeout(() => setBuyerAddressCopied(false), 2000);
+                        } catch (err) {
+                          console.error('Failed to copy:', err);
+                        }
+                      }}
+                      className="flex-shrink-0 p-1 hover:bg-zinc-800/50 rounded transition-colors"
+                      title="Copy address"
+                    >
+                      {buyerAddressCopied ? (
+                        <Check className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-zinc-400 hover:text-zinc-300" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {expectedExplorerUrl && (
+                <div className="flex items-start gap-2 text-sm border-t border-purple-500/20 pt-3">
+                  <LinkIcon className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-purple-400">Expected Block Explorer</p>
+                    <p className="text-zinc-300 font-mono text-xs break-all bg-zinc-950/50 p-2 rounded mt-1">
+                      {expectedExplorerUrl}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Proof Input */}
             <div className="mb-4">
-              <label className="text-sm font-medium text-zinc-300 mb-2 block">
-                Proof of Transfer (Transaction Link or Hash)
+              <label className="text-sm font-medium text-zinc-300 mb-2 flex items-center gap-2 text-left">
+                <LinkIcon className="w-4 h-4" />
+                Transaction URL
               </label>
               <Input
-                placeholder="0x... or block explorer link"
+                placeholder="block explorer link"
                 value={proof}
                 onChange={(e) => setProof(e.target.value)}
                 className="text-sm"
               />
+              {proof && proof.trim().length > 0 && (
+                <div className="bg-zinc-950/50 border border-zinc-800/50 rounded p-2 mt-2">
+                  <a
+                    href={proof.trim()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-purple-400 hover:text-purple-300 hover:underline font-mono break-all block text-left"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {proof.trim()}
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Confirmation Checkboxes */}
+            <div className="mb-4 space-y-3 bg-zinc-950/30 border border-zinc-800/50 rounded p-3">
+              <p className="text-xs font-semibold text-zinc-300 mb-2 font-mono uppercase text-left">Confirm Before Submitting:</p>
+              
+              <label 
+                className="flex items-start gap-3 cursor-pointer group text-left"
+                onClick={() => setCheckedAmount(!checkedAmount)}
+              >
+                <div className="mt-0.5 flex-shrink-0">
+                  {checkedAmount ? (
+                    <CheckSquare2 className="w-5 h-5 text-green-400" />
+                  ) : (
+                    <Square className="w-5 h-5 text-zinc-500 group-hover:text-zinc-400" />
+                  )}
+                </div>
+                <span className="text-xs text-zinc-300 font-mono flex-1 text-left">
+                  I sent the correct amount of tokens ({actualTokenAmount.toLocaleString()} tokens)
+                </span>
+              </label>
+
+              <label 
+                className="flex items-start gap-3 cursor-pointer group text-left"
+                onClick={() => setCheckedAddress(!checkedAddress)}
+              >
+                <div className="mt-0.5 flex-shrink-0">
+                  {checkedAddress ? (
+                    <CheckSquare2 className="w-5 h-5 text-green-400" />
+                  ) : (
+                    <Square className="w-5 h-5 text-zinc-500 group-hover:text-zinc-400" />
+                  )}
+                </div>
+                <span className="text-xs text-zinc-300 font-mono flex-1 text-left">
+                  I sent them to the correct buyer address as shown above ({order.buyer.slice(0, 6)}...{order.buyer.slice(-4)})
+                </span>
+              </label>
+
+              <label 
+                className="flex items-start gap-3 cursor-pointer group text-left"
+                onClick={() => setCheckedExplorer(!checkedExplorer)}
+              >
+                <div className="mt-0.5 flex-shrink-0">
+                  {checkedExplorer ? (
+                    <CheckSquare2 className="w-5 h-5 text-green-400" />
+                  ) : (
+                    <Square className="w-5 h-5 text-zinc-500 group-hover:text-zinc-400" />
+                  )}
+                </div>
+                <span className="text-xs text-zinc-300 font-mono flex-1 text-left">
+                  I pasted the transaction URL from the specified block explorer{expectedExplorerUrl ? ` (${(() => { try { return new URL(expectedExplorerUrl).hostname; } catch { return expectedExplorerUrl; } })()})` : ''}
+                </span>
+              </label>
             </div>
 
             {/* Warning */}
             <div className="bg-red-950/20 border border-red-500/30 rounded p-3 mb-4">
-              <p className="text-xs text-red-300 font-semibold mb-2">
+              <p className="text-xs text-red-300 font-semibold mb-2 text-left">
                 ⚠️ Important Warning
               </p>
-              <ul className="text-xs text-red-200 space-y-1 pl-4">
-                <li>• Ensure you've transferred the exact amount to the correct address</li>
-                <li>• The admin will verify your proof before releasing funds</li>
-                <li>• <span className="font-bold text-red-400">Fraudulent proof = You LOSE your collateral</span></li>
+              <ul className="text-xs text-red-200 space-y-1 pl-4 text-left">
+                <li className="text-left">• Ensure you've transferred the exact amount to the correct address</li>
+                <li className="text-left">• The admin will verify your proof before releasing funds</li>
+                <li className="text-left">• <span className="font-bold text-red-400">Fraudulent proof = You LOSE your collateral</span></li>
               </ul>
             </div>
 
@@ -629,20 +893,53 @@ export function TGEOrderControls({ order, isOwner, projectTgeActivated = false }
                 onClick={() => {
                   setShowProofConfirmModal(false);
                   setProof("");
+                  setCheckedAmount(false);
+                  setCheckedAddress(false);
+                  setCheckedExplorer(false);
                 }}
                 variant="custom"
-                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 h-9 text-sm"
+                className="flex-1 border font-mono font-semibold uppercase h-9 text-sm"
+                style={{ 
+                  backgroundColor: '#121218', 
+                  borderColor: '#2b2b30', 
+                  color: '#ffffff',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2b2b30';
+                  e.currentTarget.style.borderColor = '#3f3f46';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#121218';
+                  e.currentTarget.style.borderColor = '#2b2b30';
+                }}
               >
-                Cancel
+                CANCEL
               </Button>
               <Button
                 onClick={confirmSubmitProof}
-                disabled={!proof || proof.trim().length === 0}
+                disabled={!proof || proof.trim().length === 0 || !checkedAmount || !checkedAddress || !checkedExplorer}
                 variant="custom"
-                className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-semibold h-9 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 border font-mono font-semibold uppercase h-9 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ 
+                  backgroundColor: '#121218', 
+                  borderColor: '#a855f7', // Purple border
+                  color: '#a855f7', // Purple text
+                }}
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor = 'rgba(168, 85, 247, 0.15)';
+                    e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.6)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor = '#121218';
+                    e.currentTarget.style.borderColor = '#a855f7';
+                  }
+                }}
               >
                 <CheckCircle className="w-4 h-4 mr-1.5" />
-                Submit Proof
+                SETTLE WITH PROOF
               </Button>
             </div>
           </div>

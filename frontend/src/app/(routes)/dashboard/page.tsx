@@ -9,6 +9,7 @@ import { useOrderbook } from "@/hooks/useOrderbook";
 import { useToast } from "@/components/Toast";
 import ReputationBadge from "@/components/ReputationBadge";
 import { TGEOrderControls } from "@/components/TGEOrderControls";
+import { SettlementTimer } from "@/components/SettlementTimer";
 import { formatUnits } from "viem";
 import { STABLE_DECIMALS, REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { useState, useEffect, useMemo } from "react";
@@ -33,6 +34,32 @@ const STATUS_COLORS = [
   "bg-gray-600"      // CANCELED
 ];
 
+// Settlement Timer with Badge Component - Shows badge + countdown timer
+function SettlementTimerWithBadge({ 
+  order, 
+  statusBadgeClass, 
+  projectSettlementDeadline 
+}: { 
+  order: any; 
+  statusBadgeClass: string;
+  projectSettlementDeadline?: bigint;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <Badge className={`${statusBadgeClass} text-xs w-fit font-mono font-semibold`}>
+        SETTLEMENT
+      </Badge>
+      {projectSettlementDeadline && projectSettlementDeadline > 0n && (
+        <SettlementTimer 
+          settlementDeadline={projectSettlementDeadline} 
+          proof={order.proof}
+          variant="compact"
+        />
+      )}
+    </div>
+  );
+}
+
 export default function MyOrdersPage() {
   const { address, cancel, takeSellOrder, takeBuyOrder } = useOrderbook();
   const { orders, loading, refresh } = useMyOrders(address);
@@ -45,6 +72,7 @@ export default function MyOrdersPage() {
   const [projectNames, setProjectNames] = useState<Record<string, string>>({});
   const [projectMetadata, setProjectMetadata] = useState<Record<string, string>>({}); // token address -> metadataURI
   const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({}); // projectId -> TGE activated
+  const [projectSettlementDeadlines, setProjectSettlementDeadlines] = useState<Record<string, bigint>>({}); // projectId -> settlement deadline
   const [showCanceled, setShowCanceled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sideFilter, setSideFilter] = useState<"all" | "buy" | "sell">("all");
@@ -89,9 +117,10 @@ export default function MyOrdersPage() {
     const nameMap: Record<string, string> = {};
     const metadataMap: Record<string, string> = {};
     
-    // Fetch TGE status for all projects
+    // Fetch TGE status and settlement deadlines for all projects
     const fetchTgeStatuses = async () => {
       const tgeStatusMap: Record<string, boolean> = {};
+      const deadlineMap: Record<string, bigint> = {};
       
       for (const proj of projects as Array<{ id: string; name: string; metadataURI: string }>) {
         try {
@@ -108,18 +137,41 @@ export default function MyOrdersPage() {
           }) as boolean;
           
           tgeStatusMap[proj.id.toLowerCase()] = tgeActivated;
+          
+          // If TGE is activated, fetch settlement deadline
+          if (tgeActivated) {
+            try {
+              const deadline = await publicClient.readContract({
+                address: ORDERBOOK_ADDRESS,
+                abi: ESCROW_ORDERBOOK_ABI,
+                functionName: "projectSettlementDeadline",
+                args: [proj.id as `0x${string}`],
+              }) as bigint;
+              deadlineMap[proj.id.toLowerCase()] = deadline;
+            } catch (error) {
+              deadlineMap[proj.id.toLowerCase()] = 0n;
+            }
+          } else {
+            deadlineMap[proj.id.toLowerCase()] = 0n;
+          }
         } catch (error) {
           console.error(`Failed to process project ${proj.name}:`, error);
           tgeStatusMap[proj.id.toLowerCase()] = false;
+          deadlineMap[proj.id.toLowerCase()] = 0n;
         }
       }
       
       setProjectTgeStatus(tgeStatusMap);
+      setProjectSettlementDeadlines(deadlineMap);
+      setProjectNames(nameMap);
+      setProjectMetadata(metadataMap);
     };
     
-    setProjectNames(nameMap);
-    setProjectMetadata(metadataMap);
     fetchTgeStatuses();
+    
+    // Refetch deadlines every 5 seconds to keep timers updated
+    const interval = setInterval(fetchTgeStatuses, 5000);
+    return () => clearInterval(interval);
   }, [projects, publicClient]);
 
   // Filter orders based on tab, search, side filter, and showCanceled toggle
@@ -377,11 +429,17 @@ export default function MyOrdersPage() {
         {address && !loading && orders.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {/* Current Settlements (In Settlement - TGE Activated) */}
-            <Card className={`p-4 transition-all ${
-              stats.inSettlement > 0
-                ? "border-zinc-600 ring-2 ring-zinc-600/30 animate-pulse"
-                : ""
-            }`}>
+            <Card 
+              className={`p-4 transition-all cursor-pointer ${
+                stats.inSettlement > 0
+                  ? "ring-2 ring-orange-500/30 animate-pulse hover:ring-orange-400/40"
+                  : ""
+              }`}
+              onClick={() => stats.inSettlement > 0 && setActiveTab("settlement")}
+              style={stats.inSettlement > 0 ? {
+                borderColor: '#f97316',
+              } : {}}
+            >
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-zinc-800/50">
                   <Clock className="w-6 h-6 text-zinc-400" />
@@ -826,26 +884,21 @@ export default function MyOrdersPage() {
                         statusBadgeClass = 'bg-zinc-500/20 text-zinc-400 border border-zinc-500/50';
                       }
                       
+                      // For SETTLEMENT status, include timer
+                      if (isInSettlement && statusLabel === 'SETTLEMENT') {
+                        const projectDeadline = projectSettlementDeadlines[order.projectToken.toLowerCase()];
+                        return <SettlementTimerWithBadge 
+                          order={order} 
+                          statusBadgeClass={statusBadgeClass} 
+                          projectSettlementDeadline={projectDeadline}
+                        />;
+                      }
+                      
                       return (
                         <Badge className={`${statusBadgeClass} text-xs w-fit font-mono font-semibold`}>
                           {statusLabel}
                         </Badge>
                       );
-                    })()}
-                    {isInSettlement && order.settlementDeadline > 0n && (() => {
-                      const deadline = Number(order.settlementDeadline) * 1000;
-                      const now = Date.now();
-                      const remaining = deadline - now;
-                      if (remaining > 0) {
-                        const hours = Math.floor(remaining / (1000 * 60 * 60));
-                        const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                        return (
-                          <span className="text-[10px] text-red-400">
-                            ⏰ {hours}h {minutes}m left
-                          </span>
-                        );
-                      }
-                      return null;
                     })()}
                   </div>
                 </td>

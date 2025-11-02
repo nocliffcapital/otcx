@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useMemo, ReactNode } from "react";
 import { CheckCircle, XCircle, AlertCircle, Clock, X } from "lucide-react";
 
 type ToastType = "success" | "error" | "warning" | "info";
@@ -24,8 +24,16 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const removeToast = useCallback((id: string) => {
+    // Clear timeout if it exists
+    const timeoutId = timeoutRefs.current.get(id);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutRefs.current.delete(id);
+    }
+    
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
@@ -36,9 +44,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, toast]);
 
     // Auto remove after 5 seconds
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       removeToast(id);
     }, 5000);
+    
+    // Store timeout ID for potential cleanup
+    timeoutRefs.current.set(id, timeoutId);
   }, [removeToast]);
 
   const success = useCallback((message: string, description?: string) => {
@@ -57,8 +68,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     showToast("info", message, description);
   }, [showToast]);
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({ showToast, success, error, warning, info }), [showToast, success, error, warning, info]);
+
   return (
-    <ToastContext.Provider value={{ showToast, success, error, warning, info }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (

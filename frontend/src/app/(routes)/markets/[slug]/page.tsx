@@ -19,6 +19,7 @@ import Link from "next/link";
 import ReputationBadge from "@/components/ReputationBadge";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
 import { UsdcIcon } from "@/components/icons/UsdcIcon";
+import { SettlementTimer } from "@/components/SettlementTimer";
 
 export default function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -70,6 +71,18 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
     args: [projectId],
   });
   const isTgeActivated = projectTgeActivated === true;
+
+  // Read project-level settlement deadline (V4: stored at project level, not in order)
+  const { data: projectSettlementDeadline } = useReadContract({
+    address: ORDERBOOK_ADDRESS,
+    abi: ESCROW_ORDERBOOK_ABI,
+    functionName: "projectSettlementDeadline",
+    args: [projectId],
+    query: {
+      enabled: !!projectId && isTgeActivated === true,
+      refetchInterval: 1000, // Refresh every second for timer
+    },
+  }) as { data: bigint | undefined };
   
   // Fetch settlement fee (in basis points, 10000 = 100%)
   const { data: settlementFeeBps } = useReadContract({
@@ -1150,7 +1163,7 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                   <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Total</th>
                   <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Seller</th>
                   <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Buyer</th>
-                  <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Order ID</th>
+                  <th className="text-center py-3 px-3 text-xs font-bold text-zinc-300 uppercase tracking-wider">Order ID / Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -1208,9 +1221,18 @@ export default function ProjectPage({ params }: { params: Promise<{ slug: string
                         </div>
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="text-xs text-zinc-500">
-                          #{order.id.toString()}
-                        </span>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-xs text-zinc-500">
+                            #{order.id.toString()}
+                          </span>
+                          {isTgeActivated && order.status === 1 && projectSettlementDeadline && projectSettlementDeadline > 0n && (
+                            <SettlementTimer 
+                              settlementDeadline={projectSettlementDeadline} 
+                              proof={order.proof}
+                              variant="compact"
+                            />
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

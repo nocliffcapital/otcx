@@ -68,7 +68,7 @@ export function Footer() {
 
             {/* Telegram */}
             <a
-              href="https://t.me/otc_fun"
+              href="https://t.me/otcx_fun"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-100 transition-colors group"
@@ -89,7 +89,7 @@ export function Footer() {
 
             {/* Twitter/X */}
             <a
-              href="https://x.com/otc_fun"
+              href="https://x.com/otcx_fun"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors group"

@@ -72,11 +72,10 @@ export function useOrders(projectId?: `0x${string}`) {
                 args: [orderId],
               }) as OrderDataTuple;
 
-              // Only fetch proof if order is in TGE_ACTIVATED or later status
-              // This reduces API calls significantly
+              // V4: Fetch proof for FUNDED orders (status 1) - they may have proofs submitted
               let proof: string | undefined = undefined;
               const status = orderData[12]; // V4: status is now at index 12
-              if (status >= 2) { // TGE_ACTIVATED = 2
+              if (status === 1) { // FUNDED status - check if proof exists
                 try {
                   const proofData = await publicClient.readContract({
                     address: ORDERBOOK_ADDRESS,
@@ -208,10 +207,10 @@ export function useMyOrders(address?: string) {
                 args: [orderId],
               }) as any;
 
-              // Only fetch proof if order is in TGE_ACTIVATED or later status
+              // V4: Fetch proof for FUNDED orders (status 1) - they may have proofs submitted
               let proof: string | undefined = undefined;
-              const status = orderData[11]; // V3: status is now at index 11
-              if (status >= 2) { // TGE_ACTIVATED = 2
+              const status = orderData[12]; // V4: status is now at index 12
+              if (status === 1) { // FUNDED status - check if proof exists
                 try {
                   const proofData = await publicClient.readContract({
                     address: ORDERBOOK_ADDRESS,

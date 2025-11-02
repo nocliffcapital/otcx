@@ -36,7 +36,8 @@ export default function AdminPage() {
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [showTGEManager, setShowTGEManager] = useState(false);
   const [tgeProjectSlug, setTgeProjectSlug] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"active" | "ended" | "all">("active");
+  const [statusFilter, setStatusFilter] = useState<"active" | "settlement" | "ended" | "all">("active");
+  const [projectSettlementDeadlines, setProjectSettlementDeadlines] = useState<Record<string, bigint>>({});
   const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({});
   
   const [formData, setFormData] = useState({
@@ -134,8 +135,9 @@ export default function AdminPage() {
       console.log('✅ Projects loaded:', allProjects);
       setProjects(allProjects);
 
-      // Fetch TGE status for each project
+      // Fetch TGE status and settlement deadlines for each project
       const tgeStatusMap: Record<string, boolean> = {};
+      const settlementDeadlineMap: Record<string, bigint> = {};
       for (const project of allProjects) {
         try {
           const tgeActivated = await publicClient.readContract({
@@ -145,12 +147,31 @@ export default function AdminPage() {
             args: [project.id],
           }) as boolean;
           tgeStatusMap[project.slug] = tgeActivated;
+          
+          // Fetch settlement deadline if TGE is activated
+          if (tgeActivated) {
+            try {
+              const deadline = await publicClient.readContract({
+                address: ORDERBOOK_ADDRESS,
+                abi: ESCROW_ORDERBOOK_ABI,
+                functionName: "projectSettlementDeadline",
+                args: [project.id],
+              }) as bigint;
+              settlementDeadlineMap[project.slug] = deadline;
+            } catch (error) {
+              settlementDeadlineMap[project.slug] = 0n;
+            }
+          } else {
+            settlementDeadlineMap[project.slug] = 0n;
+          }
         } catch (error) {
           console.error(`Failed to fetch TGE status for ${project.slug}:`, error);
           tgeStatusMap[project.slug] = false;
+          settlementDeadlineMap[project.slug] = 0n;
         }
       }
       setProjectTgeStatus(tgeStatusMap);
+      setProjectSettlementDeadlines(settlementDeadlineMap);
     } catch (error) {
       console.error('❌ Failed to load projects:', error);
       setProjects([]);
@@ -1585,6 +1606,25 @@ export default function AdminPage() {
               </span>
             </button>
             <button
+              onClick={() => setStatusFilter("settlement")}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
+                statusFilter === "settlement"
+                  ? "bg-orange-500/20 text-orange-400 border border-orange-500/50"
+                  : "text-zinc-400 hover:text-zinc-300 hover:bg-[#2b2b30]"
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${statusFilter === "settlement" ? "bg-orange-400 animate-pulse" : "bg-zinc-600"}`}></div>
+              <span>IN SETTLEMENT</span>
+              <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/30">
+                {projects.filter(p => {
+                  const tgeActivated = projectTgeStatus[p.slug] || false;
+                  const settlementDeadline = projectSettlementDeadlines[p.slug] || 0n;
+                  const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+                  return tgeActivated && settlementDeadline > 0n && settlementDeadline > currentTimestamp;
+                }).length}
+              </span>
+            </button>
+            <button
               onClick={() => setStatusFilter("ended")}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
                 statusFilter === "ended"
@@ -1595,7 +1635,12 @@ export default function AdminPage() {
               <div className={`w-2 h-2 rounded-full ${statusFilter === "ended" ? "bg-red-400" : "bg-zinc-600"}`}></div>
               <span>ENDED</span>
               <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/30">
-                {projects.filter(p => projectTgeStatus[p.slug]).length}
+                {projects.filter(p => {
+                  const tgeActivated = projectTgeStatus[p.slug] || false;
+                  const settlementDeadline = projectSettlementDeadlines[p.slug] || 0n;
+                  const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+                  return tgeActivated && (settlementDeadline === 0n || settlementDeadline <= currentTimestamp);
+                }).length}
               </span>
             </button>
             <button
@@ -1644,8 +1689,16 @@ export default function AdminPage() {
         ) : (() => {
             const filteredProjects = projects.filter((project) => {
               if (statusFilter === "all") return true;
-              if (statusFilter === "active") return project.active && !projectTgeStatus[project.slug];
-              if (statusFilter === "ended") return projectTgeStatus[project.slug];
+              
+              const tgeActivated = projectTgeStatus[project.slug] || false;
+              const settlementDeadline = projectSettlementDeadlines[project.slug] || 0n;
+              const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+              const isInSettlement = tgeActivated && settlementDeadline > 0n && settlementDeadline > currentTimestamp;
+              const isEnded = tgeActivated && (settlementDeadline === 0n || settlementDeadline <= currentTimestamp);
+              
+              if (statusFilter === "active") return project.active && !tgeActivated;
+              if (statusFilter === "settlement") return isInSettlement;
+              if (statusFilter === "ended") return isEnded;
               return true;
             });
             
@@ -1722,11 +1775,21 @@ export default function AdminPage() {
 
                               {/* Lifecycle */}
                               <td className="py-4 px-4">
-                                {projectTgeStatus[project.slug] ? (
-                                  <Badge className="bg-red-950/30 border border-red-500/50 text-red-400">Ended</Badge>
-                                ) : (
-                                  <Badge className="bg-green-950/30 border border-green-500/50 text-green-400">Active</Badge>
-                                )}
+                                {(() => {
+                                  const tgeActivated = projectTgeStatus[project.slug] || false;
+                                  const settlementDeadline = projectSettlementDeadlines[project.slug] || 0n;
+                                  const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+                                  const isInSettlement = tgeActivated && settlementDeadline > 0n && settlementDeadline > currentTimestamp;
+                                  const isEnded = tgeActivated && (settlementDeadline === 0n || settlementDeadline <= currentTimestamp);
+                                  
+                                  if (isEnded) {
+                                    return <Badge className="bg-red-950/30 border border-red-500/50 text-red-400">Ended</Badge>;
+                                  } else if (isInSettlement) {
+                                    return <Badge className="bg-orange-950/30 border border-orange-500/50 text-orange-400">In Settlement</Badge>;
+                                  } else {
+                                    return <Badge className="bg-green-950/30 border border-green-500/50 text-green-400">Active</Badge>;
+                                  }
+                                })()}
                               </td>
 
                               {/* Slug */}

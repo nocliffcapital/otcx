@@ -65,12 +65,36 @@ otcx/
 | **Mock USDC** | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` | Test stablecoin (Sepolia) |
 
 ### Key Features
-- 100% collateral escrow system
-- IPFS metadata storage
-- Solady security libraries
-- Single-transaction order execution
-- Dynamic fee management
-- Private order URLs
+
+#### Security & Protection
+- ✅ **100% Collateral Escrow**: Both parties lock full collateral before trading
+- ✅ **Reentrancy Protection**: All functions protected with Solady ReentrancyGuard
+- ✅ **Fee-on-Transfer Detection**: Balance-delta checks prevent malicious tokens
+- ✅ **Safe Transfer Library**: Robust handling of non-standard ERC20 tokens
+- ✅ **Access Control**: Self-take prevention, authorization checks
+
+#### Order Management
+- **Public & Private Orders**: Create public orders or restrict to specific counterparties
+- **Buy & Sell Orders**: Support both maker-buy and maker-sell orders
+- **Order Limits**: $100 minimum, $1M maximum per order
+- **Order States**: OPEN → FUNDED → SETTLED (with CANCELED/DEFAULTED paths)
+
+#### Settlement System
+- **Token Projects**: Permissionless on-chain settlement (anyone can trigger)
+- **Points Projects**: Off-chain proof submission with admin verification
+- **Settlement Window**: Configurable deadline (default 4 hours, max 7 days)
+- **Conversion Ratios**: Points-to-token conversion with grace period corrections
+- **Deadline Enforcement**: Proofs must be submitted before deadline
+
+#### Fee Structure
+- **Settlement Fee**: 0.5% (split: 0.5% stable + 0.5% token for token projects)
+- **Cancellation Fee**: 0.1% (charged to order maker)
+- **Fee Limits**: Configurable 0-5% maximum (owner controlled)
+- **Fee Collection**: Automatic fee capture on settlement/cancellation
+
+#### Project Types
+- **Token Projects**: On-chain ERC20 tokens (18 decimals required)
+- **Points Projects**: Off-chain points with on-chain proof verification
 
 ---
 
@@ -95,18 +119,43 @@ otcx/
 ## Core Features
 
 ### For Traders
+
+#### Order Creation & Management
 - **Create Orders**: List token allocations for sale or post buy offers
 - **Browse Markets**: Explore pre-TGE projects (Tokens & Points)
-- **Escrow Safety**: 100% collateral-backed trades with smart contract protection
-- **TGE Settlement**: Automatic settlement after token launch
 - **Private Orders**: Share custom order links with specific counterparties
+- **Order Cancellation**: Cancel orders with 0.1% fee (before proof acceptance)
+
+#### Trading & Settlement
+- **100% Collateral**: Both parties lock full collateral before trading
+- **Token Projects**: Automatic on-chain settlement (permissionless)
+- **Points Projects**: Submit proof, wait for admin verification, then settle
+- **Settlement Window**: 4-hour window after TGE activation (configurable)
+- **Default Handling**: Automatic buyer compensation if seller defaults
+
+#### Security Features
+- **Proof Submission Deadline**: Prevents griefing attacks
+- **Early Settlement Prevention**: Enforces protocol timing guarantees
+- **Fee-on-Transfer Protection**: Automatic detection and rejection
 
 ### For Admins
-- **Project Management**: Add/edit projects via on-chain registry
+
+#### Project Management
+- **Project Registration**: Add/edit projects via on-chain registry
 - **IPFS Integration**: Upload logos/metadata to Pinata
-- **TGE Activation**: Batch activate settlement for multiple orders
-- **Fee Management**: Adjust settlement and cancellation fees dynamically
+- **TGE Activation**: Activate settlement for entire projects (not per-order)
+- **Conversion Ratio**: Set points-to-token ratios with 1-hour grace period
+
+#### System Configuration
+- **Fee Management**: Adjust settlement (0-5%) and cancellation (0-5%) fees
+- **Order Limits**: Set minimum order value ($100 default)
+- **Settlement Windows**: Configure deadline (4 hours to 7 days)
 - **Emergency Controls**: Pause/unpause trading
+
+#### Points Project Verification
+- **Proof Review**: Accept/reject seller proofs after deadline
+- **Batch Operations**: Accept multiple proofs in single transaction
+- **Proof Deadlines**: Only accept proofs after settlement deadline
 
 ---
 

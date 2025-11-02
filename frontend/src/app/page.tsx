@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import ProjectReputationBadge from "@/components/ProjectReputationBadge";
 import { ProjectImage } from "@/components/ProjectImage";
+import { SettlementTimer } from "@/components/SettlementTimer";
 import { useReadContract, usePublicClient, useBlockNumber, useChainId } from "wagmi";
 import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI, STABLE_DECIMALS, slugToProjectId } from "@/lib/contracts";
 import { getExplorerUrl } from "@/lib/chains";
@@ -46,7 +47,7 @@ type ProjectStats = {
 export default function ProjectsPage() {
   const publicClient = usePublicClient();
   const chainId = useChainId();
-  const { data: projectsData, isLoading } = useReadContract({
+  const { data: projectsData, isLoading, error: projectsError } = useReadContract({
     address: REGISTRY_ADDRESS,
     abi: PROJECT_REGISTRY_ABI,
     functionName: "getActiveProjects",
@@ -72,10 +73,11 @@ export default function ProjectsPage() {
   // Default to cards for 1-3 projects, list for 4+ projects
   // Initial value will be updated in useEffect based on project count
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
-  const [marketTab, setMarketTab] = useState<"live" | "ended">("live");
+  const [marketTab, setMarketTab] = useState<"live" | "settlement" | "ended">("live");
   const [sortBy, setSortBy] = useState<"name" | "price" | "volume" | "orders">("volume");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({});
+  const [projectSettlementDeadlines, setProjectSettlementDeadlines] = useState<Record<string, bigint>>({});
 
   // V4: getActiveProjects returns only active projects with full metadata
   // Inactive projects are filtered out on-chain for efficiency
@@ -190,8 +192,9 @@ export default function ProjectsPage() {
           console.warn('Some orders failed to load:', err);
         });
 
-        // Fetch TGE status for each project
+        // Fetch TGE status and settlement deadlines for each project
         const tgeStatusMap: Record<string, boolean> = {};
+        const settlementDeadlineMap: Record<string, bigint> = {};
         const tgePromises = (projects as Project[]).map(async (project) => {
           try {
             const projectId = slugToProjectId(project.slug);
@@ -202,14 +205,33 @@ export default function ProjectsPage() {
               args: [projectId],
             }) as boolean;
             tgeStatusMap[project.slug] = tgeActivated;
+            
+            // Fetch settlement deadline if TGE is activated
+            if (tgeActivated) {
+              try {
+                const deadline = await publicClient.readContract({
+                  address: ORDERBOOK_ADDRESS,
+                  abi: ESCROW_ORDERBOOK_ABI,
+                  functionName: "projectSettlementDeadline",
+                  args: [projectId],
+                }) as bigint;
+                settlementDeadlineMap[project.slug] = deadline;
+              } catch (err) {
+                settlementDeadlineMap[project.slug] = 0n;
+              }
+            } else {
+              settlementDeadlineMap[project.slug] = 0n;
+            }
           } catch (err) {
             console.error(`Failed to fetch TGE status for ${project.slug}:`, err);
             tgeStatusMap[project.slug] = false;
+            settlementDeadlineMap[project.slug] = 0n;
           }
         });
 
         await Promise.all(tgePromises);
         setProjectTgeStatus(tgeStatusMap);
+        setProjectSettlementDeadlines(settlementDeadlineMap);
 
         // Calculate stats for each project
         const stats: Record<string, ProjectStats> = {};
@@ -312,9 +334,15 @@ export default function ProjectsPage() {
           
           // Market tab filtering
           const tgeActivated = projectTgeStatus[project.slug] || false;
+          const settlementDeadline = projectSettlementDeadlines[project.slug] || 0n;
+          const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+          const isInSettlement = tgeActivated && settlementDeadline > 0n && settlementDeadline > currentTimestamp;
+          const isEnded = tgeActivated && (settlementDeadline === 0n || settlementDeadline <= currentTimestamp);
+          
           const matchesTab = 
             marketTab === "live" ? (project.active && !tgeActivated) :  // Live = active AND TGE not activated
-            marketTab === "ended" ? tgeActivated :  // Ended = TGE has been activated (regardless of active status)
+            marketTab === "settlement" ? isInSettlement :  // In Settlement = TGE activated AND deadline hasn't passed
+            marketTab === "ended" ? isEnded :  // Ended = TGE activated AND (no deadline or deadline passed)
             false;
           
           return matchesSearch && matchesAssetType && matchesTab;
@@ -466,26 +494,6 @@ export default function ProjectsPage() {
             </div>
           </div>
 
-          {/* Total Ended */}
-          <div className="border border-red-500/30 rounded p-4 backdrop-blur-sm hover:border-red-500/60 transition-all" style={{ backgroundColor: '#121218' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-red-400" />
-              <span className="text-xs font-mono text-red-400 uppercase">TOTAL ENDED</span>
-            </div>
-            <div className="font-mono">
-              {loadingStats ? (
-                <div className="h-8 w-16 bg-[#2b2b30] rounded animate-pulse mb-1"></div>
-              ) : (
-                <div className="text-2xl font-bold text-white mb-1">
-                  {projects.filter(p => projectTgeStatus[p.slug]).length}
-                </div>
-              )}
-              <div className="text-xs text-zinc-500">
-                markets closed
-              </div>
-            </div>
-          </div>
-
           {/* Currently in Settlement */}
           <div className="border border-orange-500/30 rounded p-4 backdrop-blur-sm hover:border-orange-500/60 transition-all" style={{ backgroundColor: '#121218' }}>
             <div className="flex items-center gap-2 mb-2">
@@ -497,11 +505,41 @@ export default function ProjectsPage() {
                 <div className="h-8 w-16 bg-[#2b2b30] rounded animate-pulse mb-1"></div>
               ) : (
                 <div className="text-2xl font-bold text-white mb-1">
-                  {projects.filter(p => projectTgeStatus[p.slug]).length}
+                  {projects.filter(p => {
+                    const tgeActivated = projectTgeStatus[p.slug] || false;
+                    const settlementDeadline = projectSettlementDeadlines[p.slug] || 0n;
+                    const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+                    return tgeActivated && settlementDeadline > 0n && settlementDeadline > currentTimestamp;
+                  }).length}
                 </div>
               )}
               <div className="text-xs text-zinc-500">
                 <span className="text-orange-400">●</span> active settlements
+              </div>
+            </div>
+          </div>
+
+          {/* Total Ended */}
+          <div className="border border-red-500/30 rounded p-4 backdrop-blur-sm hover:border-red-500/60 transition-all" style={{ backgroundColor: '#121218' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-red-400" />
+              <span className="text-xs font-mono text-red-400 uppercase">TOTAL ENDED</span>
+            </div>
+            <div className="font-mono">
+              {loadingStats ? (
+                <div className="h-8 w-16 bg-[#2b2b30] rounded animate-pulse mb-1"></div>
+              ) : (
+                <div className="text-2xl font-bold text-white mb-1">
+                  {projects.filter(p => {
+                    const tgeActivated = projectTgeStatus[p.slug] || false;
+                    const settlementDeadline = projectSettlementDeadlines[p.slug] || 0n;
+                    const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+                    return tgeActivated && (settlementDeadline === 0n || settlementDeadline <= currentTimestamp);
+                  }).length}
+                </div>
+              )}
+              <div className="text-xs text-zinc-500">
+                markets closed
               </div>
             </div>
           </div>
@@ -524,6 +562,25 @@ export default function ProjectsPage() {
             </span>
           </button>
           <button
+            onClick={() => setMarketTab("settlement")}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
+              marketTab === "settlement"
+                ? "bg-orange-500/20 text-orange-400 border border-orange-500/50"
+                : "text-zinc-400 hover:text-zinc-300 hover:bg-[#2b2b30]"
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${marketTab === "settlement" ? "bg-orange-400 animate-pulse" : "bg-zinc-600"}`}></div>
+            <span>IN SETTLEMENT</span>
+            <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/30">
+              {projects.filter(p => {
+                const tgeActivated = projectTgeStatus[p.slug] || false;
+                const settlementDeadline = projectSettlementDeadlines[p.slug] || 0n;
+                const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+                return tgeActivated && settlementDeadline > 0n && settlementDeadline > currentTimestamp;
+              }).length}
+            </span>
+          </button>
+          <button
             onClick={() => setMarketTab("ended")}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-mono font-medium transition-all rounded ${
               marketTab === "ended"
@@ -534,7 +591,12 @@ export default function ProjectsPage() {
             <div className={`w-2 h-2 rounded-full ${marketTab === "ended" ? "bg-red-400" : "bg-zinc-600"}`}></div>
             <span>ENDED</span>
             <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/30">
-              {projects.filter(p => projectTgeStatus[p.slug]).length}
+              {projects.filter(p => {
+                const tgeActivated = projectTgeStatus[p.slug] || false;
+                const settlementDeadline = projectSettlementDeadlines[p.slug] || 0n;
+                const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+                return tgeActivated && (settlementDeadline === 0n || settlementDeadline <= currentTimestamp);
+              }).length}
             </span>
           </button>
         </div>
@@ -642,10 +704,17 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {isLoading && (
+      {isLoading && !projectsError && (
         <div className="text-center text-zinc-400 py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-400"></div>
           <p className="mt-4">Loading projects...</p>
+        </div>
+      )}
+      
+      {projectsError && (
+        <div className="text-center text-red-400 py-8">
+          <p className="mb-2">Failed to load projects</p>
+          <p className="text-sm text-zinc-500">Please check your connection and try again</p>
         </div>
       )}
 
@@ -736,13 +805,28 @@ export default function ProjectsPage() {
             ? ((stats.lowestAsk - stats.highestBid) / stats.highestBid * 100).toFixed(2)
             : null;
           
+          // Determine project status
+          const tgeActivated = projectTgeStatus[project.slug] || false;
+          const settlementDeadline = projectSettlementDeadlines[project.slug] || 0n;
+          const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+          const isInSettlement = tgeActivated && settlementDeadline > 0n && settlementDeadline > currentTimestamp;
+          const isEnded = tgeActivated && (settlementDeadline === 0n || settlementDeadline <= currentTimestamp);
+          
           return (
             <Link key={project.slug} href={`/markets/${project.slug}`}>
               <div className="bg-[#121218] border border-[#2b2b30] hover:border-zinc-500 hover:shadow-lg hover:shadow-zinc-500/20 cursor-pointer h-full group transition-all backdrop-blur-sm rounded">
                 {/* Terminal-style header */}
                 <div className="bg-gradient-to-r from-[#2b2b30]/50 to-[#2b2b30]/50 border-b border-[#2b2b30] px-3 py-2 font-mono text-xs flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                    {(() => {
+                      if (isEnded) {
+                        return <div className="w-2 h-2 rounded-full bg-red-400"></div>;
+                      } else if (isInSettlement) {
+                        return <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></div>;
+                      } else {
+                        return <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>;
+                      }
+                    })()}
                     <span className="text-zinc-300 uppercase">{project.slug}</span>
                   </div>
                   <Badge className={`text-xs font-mono ${project.assetType === "Points" ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" : "bg-blue-500/20 text-blue-400 border border-blue-500/50"}`}>
@@ -810,6 +894,21 @@ export default function ProjectsPage() {
                       <div className="h-6 bg-[#2b2b30] rounded animate-pulse"></div>
                       <div className="h-6 bg-[#2b2b30] rounded animate-pulse"></div>
                       <div className="h-6 bg-[#2b2b30] rounded animate-pulse"></div>
+                    </div>
+                  )}
+                  
+                  {/* Status and Timer */}
+                  {isInSettlement && settlementDeadline && settlementDeadline > 0n && (
+                    <div className="mt-4 pt-4 border-t border-[#2b2b30]">
+                      <div className="flex items-center justify-between">
+                        <Badge className="bg-orange-500/20 text-orange-400 border border-orange-500/50 text-xs font-mono font-semibold">
+                          SETTLEMENT
+                        </Badge>
+                        <SettlementTimer 
+                          settlementDeadline={settlementDeadline} 
+                          variant="inline"
+                        />
+                      </div>
                     </div>
                   )}
                   
@@ -1036,11 +1135,30 @@ export default function ProjectsPage() {
                     <td className="py-3 px-4">
                       {(() => {
                         const tgeActivated = projectTgeStatus[project.slug] || false;
-                        if (tgeActivated) {
+                        const settlementDeadline = projectSettlementDeadlines[project.slug] || 0n;
+                        const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+                        const isInSettlement = tgeActivated && settlementDeadline > 0n && settlementDeadline > currentTimestamp;
+                        const isEnded = tgeActivated && (settlementDeadline === 0n || settlementDeadline <= currentTimestamp);
+                        
+                        if (isEnded) {
                           return (
                             <div className="flex items-center gap-1">
                               <div className="w-2 h-2 rounded-full bg-red-400"></div>
                               <span className="text-red-400">ENDED</span>
+                            </div>
+                          );
+                        } else if (isInSettlement) {
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <Badge className="bg-orange-500/20 text-orange-400 border border-orange-500/50 text-xs font-mono font-semibold w-fit">
+                                SETTLEMENT
+                              </Badge>
+                              {settlementDeadline && settlementDeadline > 0n && (
+                                <SettlementTimer 
+                                  settlementDeadline={settlementDeadline} 
+                                  variant="inline"
+                                />
+                              )}
                             </div>
                           );
                         } else {

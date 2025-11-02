@@ -106,6 +106,9 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     // Points projects: proof acceptance (owner must explicitly approve before settlement)
     mapping(uint256 => bool) public proofAccepted;
     mapping(uint256 => uint64) public proofAcceptedAt;
+    
+    // Points projects: proof rejection tracking (for default handling)
+    mapping(uint256 => bool) public proofRejected;
 
     // ========== EVENTS ==========
     
@@ -568,11 +571,17 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     /// @notice Submit proof for Points project settlement
     /// @param orderId The order ID
     /// @param proof IPFS hash or transaction proof
+    /// @dev Proof must be submitted before settlement deadline to prevent griefing
     function submitProof(uint256 orderId, string calldata proof) external {
         Order storage order = orders[orderId];
         if (order.seller != msg.sender) revert NotAuthorized();
         if (order.status != Status.FUNDED) revert InvalidStatus();
         if (!projectTgeActivated[order.projectId]) revert TGENotActivated();
+        
+        // Only allow proof submission before settlement deadline (prevents griefing)
+        if (block.timestamp > projectSettlementDeadline[order.projectId]) {
+            revert DeadlinePassed();
+        }
         
         settlementProof[orderId] = proof;
         proofSubmittedAt[orderId] = uint64(block.timestamp);
@@ -582,18 +591,41 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
 
     /// @notice Owner accepts the seller's proof for a Points order
     /// @param orderId The order ID
-    /// @dev Acceptance must occur before the settlement deadline
+    /// @dev Acceptance must occur AFTER the settlement deadline (users have exactly 4 hours to submit)
     function acceptProof(uint256 orderId) external onlyOwner {
         Order storage order = orders[orderId];
         if (order.status != Status.FUNDED) revert InvalidStatus();
         if (!projectTgeActivated[order.projectId]) revert TGENotActivated();
         if (bytes(settlementProof[orderId]).length == 0) revert InvalidStatus(); // no proof submitted
 
-        // Enforce acceptance occurs within the settlement window
-        if (block.timestamp > projectSettlementDeadline[order.projectId]) revert DeadlinePassed();
+        // Enforce acceptance occurs AFTER the settlement deadline
+        if (block.timestamp <= projectSettlementDeadline[order.projectId]) revert InvalidStatus();
 
         proofAccepted[orderId] = true;
         proofAcceptedAt[orderId] = uint64(block.timestamp);
+        
+        // Clear rejected flag if it was set
+        proofRejected[orderId] = false;
+
+        emit ProofAccepted(orderId, msg.sender);
+    }
+
+    /// @notice Buyer accepts the seller's proof (can accept anytime if convinced)
+    /// @param orderId The order ID
+    /// @dev Buyer can accept proof immediately if they've verified receipt of tokens
+    /// @dev Once accepted by buyer, anyone can settle the order
+    function acceptProofAsBuyer(uint256 orderId) external {
+        Order storage order = orders[orderId];
+        if (order.status != Status.FUNDED) revert InvalidStatus();
+        if (!projectTgeActivated[order.projectId]) revert TGENotActivated();
+        if (bytes(settlementProof[orderId]).length == 0) revert InvalidStatus(); // no proof submitted
+        if (msg.sender != order.buyer) revert NotAuthorized(); // Only buyer can call this
+
+        proofAccepted[orderId] = true;
+        proofAcceptedAt[orderId] = uint64(block.timestamp);
+        
+        // Clear rejected flag if it was set
+        proofRejected[orderId] = false;
 
         emit ProofAccepted(orderId, msg.sender);
     }
@@ -601,6 +633,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     /// @notice Owner accepts multiple proofs in a single transaction (batch operation)
     /// @param orderIds Array of order IDs to accept
     /// @dev After acceptance, anyone can permissionlessly settle each order via settleOrderManual()
+    /// @dev Acceptance must occur AFTER the settlement deadline (users have exactly 4 hours to submit)
     function acceptProofBatch(uint256[] calldata orderIds) external onlyOwner {
         uint256 length = orderIds.length;
         if (length == 0) revert InvalidAmount();
@@ -614,11 +647,14 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
             if (!projectTgeActivated[order.projectId]) continue;
             if (bytes(settlementProof[orderId]).length == 0) continue;
             
-            // Enforce acceptance occurs within the settlement window
-            if (block.timestamp > projectSettlementDeadline[order.projectId]) continue;
+            // Enforce acceptance occurs AFTER the settlement deadline
+            if (block.timestamp <= projectSettlementDeadline[order.projectId]) continue;
             
             proofAccepted[orderId] = true;
             proofAcceptedAt[orderId] = uint64(block.timestamp);
+            
+            // Clear rejected flag if it was set
+            proofRejected[orderId] = false;
             
             emit ProofAccepted(orderId, msg.sender);
         }
@@ -627,13 +663,20 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     /// @notice Owner rejects the seller's proof (optionally provide reason)
     /// @param orderId The order ID
     /// @param reason Rejection reason (for transparency)
-    /// @dev Rejection does not close the order - seller may re-submit proof
+    /// @dev Rejection enables default handling - buyer can call handleDefault() after deadline
+    /// @dev Rejection must occur AFTER the settlement deadline (sellers have exactly 4 hours to submit)
     function rejectProof(uint256 orderId, string calldata reason) external onlyOwner {
         Order storage order = orders[orderId];
         if (order.status != Status.FUNDED) revert InvalidStatus();
         if (!projectTgeActivated[order.projectId]) revert TGENotActivated();
         if (bytes(settlementProof[orderId]).length == 0) revert InvalidStatus(); // no proof submitted
 
+        // Enforce rejection occurs AFTER the settlement deadline
+        if (block.timestamp <= projectSettlementDeadline[order.projectId]) revert InvalidStatus();
+
+        // Mark proof as rejected (enables default handling)
+        proofRejected[orderId] = true;
+        
         // Reset proof acceptance if it was previously accepted
         proofAccepted[orderId] = false;
 
@@ -644,6 +687,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
     /// @param orderId The order to settle
     /// @dev Can be called by ANYONE once proof is accepted (fully trustless after admin approval)
     /// For Points projects, the conversion ratio is informational only (off-chain transfer)
+    /// @dev Can only be called after settlement deadline (enforces 4-hour settlement window)
     function settleOrderManual(uint256 orderId) external nonReentrant {
         Order storage order = orders[orderId];
         if (order.status != Status.FUNDED) revert InvalidStatus();
@@ -654,10 +698,10 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         if (!proofAccepted[orderId]) revert NotAuthorized();
         
         // Permissionless: Anyone can trigger settlement once proof is accepted
-        // No need for batch operations - each party settles when ready
-        
-        // Ensure settlement happens before deadline (prevents owner from overriding buyer's right to handleDefault)
-        if (block.timestamp > projectSettlementDeadline[order.projectId]) revert DeadlinePassed();
+        // Must wait for settlement deadline to pass (enforces protocol timing guarantees)
+        if (block.timestamp <= projectSettlementDeadline[order.projectId]) {
+            revert InvalidStatus(); // Too early, wait for deadline
+        }
         
         // This function is for Points projects ONLY (token projects use settleOrder with on-chain delivery)
         address tokenAddress = projectTokenAddress[order.projectId];
@@ -684,6 +728,7 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         delete proofAccepted[orderId];
         delete proofAcceptedAt[orderId];
         delete settlementProof[orderId];
+        delete proofRejected[orderId];
         
         // INTERACTIONS: External calls
         // Distribute collateral minus fee
@@ -698,13 +743,29 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         emit OrderSettled(orderId, buyer, seller, fee, 0);
     }
 
-    /// @notice Handle defaulted order (after deadline)
+    /// @notice Handle defaulted order (only if proof was rejected or no proof submitted)
     /// @param orderId The order that defaulted
+    /// @dev Default can only happen if:
+    ///   1. Deadline has passed AND
+    ///   2. Either no proof was submitted OR proof was rejected by admin
+    /// @dev If proof was submitted but not yet reviewed, buyer must wait for admin decision
     function handleDefault(uint256 orderId) external nonReentrant {
         Order storage order = orders[orderId];
         if (order.status != Status.FUNDED) revert InvalidStatus();
         if (!projectTgeActivated[order.projectId]) revert TGENotActivated();
+        
+        // Must be after deadline
         if (block.timestamp <= projectSettlementDeadline[order.projectId]) revert InvalidStatus();
+        
+        // Check if proof was submitted
+        bool hasProof = bytes(settlementProof[orderId]).length > 0;
+        
+        // If proof was submitted, it must be rejected to allow default
+        // If no proof was submitted, default is allowed
+        if (hasProof && !proofRejected[orderId]) {
+            // Proof was submitted but not rejected - admin may still accept it
+            revert InvalidStatus();
+        }
         
         // Calculate compensation and cache values
         uint256 compensation = order.buyerFunds + order.sellerCollateral;
@@ -712,6 +773,13 @@ contract EscrowOrderBookV4 is Ownable, ReentrancyGuard {
         
         // EFFECTS: Update state before interactions
         order.status = Status.DEFAULTED;
+        
+        // Clean up proof state if it exists
+        if (hasProof) {
+            delete proofRejected[orderId];
+            delete settlementProof[orderId];
+            delete proofSubmittedAt[orderId];
+        }
         
         // INTERACTIONS: External call
         // Refund buyer (seller defaulted)

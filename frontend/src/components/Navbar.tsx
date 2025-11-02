@@ -232,10 +232,11 @@ export function Navbar() {
                         <button
                           onClick={openChainModal}
                           type="button"
-                          className="px-6 py-1.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded border transition-all font-mono h-[38px]"
-                          style={{ borderColor: '#2b2b30' }}
+                          className="px-4 py-1.5 text-sm text-yellow-400 hover:text-yellow-300 font-medium rounded border transition-all font-mono h-[38px] flex items-center gap-2"
+                          style={{ backgroundColor: '#2b2b30', borderColor: '#facc15' }}
                         >
-                          WRONG NETWORK
+                          <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
+                          SWITCH NETWORK
                         </button>
                       );
                     }

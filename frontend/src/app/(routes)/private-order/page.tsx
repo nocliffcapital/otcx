@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { PrivateOrderCreator } from "@/components/PrivateOrderCreator";
 import { useOrderbook } from "@/hooks/useOrderbook";
-import { useReadContract, useBlockNumber, useChainId } from "wagmi";
+import { useReadContract, useBlockNumber, useChainId, usePublicClient } from "wagmi";
 import { getExplorerUrl } from "@/lib/chains";
-import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, slugToProjectId, ORDERBOOK_ADDRESS } from "@/lib/contracts";
+import { REGISTRY_ADDRESS, PROJECT_REGISTRY_ABI, slugToProjectId, ORDERBOOK_ADDRESS, ESCROW_ORDERBOOK_ABI } from "@/lib/contracts";
 import { Lock, Search, UserPlus, Users, ShieldCheck, Calendar, Coins, CheckCircle, ArrowRight, Terminal, Database, Cpu, AlertTriangle, ChevronDown, Info } from "lucide-react";
 import { ProjectImage } from "@/components/ProjectImage";
 import { Badge } from "@/components/ui/Badge";
@@ -24,6 +24,7 @@ export default function PrivateOrderPage() {
 
   // Get current block number
   const { data: blockNumber } = useBlockNumber({ watch: true });
+  const publicClient = usePublicClient();
 
   // Check if orderbook is paused
   const { data: isOrderbookPaused } = useReadContract({
@@ -45,23 +46,71 @@ export default function PrivateOrderPage() {
     functionName: "getActiveProjects",
   }) as { data: any[] | undefined };
 
-  const projects = (projectsData || []).map((p: any) => ({
-    id: p.id,
-    slug: p.slug || p.name?.toLowerCase().replace(/\s+/g, '-') || 'unknown',
-    name: p.name,
-    metadataURI: p.metadataURI,
-    isPoints: p.isPoints,
-    active: p.active,
-    assetType: p.isPoints ? "Points" : "Tokens",
-    twitterUrl: p.twitterUrl || "",
-    websiteUrl: p.websiteUrl || "",
-    description: p.description || "",
-    tokenAddress: p.tokenAddress,
-  }));
+  const [projectTgeStatus, setProjectTgeStatus] = useState<Record<string, boolean>>({});
 
-  // Filter projects based on search and asset type
+  // Fetch TGE status for each project
+  useEffect(() => {
+    if (!projectsData || !publicClient) return;
+
+    const fetchTgeStatuses = async () => {
+      const tgeStatusMap: Record<string, boolean> = {};
+      
+      const tgePromises = (projectsData as any[]).map(async (proj) => {
+        try {
+          const slug = proj.slug || proj.name?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
+          const projectId = slugToProjectId(slug);
+          
+          const tgeActivated = await publicClient.readContract({
+            address: ORDERBOOK_ADDRESS,
+            abi: ESCROW_ORDERBOOK_ABI,
+            functionName: "projectTgeActivated",
+            args: [projectId],
+          }) as boolean;
+          
+          tgeStatusMap[slug] = tgeActivated;
+        } catch (err) {
+          console.error(`Failed to fetch TGE status for project:`, err);
+          const slug = proj.slug || proj.name?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
+          tgeStatusMap[slug] = false;
+        }
+      });
+
+      await Promise.all(tgePromises);
+      setProjectTgeStatus(tgeStatusMap);
+    };
+
+    fetchTgeStatuses();
+    
+    // Refetch every 5 seconds to stay updated
+    const interval = setInterval(fetchTgeStatuses, 5000);
+    return () => clearInterval(interval);
+  }, [projectsData, publicClient]);
+
+  const projects = (projectsData || []).map((p: any) => {
+    const slug = p.slug || p.name?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
+    return {
+      id: p.id,
+      slug,
+      name: p.name,
+      metadataURI: p.metadataURI,
+      isPoints: p.isPoints,
+      active: p.active,
+      assetType: p.isPoints ? "Points" : "Tokens",
+      twitterUrl: p.twitterUrl || "",
+      websiteUrl: p.websiteUrl || "",
+      description: p.description || "",
+      tokenAddress: p.tokenAddress,
+      tgeActivated: projectTgeStatus[slug] || false,
+    };
+  });
+
+  // Filter projects based on search, asset type, and live status (only show projects that are active and not in settlement/ended)
   const filteredProjects = useMemo(() => {
     return projects.filter((project) => {
+      // Only show projects that are currently live (active and TGE not activated)
+      const isLive = project.active && !project.tgeActivated;
+      if (!isLive) return false;
+      
       // Search filter
       const matchesSearch = searchQuery.trim() === "" || 
         project.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -9,7 +9,10 @@ export function CursorSpotlight() {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setPosition({ x: e.clientX, y: e.clientY });
-      if (!isVisible) setIsVisible(true);
+      setIsVisible((prev) => {
+        if (!prev) return true;
+        return prev;
+      });
     };
 
     const handleMouseLeave = () => {
@@ -23,7 +26,7 @@ export function CursorSpotlight() {
       window.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, [isVisible]);
+  }, []); // Empty dependency array - event listeners should only be set up once
 
   if (!isVisible) return null;
 
